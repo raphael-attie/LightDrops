@@ -1,4 +1,4 @@
-# LightDrop
+# LightDrops
 Raw image calibration and processing for astrophotography, astrophysics, and solar physics images. 
 
 ## Installation instructions
