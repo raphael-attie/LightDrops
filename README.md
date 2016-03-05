@@ -18,7 +18,7 @@ At the moment Lightdrops is tested with raw images from Canon DSLRs, but other D
 ## Hardware requirements
 
 - Graphics that supports at least openGL 3.3. This is generally the case with Intel integrated graphics or any dedicated graphic card released since 2010. 
-- Multicore processor. This software is tested with Intel dual core processors and quad core processors (core i3, i5 i7). 
+- Multicore processor. This software is tested with Intel dual core processors and quad core processors (core i3, i5, i7). 
 Any intel or AMD CPU of the last decade should do, although things are not tested on AMD CPUs.  
 
 ## Get Started
