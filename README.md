@@ -7,7 +7,7 @@ Raw image calibration and processing for astrophotography, astrophysics, and sol
 
 This project uses Qt as the base framework with Qt Creator and Qt designer. 
 The main development language is C++, with a little bit of C. 
-To compile the code, you will need to install CFITSIO, Libraw, openCV 3.x with TBB enabled (e.g, use CMAKE), and ArrayFire. 
+To compile the code, you will need to install CFITSIO, Libraw, openCV 3.x, and ArrayFire:
 
 - [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html): A library to handles FITS files, a scientific data file format, used here as an image file format. If developping from a Mac, the easiest installation is with macports. 
 - [Libraw](http://www.libraw.org/docs/Install-LibRaw-eng.html): A library for handling raw files from DSLRs. 
