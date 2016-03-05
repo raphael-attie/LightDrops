@@ -7,12 +7,11 @@ This project uses Qt as the base framework with Qt Creator and Qt designer.
 The main development language is C++, with a little bit of C. 
 To compile the code, you will need to install CFITSIO, Libraw, openCV 3.x with TBB enabled (e.g, use CMAKE), and ArrayFire. 
 
-- [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html): A library to handles FITS files, a scientific data file format, used here as an image file format.
-Install with either macports (mac).
+- [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html): A library to handles FITS files, a scientific data file format, used here as an image file format. If developping from a Mac, the easiest installation is with macports. 
 - [Libraw](http://www.libraw.org/docs/Install-LibRaw-eng.html): A library for handling raw files from DSLRs. 
-At the moment the software is tested with raw images from Canon DSLRs. Use DLLs for Windows or follow compilation instructions for Mac/Linux/Unix. 
-- [OpenCV 3](http://opencv.org): Image processing library. Make sure TBB is enabled in your compilation options). 
-- [ArrayFire](http://arrayfire.com): A general purpose parallel processing library. Used here for the openCL functions that enables highly parallel and fast image processing with the hundreds of cores of the the Graphics Processing Unit (GPU).
+At the moment Lightdrops is tested with raw images from Canon DSLRs, but other DSLR models will be supported in the future. Use DLLs for Windows or follow compilation instructions for Mac/Linux/Unix. 
+- [OpenCV 3](http://opencv.org): Image processing library. Make sure TBB is enabled in your CMake compilation options. 
+- [ArrayFire](http://arrayfire.com): A general purpose parallel processing library. Used here for the openCL functions that enables highly parallel and fast image processing with the hundreds of cores of the Graphics Processing Unit (GPU). If you are developping from a Mac, I recommend the [alternate installation with CMAKE](https://github.com/arrayfire/arrayfire/wiki/Build-Instructions-for-OSX#building-arrayfire). 
 
 ## Hardware requirements
 
