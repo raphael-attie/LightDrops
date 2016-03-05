@@ -11,15 +11,16 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 TARGET = Lightdrops
 TEMPLATE = app
 
-INCLUDEPATH += /opt/local/include /usr/local/include/libiomp
-INCLUDEPATH += /Users/raphaela/Dev/Libraw_source/LibRaw-0.17.0/install_noAddDemosaic/include/libraw
-INCLUDEPATH += /Users/raphaela/Dev/opencv3_tbb_opencl/include
+INCLUDEPATH += /opt/local/include
+INCLUDEPATH += /Usr/local/include/libraw
+
+INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
 INCLUDEPATH += /usr/local/include
 
 LIBS += -L/opt/local/lib -lcfitsio
-LIBS += -L../Libraw_source/LibRaw-0.17.0/install_noAddDemosaic/lib -lraw
+LIBS += -L/usr/local/lib -lraw -lafopencl
 LIBS += -L../opencv3_tbb_opencl/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
-LIBS += -L/usr/local/lib -lafopencl
+
 
 # Setup Qt so Clang works with C++11
 LIBS += -stdlib=libc++
