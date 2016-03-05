@@ -24,5 +24,5 @@ Any intel or AMD CPU of the last decade should do, although things are not teste
 
 ## Get Started
 
-After you run the app, the main UI appear, just drag and drop your 2D FITS or DSLR image(s) in the main window. 
+After you run the app, the main UI appears; just drag and drop your 2D FITS or DSLR image(s) in the main window. 
 You can drag multiple files at once and use the player for viewing through the image series. For FITS files, the "header" button will show the FITS header full list of keywords/values/comments. 
