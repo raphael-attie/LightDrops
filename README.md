@@ -1,6 +1,8 @@
 # LightDrops
 Raw image calibration and processing for astrophotography, astrophysics, and solar physics images. 
 
+![alt tag](screenshots/screenshot_Solar_M74.jpg?raw=true)
+
 ## Installation instructions
 
 This project uses Qt as the base framework with Qt Creator and Qt designer. 
@@ -18,9 +20,6 @@ At the moment Lightdrops is tested with raw images from Canon DSLRs, but other D
 - Graphics that supports at least openGL 3.3. This is generally the case with Intel integrated graphics or any dedicated graphic card released since 2010. 
 - Multicore processor. This software is tested with Intel dual core processors and quad core processors (core i3, i5 i7). 
 Any intel or AMD CPU of the last decade should do, although things are not tested on AMD CPUs.  
-
-## Screenshot
-![alt tag](screenshots/screenshot_Solar_M74.jpg?raw=true)
 
 ## Get Started
 
