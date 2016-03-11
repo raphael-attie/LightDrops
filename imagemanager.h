@@ -2,6 +2,7 @@
 #define IMAGEMANAGER_H
 
 #include <QtCore>
+#include <QTableWidget>
 
 //opencv
 #include <opencv2/core.hpp>
@@ -23,6 +24,7 @@ public:
     // getters
     MyFitsImage* getNewFitsImage();
     QString getFileName();
+    QTableWidget *getTableWidget() const;
 
     float getWbRed() const;
     float getWbGreen() const;
@@ -32,12 +34,14 @@ private:
 
     void loadFits();
     void loadRaw();
+    void createTableWidget();
 
     QList<QString> fitsExtList;
     QList<QString> rawExtList;
     QString filePathQStr;
     QString fileName;
     QString fileExt;
+    QTableWidget* tableWidget;
 
     MyFitsImage *newFitsImage;
     QVector<MyFitsImage*> fitsSeries;

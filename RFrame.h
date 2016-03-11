@@ -60,6 +60,9 @@ private:
     QLineF hLineLeft;
     QLineF vLineTop;
     QLineF hLineRight;
+    QLineF hLineCross;
+    QLineF vLineCross;
+
     QRectF subRect1;
     QRectF subRect2;
     QPointF cursorPoint;

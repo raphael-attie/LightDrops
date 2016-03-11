@@ -21,11 +21,12 @@ public:
     //getters
     QList<QUrl> getUrlList();
     QList<ImageManager*> getImageManagerList();
-
+    QList<QTableWidget*> getTableWidgetList() const;
 
 private:
     QList<QUrl> urlList;
     QList<ImageManager*> imageManagerList;
+    QList<QTableWidget*> tableWidgetList;
 
 };
 

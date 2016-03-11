@@ -34,7 +34,6 @@ QMAKE_LFLAGS += -mmacosx-version-min=10.7
 
 SOURCES += main.cpp\
         rmainwindow.cpp \
-    scrollarea.cpp \
     ropenglwidget.cpp \
     MyFitsImage.cpp \
     RawImage.cpp \
@@ -47,10 +46,10 @@ SOURCES += main.cpp\
     rlineedit.cpp \
     RFrame.cpp \
     qcustomplot/qcustomplot.cpp \
-    rtableworker.cpp
+    rtableworker.cpp \
+    rsubwindow.cpp
 
 HEADERS  += rmainwindow.h \
-    scrollarea.h \
     ropenglwidget.h \
     MyFitsImage.h \
     RawImage.h \
@@ -63,12 +62,12 @@ HEADERS  += rmainwindow.h \
     rlineedit.h \
     RFrame.h \
     qcustomplot/qcustomplot.h \
-    rtableworker.h
+    rtableworker.h \
+    rsubwindow.h
 
-FORMS    += rmainwindow.ui \
-    scrollarea.ui
+FORMS    += rmainwindow.ui
 
 RESOURCES += \
-    shaders.qrc
+    ressources.qrc
 
 DISTFILES +=

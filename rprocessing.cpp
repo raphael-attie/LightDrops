@@ -102,7 +102,10 @@ bool RProcessing::makeMasterFlat()
 RMat RProcessing::average(QList<RMat> rMatList)
 {
     // Averages a series of cv::Mat images using arithmetic mean.
-    RMat rImage(rMatList.at(0));
+    cv::Mat initMat;
+    rMatList.at(0).matImage.convertTo(initMat, CV_32F);
+
+    RMat rImage(initMat);
 
     if (rMatList.size() == 1)
     {
@@ -114,13 +117,13 @@ RMat RProcessing::average(QList<RMat> rMatList)
 
     // Need to create a Mat image that will host the result of the average.
     // It needs to be the same type, and has the number of channels as the Mat images of the series.
-    cv::Mat avgImg = cv::Mat::zeros(naxis2, naxis1, rImage.matImage.type());
+    cv::Mat avgImg = cv::Mat::zeros(naxis2, naxis1, initMat.type());
 
     // The accumulate function in the for-loop below can only work with up to 3 color channels
     cv::Mat tempImage;
     for(int i = 0; i < rMatList.size(); i++)
     {
-        tempImage = rMatList.at(i).matImage;
+        rMatList.at(i).matImage.convertTo(tempImage, CV_32F);
         cv::accumulate(tempImage, avgImg);
     }
 
@@ -128,48 +131,56 @@ RMat RProcessing::average(QList<RMat> rMatList)
     rImage.matImage = avgImg;
 
     return rImage;
-
 }
 
 
 void RProcessing::exportMastersToFits()
 {
-    QDir mastersDir(exportMastersDir);
+
     if (!masterBias.empty())
     {
-        masterBiasPath = mastersDir.filePath("masterBias.fits");
-        QFile QFilePath(masterBiasPath);
-        if (QFilePath.exists())
-        {
-            masterBiasPath = mastersDir.filePath("newMasterBias.fits");
-        }
-        exportToFits(masterBias, masterBiasPath);
+        QFileInfo fileInfo(treeWidget->getBiasDir().filePath(QString("masterBias.fits")));
+        masterBiasPath = setupFileName(fileInfo);
 
+        exportToFits(masterBias, masterBiasPath);
     }
 
     if (!masterDark.empty())
     {
-        masterDarkPath = mastersDir.filePath("masterDark.fits");
-        QFile QFilePath(masterDarkPath);
-        if (QFilePath.exists())
-        {
-            masterDarkPath = mastersDir.filePath("newMasterDark.fits");
-        }
+        QFileInfo fileInfo(treeWidget->getDarkDir().filePath(QString("masterDark.fits")));
+        masterDarkPath = setupFileName(fileInfo);
+
         exportToFits(masterDark, masterDarkPath);
 
     }
 
     if (!masterFlat.empty())
     {
-        masterFlatPath = mastersDir.filePath("masterFlat.fits");
-        QFile QFilePath(masterFlatPath);
-        if (QFilePath.exists())
-        {
-            masterFlatPath = mastersDir.filePath("newMasterFlat.fits");
-        }
+
+        QFileInfo fileInfo(treeWidget->getFlatDir().filePath(QString("masterDark.fits")));
+        masterFlatPath = setupFileName(fileInfo);
+
         exportToFits(masterFlat, masterFlatPath);
     }
 
+}
+
+QString RProcessing::setupFileName(QFileInfo fileInfo)
+{
+    QString filePath = fileInfo.filePath();
+    QString baseName = fileInfo.baseName();
+
+    uint fileNumber = 1;
+    while (fileInfo.exists())
+    {
+        baseName = baseName + QString("_") + QString::number(fileNumber) + QString(".");
+        filePath = fileInfo.absoluteDir().filePath(baseName + fileInfo.suffix());
+        fileInfo = QFileInfo(filePath);
+        fileNumber++;
+        qDebug() << "RProcessing::setupFileName():: filePath =" << filePath;
+    }
+
+    return filePath;
 }
 
 
@@ -267,10 +278,10 @@ void RProcessing::loadMasterFlat()
 
 void RProcessing::createMasters()
 {
-    if (exportMastersDir.isEmpty())
+    if (treeWidget->getBiasUrls().isEmpty() && treeWidget->getDarkUrls().isEmpty() && treeWidget->getFlatUrls().isEmpty())
     {
-        qDebug("ProcessingWidget::Master directory is empty");
-        tempMessageSignal(QString("Master directory is empty"));
+        qDebug("ProcessingWidget:: Images tree is empty");
+        tempMessageSignal(QString("Images tree is empty"));
         return;
     }
 

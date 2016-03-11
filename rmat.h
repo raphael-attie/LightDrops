@@ -2,6 +2,8 @@
 #define RMAT_H
 
 #include <QString>
+#include <QTreeWidgetItem>
+#include <QFileInfo>
 //opencv
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -51,6 +53,10 @@ public:
     float getIntensityHigh() const;
     double getHistWidth() const;
     uint getNPixels() const;
+    float getMinHistRange() const;
+    float getMaxHistRange() const;
+    QTreeWidgetItem* getItem() const;
+    QFileInfo getFileInfo() const;
 
 
     // setters
@@ -64,6 +70,8 @@ public:
     void setWbBlue(float wbBlue);
     void setImageTitle(QString title);
     void setInstrument(instruments instrument);
+    void setItem(QTreeWidgetItem* item);
+    void setFileInfo(QFileInfo fileInfo);
 
 private:
 
@@ -78,6 +86,7 @@ private:
 
    instruments instrument;
    QString imageTitle;
+   QFileInfo fileInfo;
 
    cv::Mat matImageGray;
 
@@ -88,7 +97,12 @@ private:
    float median;
    float intensityLow, intensityHigh;
    double histWidth;
+   float minHistRange;
+   float maxHistRange;
    uint nPixels;
+
+   // for QTreeWidget
+   QTreeWidgetItem* item;
 
 
 };

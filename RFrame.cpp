@@ -34,12 +34,12 @@ void RFrame::initialize()
     sx = 1;
     sy = -1;
 
-    this->naxis1 = 50;
-    this->naxis2 = 50;
+    naxis1 = 60;
+    naxis2 = 60;
     imageCoordX = 0;
     imageCoordY = 0;
     drawCross = false;
-    this->magnification = 4;
+    magnification = 2;
 
     setCursor(Qt::CrossCursor);
 
@@ -53,7 +53,7 @@ void RFrame::initialize()
     linePenGreen.setWidthF(1);
 
 
-    valueFont = QFont("Times", 14, QFont::Normal);
+    valueFont = QFont("Times", 12, QFont::Normal);
 
     // Set the widget size
 
@@ -72,13 +72,13 @@ void RFrame::initialize()
     //resize(fitsWidgetWidth , fitsWidgetHeight);
     setFixedSize(widgetWidth , widgetHeight);
 
-    int infoHeight = 20;
+    int infoHeight = 15;
     int infoWidth = this->width();
     rectText1 = QRect(1, this->height()- infoHeight, infoWidth, infoHeight);
     rectText2 = QRect(1, 0, this->width(), infoHeight);
 
-    posText1 = QPointF(1, this->height() - 5);
-    posText2 = QPointF(1, 15);
+    posText1 = QPointF(1, this->height() - 3);
+    posText2 = QPointF(1, 12);
 
     grayTransparentBrush = QBrush(QColor(128, 128, 128, 100));
 
@@ -108,19 +108,28 @@ void RFrame::paintEvent(QPaintEvent *)
     {
         //setCursor(Qt::BlankCursor);
 
+        // Green
         painter.setPen(linePenGreen);
-        painter.drawLine(hLineLeft);
-        painter.drawLine(vLineBot);
-        painter.drawLine(hLineRight);
-        painter.drawLine(vLineTop);
-        painter.drawRect(subRect1);
+//        painter.drawLine(hLineLeft);
+//        painter.drawLine(vLineBot);
+//        painter.drawLine(hLineRight);
+//        painter.drawLine(vLineTop);
+//        painter.drawRect(subRect1);
 
+        painter.drawLine(hLineCross);
+        painter.drawLine(vLineCross);
+
+        // Black
         painter.setPen(linePenBlack);
-        painter.drawLine(hLineLeft);
-        painter.drawLine(vLineBot);
-        painter.drawLine(hLineRight);
-        painter.drawLine(vLineTop);
-        painter.drawRect(subRect2);
+//        painter.drawLine(hLineLeft);
+//        painter.drawLine(vLineBot);
+//        painter.drawLine(hLineRight);
+//        painter.drawLine(vLineTop);
+//        painter.drawRect(subRect2);
+
+        painter.drawLine(hLineCross);
+        painter.drawLine(vLineCross);
+
 
         painter.scale(1/sx, 1/sy);
         // Display intensity and coordinates where pointed by cursor
@@ -208,7 +217,7 @@ void RFrame::setDrawCross(bool enabled)
 
 void RFrame::setupCrossSquare()
 {
-    // Setup the square-cross dimensions for the subRFrame
+    // Setup the square-cross dimensions
     qreal squareSize = 4;
     qreal lineLength = 0.5;
 
@@ -227,6 +236,17 @@ void RFrame::setupCrossSquare()
 
     subRect1 = QRectF(x1, y1, squareSize, squareSize);
     subRect2 = QRectF(x1, y1, squareSize, squareSize);
+
+    qreal hCrossX1 = naxis1/2 - 2;
+    qreal hCrossX2 = hCrossX1 + 4;
+    qreal hCrossY = - naxis2/2 + 1;
+    hLineCross = QLineF(hCrossX1, hCrossY, hCrossX2, hCrossY);
+
+    qreal vCrossX = naxis1/2;
+    qreal vCrossY1 = -naxis2/2 - 1;
+    qreal vCrossY2 = vCrossY1 + 4;
+    vLineCross = QLineF(vCrossX, vCrossY1, vCrossX, vCrossY2);
+
 }
 
 void RFrame::setCursorPoint(QPointF cursorPoint)

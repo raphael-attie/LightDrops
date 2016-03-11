@@ -33,8 +33,10 @@ public:
     // export methods
     void exportMastersToFits();
     void exportToFits(RMat rImage, QString QStrFilename);
+    QString setupFileName(QFileInfo fileInfo);
     void loadMasterDark();
     void loadMasterFlat();
+
 
     // setters
     void setTreeWidget(RTreeWidget *treeWidget);

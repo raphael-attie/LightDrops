@@ -55,7 +55,7 @@ ROpenGLWidget::ROpenGLWidget(QWidget *parent) :
 }
 
 ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *parent)
-    :QOpenGLWidget(parent)
+    :QOpenGLWidget(parent), tableWidget(NULL), tableRSubWindow(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
@@ -65,10 +65,14 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
     nFrames = rMatImageList.size();
 
     initialize();
+    //setupTableWidget();
+    tableRSubWindow = new RSubWindow();
+    tableSize = rListImageManager->getTableWidgetList().at(0)->size();
+
 }
 
 ROpenGLWidget::ROpenGLWidget(QList<RMat> &rMatImageList, QWidget *parent)
-    :QOpenGLWidget(parent)
+    :QOpenGLWidget(parent), rListImageManager(NULL), tableWidget(NULL), tableRSubWindow(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
@@ -80,7 +84,7 @@ ROpenGLWidget::ROpenGLWidget(QList<RMat> &rMatImageList, QWidget *parent)
 }
 
 ROpenGLWidget::ROpenGLWidget(RMat &rImage, QWidget *parent)
-    :QOpenGLWidget(parent)
+    :QOpenGLWidget(parent), rListImageManager(NULL), tableWidget(NULL), tableRSubWindow(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
@@ -145,18 +149,27 @@ void ROpenGLWidget::initialize()
     wbGreen = 1.0f;
     wbBlue = 1.0f;
 
-    calculateDefaultSize();
-
     imageCoordX = naxis1/2;
     imageCoordY = naxis2/2;
 
     initSubQImage();
 
     // Create series of image titles
-    for (int i = 0; i < nFrames; i++)
+    if (rListImageManager == NULL)
     {
-        windowTitleList << rMatImageList.at(i).getImageTitle() + QString::number(i+1);
+        for (int i = 0; i < nFrames; i++)
+        {
+            windowTitleList << rMatImageList.at(i).getImageTitle() + QString::number(i+1);
+        }
     }
+    else
+    {
+        for (int i = 0; i < nFrames; i++)
+        {
+            windowTitleList << rMatImageList.at(i).getImageTitle();
+        }
+    }
+
 }
 
 
@@ -291,18 +304,16 @@ void ROpenGLWidget::initializeGL()
 //    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // Prepare and load texture
-    QElapsedTimer timer;
-    timer.start();
 
     loadGLTexture();
     m_shader.release();
-    qDebug()<<"ROpenGLWidget::initializeGL():: Time for opengl loadGLTexture():" <<  timer.elapsed() << "ms";
 
     GLenum glErr = GL_NO_ERROR;
 
     while((glErr = glGetError()) != GL_NO_ERROR)
     {
       qDebug("ROpenGLWidget::initializeGL():: ERROR INITIALISING OPENGL");
+      exit(1);
     }
 }
 
@@ -496,31 +507,6 @@ bool ROpenGLWidget::prepareShaderProgram(const QString vertexShaderPath, const Q
 }
 
 
-void ROpenGLWidget::calculateDefaultSize()
-{
-    QSize viewerSize(this->parentWidget()->width(), this->parentWidget()->height());
-
-    float widthFac = (float) ((viewerSize.width() - 200) / (float) (naxis1) );
-    float heightFac = (float) ((viewerSize.height() - 220) / (float) (naxis2) );
-
-    if (widthFac > 1 && heightFac > 1) //default size = image size
-    {
-        resizeFac = 1.0f;
-        oglDefaultSize = QSize(naxis1, naxis2);
-    }
-    else // set other default size, smaller than original image size
-    {
-        resizeFac = std::min(widthFac, heightFac);
-        oglDefaultSize = QSize((int) ((float) naxis1 * resizeFac), (int) ((float) naxis2 * resizeFac));
-        //qDebug() << "oglDefaultSize = " << oglDefaultSize;
-    }
-
-    qDebug() << "viewerSize.width() - 150 =" << viewerSize.width() - 150;
-    qDebug() << "viewerSize.height() - 200 =" << viewerSize.height() - 200;
-    qDebug() << "ROpenGLWidget::oglDefaultSize =" << oglDefaultSize;
-
-}
-
 void ROpenGLWidget::mousePressEvent(QMouseEvent *event)
 {
     setCursor(Qt::CrossCursor);
@@ -532,7 +518,7 @@ void ROpenGLWidget::mousePressEvent(QMouseEvent *event)
 
     imageCoordX = round((float) (cursorX) / (float) (resizeFac));
     imageCoordY = round((float) (cursorY) / (float) (resizeFac));
-    //qDebug("Image coordinates: (%i, %i)", imageCoordX, imageCoordY);
+    qDebug("Image coordinates: (%i, %i)", imageCoordX, imageCoordY);
 
     updateSubQImage();
 
@@ -553,6 +539,34 @@ void ROpenGLWidget::mouseMoveEvent(QMouseEvent *event)
     updateSubQImage();
     emit mousePressed();
 }
+
+void ROpenGLWidget::setupTableWidget(int value)
+{
+    if (rMatImageList.empty() || rMatImageList.at(value).isBayer())
+    {
+        return;
+    }
+
+    rListImageManager->getTableWidgetList().at(value)->clearSelection();
+    tableRSubWindow->setWidget(rListImageManager->getTableWidgetList().at(value));
+    tableRSubWindow->setWindowTitle(windowTitleList.at(value));
+    tableRSubWindow->resize(tableSize);
+    rListImageManager->getTableWidgetList().at(value)->clearSelection();
+    rListImageManager->getTableWidgetList().at(value)->setCurrentCell(0, 0);
+
+    emit sendNewTitle(windowTitleList.at(value));
+
+}
+
+void ROpenGLWidget::changeFrame(int value)
+{
+    this->frameIndex = value;
+    updateSubQImage();
+    update();
+
+    emit sendNewTitle(windowTitleList.at(value));
+}
+
 
 void ROpenGLWidget::wheelEvent(QWheelEvent *wheelEvent)
 {
@@ -591,20 +605,20 @@ void ROpenGLWidget::wheelEvent(QWheelEvent *wheelEvent)
 
 void ROpenGLWidget::initSubQImage()
 {
-    matImageRGB = matImageListRGB.at(frameIndex);
 
-    subNaxis = 50;
+    subNaxis = 60;
     int frameRows = naxis2 + subNaxis +1;
     int frameCols = naxis1 + subNaxis +1;
 
     matFrame = cv::Mat(frameRows, frameCols, CV_32FC3, cv::Scalar(32000, 32000, 32000));
-    matImageRGB.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
-
     subQImage = new QImage(subNaxis, subNaxis, QImage::Format_ARGB32);
 }
 
 void ROpenGLWidget::updateSubQImage()
 {
+    matImageRGB = matImageListRGB.at(frameIndex);
+    matImageRGB.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
+
 
     float alpha2 = (float) (255.0f * alpha);
     float beta2 = (float) (255.0f * beta);
@@ -674,11 +688,6 @@ void ROpenGLWidget::focusOutEvent(QFocusEvent * event)
 // Getters
 
 
-QSize ROpenGLWidget::getOglDefaultSize()
-{
-    return oglDefaultSize;
-}
-
 int ROpenGLWidget::getFrameIndex()
 {
     return frameIndex;
@@ -699,10 +708,6 @@ RListImageManager *ROpenGLWidget::getRListImageManager()
     return rListImageManager;
 }
 
-QList<RMat> ROpenGLWidget::getRMatImageList()
-{
-    return rMatImageList;
-}
 
 QString ROpenGLWidget::getCalibrationType()
 {
@@ -717,6 +722,11 @@ QList<QString> ROpenGLWidget::getWindowTitleList()
 QString ROpenGLWidget::getWindowTitle()
 {
     return windowTitle;
+}
+
+RSubWindow *ROpenGLWidget::getTableRSubWindow()
+{
+    return tableRSubWindow;
 }
 
 float ROpenGLWidget::getGamma()
@@ -798,6 +808,11 @@ void ROpenGLWidget::setWindowTitle(QString newWindowTitle)
     this->windowTitle = newWindowTitle;
 }
 
+void ROpenGLWidget::setResizeFac(float resizeFac)
+{
+    this->resizeFac = resizeFac;
+}
+
 void ROpenGLWidget::setWbRed(float wbRed)
 {
     this->wbRed = wbRed;
@@ -812,3 +827,9 @@ void ROpenGLWidget::setWbBlue(float wbBlue)
 {
     this->wbBlue = wbBlue;
 }
+
+void ROpenGLWidget::setTableSize(QSize size)
+{
+    this->tableSize = size;
+}
+

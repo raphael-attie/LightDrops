@@ -5,7 +5,6 @@
 #include <QMainWindow>
 #include <QTreeWidgetItem>
 
-#include "scrollarea.h"
 #include "rmat.h"
 #include "imagemanager.h"
 #include "rlistimagemanager.h"
@@ -34,6 +33,11 @@ signals:
     void messageSignal(QString message);
     void plotSignal(QCustomPlot *customPlot);
 
+    void radioLightImages(QList<RMat> *rMatImageList);
+    void radioBiasImages(QList<RMat> *rMatImageList);
+    void radioDarkImages(QList<RMat> *rMatImageList);
+    void radioFlatImages(QList<RMat> *rMatImageList);
+
 protected:
     void dropEvent(QDropEvent* event);
     void dragEnterEvent(QDragEnterEvent *event);
@@ -55,11 +59,9 @@ private slots:
     void updateCurrentData(ROpenGLWidget *rOpenGLWidget);
     void updateFrameInSeries(int frameIndex);
     void updateSubFrame(QImage *image, float intensity, int x, int y);
-    void updateTableWidget(int value);
     void addPlotWidget(QCustomPlot *plotWidget);
     void addHeaderWidget();
 
-    void setupExportMastersDir();
     void setupExportCalibrateDir();
 
     //sliderFrame playback buttons
@@ -69,10 +71,20 @@ private slots:
 
     void stopButtonPressed();
 
+    void radioRMatSlot();
+
+    void on_actionHeader_triggered();
+
+    void on_actionHeader_toggled(bool arg1);
+
+    void uncheckActionHeaderState();
+
 private:
 
     // functions
+    void resizeOpenGLWidget(QScrollArea *scrollArea);
     void loadSubWindow(QScrollArea *scrollArea);
+    void dispatchRMatImages(QList<RMat>* rMatList);
     float convertSliderToScale(int value);
     int convertScaleToSlider(float value);
     float convertSliderToGamma(int value);
@@ -97,15 +109,17 @@ private:
     void tileView();
 
     ROpenGLWidget *currentROpenGLWidget;
-    QList<RMat> currentRMatList;
+    QList<RMat> *currentRMatList;
 
     QSize oglSize;
+    QSize defaultWindowSize;
     float sliderScale, sliderRange, sliderScaleWB;
 
     float gammaScale, newMax, newMin, alpha, beta, gammaMin, gamma;
 
     int doubleSpinBoxDecimals;
     int sliderValueHigh, sliderValueLow, sliderValueGamma;
+    int scrollBarHeight;
 
     bool stopButtonStatus;
 

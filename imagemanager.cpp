@@ -2,6 +2,7 @@
 
 #include <QUrl>
 #include <QFileInfo>
+#include <QHeaderView>
 
 ImageManager::ImageManager(QString filePathQStr) :
     newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL)
@@ -34,6 +35,7 @@ ImageManager::ImageManager(QString filePathQStr) :
     if (fitsExtList.contains(fileExt))
     {
         loadFits();
+        createTableWidget();
     }
     else if (rawExtList.contains(fileExt))
     {
@@ -44,6 +46,9 @@ ImageManager::ImageManager(QString filePathQStr) :
         qDebug("Unknown file extension");
         return;
     }
+
+    rMatImage.setImageTitle(fileName);
+    rMatImage.setFileInfo(fileInfo);
 
     qDebug() << "ImageManager:: dataMin = " << dataMin;
     qDebug() << "ImageManager:: dataMax = " << dataMax;
@@ -106,6 +111,46 @@ void ImageManager::loadRaw()
     rMatImage.setWbBlue(newRawImage->getWbBlue());
 }
 
+void ImageManager::createTableWidget()
+{
+    tableWidget = new QTableWidget(newFitsImage->getNKeys(), 3);
+    tableWidget->verticalHeader()->setVisible(false);
+    tableWidget->horizontalHeader()->setVisible(true);
+    tableWidget->setMinimumWidth(400);
+    tableWidget->setMaximumWidth(800);
+
+    tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    tableWidget->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Keywords")));
+    tableWidget->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Values")));
+    tableWidget->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Comments")));
+
+    tableWidget->horizontalHeaderItem(0)->setTextAlignment(Qt::AlignLeft);
+    tableWidget->horizontalHeaderItem(1)->setTextAlignment(Qt::AlignLeft);
+    tableWidget->horizontalHeaderItem(2)->setTextAlignment(Qt::AlignLeft);
+
+    tableWidget->setColumnWidth(1, 150);
+    tableWidget->setColumnWidth(2, 400);
+
+    int rowHeight = 20;
+    QFont tFont;
+    tFont.setPointSize(12);
+    tFont.setFamily("Arial");
+
+    for (int ii=0; ii<newFitsImage->getNKeys(); ii++)
+    {
+       tableWidget->setItem(ii, 0,  new QTableWidgetItem(newFitsImage->getKeyNames().at(ii)));
+       tableWidget->setItem(ii, 1,  new QTableWidgetItem(newFitsImage->getKeyValues().at(ii)));
+       tableWidget->setItem(ii, 2,  new QTableWidgetItem(newFitsImage->getKeyComments().at(ii)));
+       tableWidget->item(ii, 0)->setFont(tFont);
+       tableWidget->item(ii, 1)->setFont(tFont);
+       tableWidget->item(ii, 2)->setFont(tFont);
+       tableWidget->setRowHeight(ii, rowHeight);
+    }
+    tableWidget->setMinimumHeight((newFitsImage->getNKeys() + 3) * rowHeight);
+    tableWidget->adjustSize();
+}
+
 MyFitsImage* ImageManager::getNewFitsImage()
 {
     return newFitsImage;
@@ -114,6 +159,11 @@ MyFitsImage* ImageManager::getNewFitsImage()
 QString ImageManager::getFileName()
 {
     return fileName;
+}
+
+QTableWidget* ImageManager::getTableWidget() const
+{
+    return tableWidget;
 }
 
 float ImageManager::getWbRed() const

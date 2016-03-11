@@ -15,7 +15,7 @@ RListImageManager::RListImageManager(QList<QUrl> urlList)
         }
         imageManagerList << imageManager;
         rMatImageList.push_back(imageManager->rMatImage);
-
+        tableWidgetList << imageManager->getTableWidget();
     }
 }
 
@@ -40,5 +40,10 @@ QList<ImageManager*> RListImageManager::getImageManagerList()
 QList<QUrl> RListImageManager::getUrlList()
 {
     return urlList;
+}
+
+QList<QTableWidget*> RListImageManager::getTableWidgetList() const
+{
+    return tableWidgetList;
 }
 

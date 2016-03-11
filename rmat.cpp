@@ -11,7 +11,7 @@ RMat::RMat()
 
 }
 
-RMat::RMat(cv::Mat &matImage) : dataMin(0), dataMax(0), bscale(1), bzero(0)
+RMat::RMat(cv::Mat &matImage) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
 {
     this->matImage = matImage;
     this->bayer = false;
@@ -32,7 +32,7 @@ RMat::RMat(cv::Mat &matImage) : dataMin(0), dataMax(0), bscale(1), bzero(0)
     calcStats();
 }
 
-RMat::RMat(cv::Mat &matImage, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0)
+RMat::RMat(cv::Mat &matImage, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
 {
     this->matImage = matImage;
     this->bayer = bayer;
@@ -53,7 +53,7 @@ RMat::RMat(cv::Mat &matImage, bool bayer) : dataMin(0), dataMax(0), bscale(1), b
     calcStats();
 }
 
-RMat::RMat(cv::Mat &matImage, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0)
+RMat::RMat(cv::Mat &matImage, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
 {
     this->matImage = matImage;
     this->bayer = bayer;
@@ -104,8 +104,6 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
 
 void RMat::calcStats()
 {
-    float minRange = 0;
-    float maxRange = 0;
 
     cv::Scalar meanScalar;
     cv::Scalar stdDevScalar;
@@ -117,30 +115,17 @@ void RMat::calcStats()
     /// Set the range and bins of the histogram
     /// These params depend on the instrument's sensor (different bit depths).
 
-    int nBins = 65536;
+    int nBins = 256;
 
-    if (instrument == instruments::USET)
-    {
-        nBins = 4096;
-    }
-
-    if (dataMin >= 0)
-    {
-        minRange = 0.0f;
-        maxRange = (float) nBins-1;
-    }
-    else
-    {
-        minRange = (float) dataMin;
-        maxRange = (float) dataMax;
-    }
+    minHistRange = std::min(0.0, dataMin);
+    maxHistRange = (float) dataMax;
 
     // Get histogram
-    computeHist(nBins, minRange, maxRange);
+    computeHist(nBins, minHistRange, maxHistRange);
    // Calculate median
     median = calcMedian();
 
-    histWidth = (maxRange - minRange)/(double) (nBins -1);
+    histWidth = (maxHistRange - minHistRange)/(double) (nBins -1);
 
 //    percentileLow = calcPercentile(0.05, histWidth, minRange);
 //    percentileHigh = calcPercentile( 0.9985, histWidth, minRange);
@@ -161,8 +146,8 @@ void RMat::calcStats()
         cutOffHigh = 99.85f;
     }
 
-    intensityLow = calcThreshold(cutOffLow, histWidth, minRange);
-    intensityHigh = calcThreshold(cutOffHigh, histWidth, minRange);
+    intensityLow = calcThreshold(cutOffLow, histWidth, minHistRange);
+    intensityHigh = calcThreshold(cutOffHigh, histWidth, minHistRange);
     qDebug("RMat::calcStats():: median = %f", median);
     qDebug("RMat::calcStats():: percentile Low = %f", intensityLow);
     qDebug("RMat::calcStats():: percentile High = %f", intensityHigh);
@@ -294,6 +279,26 @@ uint RMat::getNPixels() const
     return nPixels;
 }
 
+float RMat::getMinHistRange() const
+{
+    return minHistRange;
+}
+
+float RMat::getMaxHistRange() const
+{
+    return maxHistRange;
+}
+
+QTreeWidgetItem* RMat::getItem() const
+{
+    return item;
+}
+
+QFileInfo RMat::getFileInfo() const
+{
+    return fileInfo;
+}
+
 
 // Setters
 void RMat::setBayer(bool bayer)
@@ -344,6 +349,16 @@ void RMat::setImageTitle(QString title)
 void RMat::setInstrument(instruments instrument)
 {
     this->instrument = instrument;
+}
+
+void RMat::setItem(QTreeWidgetItem *item)
+{
+    this->item = item;
+}
+
+void RMat::setFileInfo(QFileInfo fileInfo)
+{
+    this->fileInfo = fileInfo;
 }
 
 

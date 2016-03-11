@@ -10,6 +10,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QOpenGLTexture>
+#include <QMdiSubWindow>
 
 //opencv
 #include <opencv2/core.hpp>
@@ -19,6 +20,7 @@
 #include "rlistimagemanager.h"
 #include "RawImage.h"
 #include "rmat.h"
+#include "rsubwindow.h"
 
 class QPainter;
 class QOpenGLContext;
@@ -47,8 +49,6 @@ public:
     void wheelEvent(QWheelEvent *wheelEvent);
 
     //getters
-    QList<RMat> getRMatImageList();
-    QSize getOglDefaultSize();
     quint32 getImageCoordX();
     quint32 getImageCoordY();
     RListImageManager *getRListImageManager();
@@ -56,6 +56,7 @@ public:
     QString getCalibrationType();
     QList<QString> getWindowTitleList();
     QString getWindowTitle();
+    RSubWindow *getTableRSubWindow();
 
     float getGamma();
     float getNewMax();
@@ -77,19 +78,23 @@ public:
     void setRListImageManager(RListImageManager *rListImageManager);
     void setCalibrationType(QString calibrationType);
 
-
     void setWindowTitleList(QList<QString> newWindowTitleList);
     void setWindowTitle(QString newWindowTitle);
+    void setResizeFac(float resizeFac);
 
     void setWbRed(float wbRed);
     void setWbGreen(float wbGreen);
     void setWbBlue(float wbBlue);
+
+    void setTableSize(QSize size);
 
 signals:
 
     void mousePressed();
     void gotSelected(ROpenGLWidget* ROpenGLWidget);
     void sendSubQImage(QImage *image, float intensity, int x, int y);
+    void sendTableWidget(QTableWidget* tableWidget);
+    void sendNewTitle(QString title);
 
 protected:
     void initializeGL();
@@ -98,6 +103,10 @@ protected:
 
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+
+public slots:
+    void setupTableWidget(int value);
+    void changeFrame(int frameIndex);
 
 private:
     void initialize();
@@ -156,13 +165,16 @@ private:
     QString calibrationType;
     uint frameIndex;
 
-    QSize oglDefaultSize;
     qint32 naxis1;
     qint32 naxis2;
     uint subNaxis;
 
     quint32 imageCoordX;
     quint32 imageCoordY;
+
+    RSubWindow *tableRSubWindow;
+    QTableWidget *tableWidget;
+    QSize tableSize;
 
 };
 

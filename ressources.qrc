@@ -1,0 +1,89 @@
+<RCC>
+    <qresource prefix="/">
+        <file>shaders/fragment16.frag</file>
+        <file>shaders/vertexShader.vert</file>
+        <file>shaders/fragment32.frag</file>
+    </qresource>
+    <qresource prefix="/Icons">
+        <file>Icons/SVG/ALIGN LEFT.svg</file>
+        <file>Icons/SVG/ALIGN MIDDLE.svg</file>
+        <file>Icons/SVG/ALIGN RIGHT.svg</file>
+        <file>Icons/SVG/ARROW.svg</file>
+        <file>Icons/SVG/BATTERY.svg</file>
+        <file>Icons/SVG/BELL.svg</file>
+        <file>Icons/SVG/BLANK.svg</file>
+        <file>Icons/SVG/BLUETOOTH.svg</file>
+        <file>Icons/SVG/BROWSER.svg</file>
+        <file>Icons/SVG/CAMERA.svg</file>
+        <file>Icons/SVG/CART.svg</file>
+        <file>Icons/SVG/CHAT.svg</file>
+        <file>Icons/SVG/CHECK MARK.svg</file>
+        <file>Icons/SVG/CLOCK.svg</file>
+        <file>Icons/SVG/CLOSE.svg</file>
+        <file>Icons/SVG/COCKTAIL.svg</file>
+        <file>Icons/SVG/COMPASS.svg</file>
+        <file>Icons/SVG/CONNECTION.svg</file>
+        <file>Icons/SVG/CURSOR.svg</file>
+        <file>Icons/SVG/DISPLAY.svg</file>
+        <file>Icons/SVG/DOWNLOAD.svg</file>
+        <file>Icons/SVG/DROP.svg</file>
+        <file>Icons/SVG/EMPTY BLANK.svg</file>
+        <file>Icons/SVG/FLAG.svg</file>
+        <file>Icons/SVG/FORWARD 2.svg</file>
+        <file>Icons/SVG/FORWARD.svg</file>
+        <file>Icons/SVG/GIFT.svg</file>
+        <file>Icons/SVG/GRAPHIC.svg</file>
+        <file>Icons/SVG/GRID.svg</file>
+        <file>Icons/SVG/HAMBURGER MENU.svg</file>
+        <file>Icons/SVG/HEADPHONES.svg</file>
+        <file>Icons/SVG/HEART.svg</file>
+        <file>Icons/SVG/HOME.svg</file>
+        <file>Icons/SVG/HYPERLINK.svg</file>
+        <file>Icons/SVG/JUSTIFY ALL.svg</file>
+        <file>Icons/SVG/KEY.svg</file>
+        <file>Icons/SVG/LABEL.svg</file>
+        <file>Icons/SVG/LAUNCH.svg</file>
+        <file>Icons/SVG/LOCK CLOSED.svg</file>
+        <file>Icons/SVG/LOCK OPEN.svg</file>
+        <file>Icons/SVG/MAGNET.svg</file>
+        <file>Icons/SVG/MAGNIFYING GLASS 2.svg</file>
+        <file>Icons/SVG/MAGNIFYING GLASS MINUS.svg</file>
+        <file>Icons/SVG/MAGNIFYING GLASS PLUS.svg</file>
+        <file>Icons/SVG/MAGNIFYING GLASS.svg</file>
+        <file>Icons/SVG/MAIL.svg</file>
+        <file>Icons/SVG/MAP PIN.svg</file>
+        <file>Icons/SVG/MAP.svg</file>
+        <file>Icons/SVG/MAXIMIZE.svg</file>
+        <file>Icons/SVG/MICROPHONE.svg</file>
+        <file>Icons/SVG/MINIMIZE.svg</file>
+        <file>Icons/SVG/MINUS.svg</file>
+        <file>Icons/SVG/MOUSE.svg</file>
+        <file>Icons/SVG/MUSIC.svg</file>
+        <file>Icons/SVG/NAVIGATION.svg</file>
+        <file>Icons/SVG/NOTIFICATIONS.svg</file>
+        <file>Icons/SVG/PAUSE.svg</file>
+        <file>Icons/SVG/PENCIL.svg</file>
+        <file>Icons/SVG/PLAY.svg</file>
+        <file>Icons/SVG/PLUS.svg</file>
+        <file>Icons/SVG/POWER.svg</file>
+        <file>Icons/SVG/PRINT.svg</file>
+        <file>Icons/SVG/REPEAT.svg</file>
+        <file>Icons/SVG/RULE.svg</file>
+        <file>Icons/SVG/SELECTION.svg</file>
+        <file>Icons/SVG/SETTINGS.svg</file>
+        <file>Icons/SVG/SHARE.svg</file>
+        <file>Icons/SVG/SHUFFLE.svg</file>
+        <file>Icons/SVG/SOUND MINUS.svg</file>
+        <file>Icons/SVG/SOUND PLUS.svg</file>
+        <file>Icons/SVG/SPEAKER.svg</file>
+        <file>Icons/SVG/STAR.svg</file>
+        <file>Icons/SVG/STATISTICS.svg</file>
+        <file>Icons/SVG/STOP.svg</file>
+        <file>Icons/SVG/SUN.svg</file>
+        <file>Icons/SVG/TRASH BIN.svg</file>
+        <file>Icons/SVG/UMBRELLA.svg</file>
+        <file>Icons/SVG/UPLOAD.svg</file>
+        <file>Icons/SVG/VIDEO CAMERA.svg</file>
+        <file>Icons/SVG/WIFI.svg</file>
+    </qresource>
+</RCC>
