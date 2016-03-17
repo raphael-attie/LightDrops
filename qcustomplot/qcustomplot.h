@@ -26,6 +26,7 @@
 #ifndef QCUSTOMPLOT_H
 #define QCUSTOMPLOT_H
 
+#include "winsockwrapper.h"
 #include <QObject>
 #include <QPointer>
 #include <QWidget>

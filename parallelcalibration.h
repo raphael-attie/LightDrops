@@ -1,7 +1,7 @@
 #ifndef PARALLELCALIBRATION_H
 #define PARALLELCALIBRATION_H
 
-
+#include "winsockwrapper.h"
 #include <QtCore>
 
 //opencv

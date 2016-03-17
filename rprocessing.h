@@ -1,6 +1,7 @@
 #ifndef RPROCESSING_H
 #define RPROCESSING_H
 
+#include "winsockwrapper.h"
 #include <QApplication>
 #include <QtCore>
 

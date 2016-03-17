@@ -1,6 +1,7 @@
 #ifndef MYFITSIMAGE_H
 #define MYFITSIMAGE_H
 
+#include "winsockwrapper.h"
 #include <QDataStream>
 #include <QtCore>
 

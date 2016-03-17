@@ -1,6 +1,7 @@
 #ifndef RLISTIMAGEMANAGER_H
 #define RLISTIMAGEMANAGER_H
 
+#include "winsockwrapper.h"
 #include <QtCore>
 
 #include "imagemanager.h"

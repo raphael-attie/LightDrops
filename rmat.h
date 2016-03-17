@@ -1,6 +1,7 @@
 #ifndef RMAT_H
 #define RMAT_H
 
+#include "winsockwrapper.h"
 #include <QString>
 //opencv
 #include <opencv2/core.hpp>

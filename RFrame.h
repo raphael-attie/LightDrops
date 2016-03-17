@@ -1,6 +1,7 @@
 #ifndef RFrame_H
 #define RFrame_H
 
+#include "winsockwrapper.h"
 #include <QWidget>
 #include <QScrollArea>
 #include <qpainter.h>

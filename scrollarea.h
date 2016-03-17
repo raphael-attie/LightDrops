@@ -1,6 +1,7 @@
 #ifndef SCROLLAREA_H
 #define SCROLLAREA_H
 
+#include "winsockwrapper.h"
 #include <QScrollArea>
 
 namespace Ui {

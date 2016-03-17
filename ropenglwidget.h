@@ -1,6 +1,7 @@
 #ifndef RopenGLWidget_H
 #define RopenGLWidget_H
 
+#include "winsockwrapper.h"
 #include <QtCore>
 #include <QWidget>
 #include <QOpenGLWidget>

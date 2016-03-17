@@ -1,3 +1,4 @@
+#include "winsockwrapper.h"
 #include "rmainwindow.h"
 #include <QApplication>
 

@@ -1,6 +1,7 @@
 #ifndef RTABLEWORKER
 #define RTABLEWORKER
 
+#include "winsockwrapper.h"
 #include <QtCore>
 #include <QTableWidget>
 #include <QDockWidget>
