@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1439</width>
+    <width>1567</width>
     <height>900</height>
    </rect>
   </property>
@@ -77,7 +77,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1439</width>
+     <width>1567</width>
      <height>22</height>
     </rect>
    </property>
@@ -92,7 +92,7 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>853</width>
+     <width>1341</width>
      <height>180</height>
     </size>
    </property>
@@ -453,6 +453,221 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="exportTab">
+        <attribute name="title">
+         <string>Export</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_9">
+         <item>
+          <layout class="QGridLayout" name="gridLayout_4">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>Export directory:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0" colspan="2">
+            <widget class="RLineEdit" name="exportDirEdit">
+             <property name="minimumSize">
+              <size>
+               <width>300</width>
+               <height>0</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QPushButton" name="pushButton_6">
+             <property name="minimumSize">
+              <size>
+               <width>50</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>50</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QRadioButton" name="exportCurrent">
+             <property name="text">
+              <string>Current</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="exportSeries">
+             <property name="text">
+              <string>Series</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <item>
+            <widget class="QCheckBox" name="checkBox">
+             <property name="text">
+              <string>Pictures</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_2">
+             <property name="text">
+              <string>Movie</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>5</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_2">
+           <property name="title">
+            <string>Pictures format</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <item row="0" column="1">
+             <widget class="QCheckBox" name="tiffExport">
+              <property name="text">
+               <string>tiff</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="jpegExport">
+              <property name="text">
+               <string>jpeg</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QCheckBox" name="fitsExport">
+              <property name="text">
+               <string>fits</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="pngExport">
+              <property name="text">
+               <string>png</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>6</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_3">
+           <property name="title">
+            <string>Movie resolution</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_6">
+            <item row="0" column="0">
+             <widget class="QRadioButton" name="radioButton_5">
+              <property name="text">
+               <string>HD 1080p</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QRadioButton" name="radioButton_7">
+              <property name="text">
+               <string>SD 480p</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QRadioButton" name="radioButton_6">
+              <property name="text">
+               <string>HD 720p</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QRadioButton" name="radioButton_8">
+              <property name="text">
+               <string>Original</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="exportButton">
+           <property name="text">
+            <string>Export </string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </item>
      <item>
@@ -572,7 +787,7 @@
    <property name="minimumSize">
     <size>
      <width>225</width>
-     <height>669</height>
+     <height>650</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -606,52 +821,84 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>80</height>
+         <height>130</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>200</width>
-         <height>120</height>
+         <height>200</height>
         </size>
        </property>
        <property name="title">
         <string>Time series</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="spacing">
+        <property name="leftMargin">
          <number>0</number>
         </property>
         <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
          <number>0</number>
         </property>
         <property name="bottomMargin">
          <number>0</number>
         </property>
         <item>
-         <widget class="QSlider" name="sliderFrame">
-          <property name="minimumSize">
-           <size>
-            <width>120</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>200</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="minimum">
-           <number>0</number>
-          </property>
-          <property name="maximum">
-           <number>0</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
+          <item>
+           <widget class="QSlider" name="sliderFrame">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="minimum">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <number>0</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="imageLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>35</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>35</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>1/1</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -679,7 +926,17 @@
              </size>
             </property>
             <property name="text">
-             <string>&lt;</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="ressources.qrc">
+              <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (102).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (102).png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>12</width>
+              <height>12</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -704,7 +961,17 @@
              </size>
             </property>
             <property name="text">
-             <string>&gt;</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="ressources.qrc">
+              <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (101).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (101).png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>12</width>
+              <height>12</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -729,7 +996,17 @@
              </size>
             </property>
             <property name="text">
-             <string>|&gt;</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="ressources.qrc">
+              <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (67).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (67).png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>12</width>
+              <height>12</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -754,12 +1031,39 @@
              </size>
             </property>
             <property name="text">
-             <string>ll</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="ressources.qrc">
+              <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (66).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (66).png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>12</width>
+              <height>12</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
+          <item>
+           <widget class="QLabel" name="label_4">
+            <property name="maximumSize">
+             <size>
+              <width>35</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>FPS:</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="imageLabel">
+           <widget class="QPushButton" name="backwardButton_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -768,18 +1072,82 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>35</width>
-              <height>20</height>
+              <width>20</width>
+              <height>25</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>35</width>
-              <height>20</height>
+              <width>25</width>
+              <height>25</height>
              </size>
             </property>
             <property name="text">
-             <string>1/1</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="ressources.qrc">
+              <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (69).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (69).png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>12</width>
+              <height>12</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="forwardButton_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>25</width>
+              <height>25</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>25</width>
+              <height>25</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="ressources.qrc">
+              <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (68).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (68).png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>12</width>
+              <height>12</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinBoxFps">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>60</number>
+            </property>
+            <property name="value">
+             <number>5</number>
             </property>
            </widget>
           </item>
@@ -924,10 +1292,10 @@
          <string>Process masters</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_4">
-         <property name="topMargin">
+         <property name="leftMargin">
           <number>0</number>
          </property>
-         <property name="bottomMargin">
+         <property name="rightMargin">
           <number>0</number>
          </property>
          <item>
@@ -969,19 +1337,6 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_5">
            <item>
-            <spacer name="horizontalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
             <widget class="QPushButton" name="makeMasterButton">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -991,7 +1346,7 @@
              </property>
              <property name="minimumSize">
               <size>
-               <width>140</width>
+               <width>120</width>
                <height>0</height>
               </size>
              </property>
@@ -1002,22 +1357,22 @@
               </size>
              </property>
              <property name="text">
-              <string>Create masters </string>
+              <string>Create masters</string>
              </property>
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
+            <widget class="QPushButton" name="pushButton_5">
+             <property name="maximumSize">
               <size>
-               <width>40</width>
-               <height>20</height>
+               <width>80</width>
+               <height>16777215</height>
               </size>
              </property>
-            </spacer>
+             <property name="text">
+              <string>Export</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -1029,7 +1384,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>124</height>
+          <height>130</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -1176,7 +1531,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>91</height>
+          <height>130</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -1230,7 +1585,7 @@
           <x>0</x>
           <y>0</y>
           <width>201</width>
-          <height>87</height>
+          <height>130</height>
          </rect>
         </property>
         <attribute name="label">
@@ -1243,7 +1598,7 @@
           <x>0</x>
           <y>0</y>
           <width>201</width>
-          <height>87</height>
+          <height>130</height>
          </rect>
         </property>
         <attribute name="label">
@@ -1296,13 +1651,19 @@
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>30</height>
+     <height>0</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>16777215</width>
      <height>30</height>
+    </size>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>24</width>
+     <height>24</height>
     </size>
    </property>
    <attribute name="toolBarArea">
@@ -1323,7 +1684,7 @@
    </property>
    <property name="icon">
     <iconset resource="ressources.qrc">
-     <normaloff>:/Icons/Icons/SVG/GRID.svg</normaloff>:/Icons/Icons/SVG/GRID.svg</iconset>
+     <normaloff>:/icons/Icons/icons1/GRID.svg</normaloff>:/icons/Icons/icons1/GRID.svg</iconset>
    </property>
    <property name="text">
     <string>tileView</string>
@@ -1338,7 +1699,7 @@
    </property>
    <property name="icon">
     <iconset resource="ressources.qrc">
-     <normaloff>:/Icons/Icons/SVG/MINIMIZE.svg</normaloff>:/Icons/Icons/SVG/MINIMIZE.svg</iconset>
+     <normaloff>:/icons/Icons/icons1/MINIMIZE.svg</normaloff>:/icons/Icons/icons1/MINIMIZE.svg</iconset>
    </property>
    <property name="text">
     <string>cascadeView</string>
@@ -1353,7 +1714,7 @@
    </property>
    <property name="icon">
     <iconset resource="ressources.qrc">
-     <normaloff>:/Icons/Icons/SVG/BLANK.svg</normaloff>:/Icons/Icons/SVG/BLANK.svg</iconset>
+     <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (57).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (57).png</iconset>
    </property>
    <property name="text">
     <string>Header</string>
@@ -1368,7 +1729,7 @@
    </property>
    <property name="icon">
     <iconset resource="ressources.qrc">
-     <normaloff>:/Icons/Icons/SVG/GRAPHIC.svg</normaloff>:/Icons/Icons/SVG/GRAPHIC.svg</iconset>
+     <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (158).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (158).png</iconset>
    </property>
    <property name="text">
     <string>statistics</string>
@@ -1400,8 +1761,111 @@
  <resources>
   <include location="ressources.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>backwardButton_2</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>decreaseFps()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1439</x>
+     <y>193</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1213</x>
+     <y>197</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>forwardButton_2</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>increaseFps()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1472</x>
+     <y>193</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1213</x>
+     <y>238</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_3</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>autoScale()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1098</x>
+     <y>783</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>959</x>
+     <y>696</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_5</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>exportMastersToFits()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1553</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1213</x>
+     <y>512</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_4</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>minMaxScale()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1098</x>
+     <y>813</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1090</x>
+     <y>697</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>exportButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>exportFrames()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1053</x>
+     <y>816</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1339</x>
+     <y>679</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
  <slots>
   <slot>addHeaderWidget()</slot>
+  <slot>decreaseFps()</slot>
+  <slot>increaseFps()</slot>
+  <slot>autoScale()</slot>
+  <slot>exportMastersToFits()</slot>
+  <slot>minMaxScale()</slot>
+  <slot>exportFrames()</slot>
  </slots>
 </ui>

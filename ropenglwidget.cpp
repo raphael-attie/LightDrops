@@ -61,7 +61,7 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
     this->rListImageManager = rListImageManager;
-    this->rMatImageList = rListImageManager->rMatImageList;
+    this->rMatImageList = rListImageManager->getRMatImageList();
     nFrames = rMatImageList.size();
 
     initialize();
@@ -71,7 +71,7 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
 
 }
 
-ROpenGLWidget::ROpenGLWidget(QList<RMat> &rMatImageList, QWidget *parent)
+ROpenGLWidget::ROpenGLWidget(QList<RMat *> rMatImageList, QWidget *parent)
     :QOpenGLWidget(parent), rListImageManager(NULL), tableWidget(NULL), tableRSubWindow(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
@@ -83,13 +83,14 @@ ROpenGLWidget::ROpenGLWidget(QList<RMat> &rMatImageList, QWidget *parent)
     initialize();
 }
 
-ROpenGLWidget::ROpenGLWidget(RMat &rImage, QWidget *parent)
+ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
     :QOpenGLWidget(parent), rListImageManager(NULL), tableWidget(NULL), tableRSubWindow(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
-    this->rMatImageList.push_back(rImage);
+    this->rMatImageList =  QList<RMat*>() << rMatImage;
+    //this->rMatImageList.push_back(rMatImage);
     nFrames = 1;
 
     initialize();
@@ -97,9 +98,12 @@ ROpenGLWidget::ROpenGLWidget(RMat &rImage, QWidget *parent)
 
 ROpenGLWidget::~ROpenGLWidget()
 {
+    qDebug("ROpenGLWidget::~ROpenGLWidget() destructor");
     m_indexBuffer.destroy();
     m_vertexBuffer.destroy();
     m_vao.destroy();
+
+    delete rListImageManager;
 
 //    glDeleteTextures(1, &texture);
 
@@ -119,23 +123,24 @@ void ROpenGLWidget::initialize()
     setFocusPolicy(Qt::StrongFocus);
     frameIndex = 0;
     counter = 0;
-    dataMax = rMatImageList.at(0).getDataMax();
-    dataMin = rMatImageList.at(0).getDataMin();
-    calibrationType = QString("");
-
-    cv::minMaxLoc(rMatImageList.at(0).matImage, &dataMin, &dataMax);
+    dataMax = rMatImageList.at(0)->getDataMax();
+    dataMin = rMatImageList.at(0)->getDataMin();
     dataRange = (float) (dataMax - dataMin);
-    qDebug() << "ROpenGLWidget:: dataRange =" << dataRange;
+    calibrationType = QString("");
+    naxis1 = rMatImageList.at(0)->getMatImage().cols;
+    naxis2 = rMatImageList.at(0)->getMatImage().rows;
 
-    for (int ii =0; ii < nFrames; ii++)
-    {
-        cv::Mat tempImageRGB = prepImage(rMatImageList.at(ii));
-        matImageListRGB.push_back(tempImageRGB);
-    }
+    double min;
+    double max;
 
-    matImageRGB = matImageListRGB.at(frameIndex);
-    naxis1 = matImageRGB.cols;
-    naxis2 = matImageRGB.rows;
+    prepImage();
+
+    cv::minMaxLoc(rMatImageList.at(0)->getMatImage(), &min, &max);
+    qDebug("ROpenGLWidget::initialize()::rMatImageList.at(0)->getMatImage()   min = %f , max = %f", min, max );
+
+
+    matImageRGB = matImageListRGB.at(0);
+
 
     intensity = 0;
     newMin = dataMin;
@@ -154,50 +159,51 @@ void ROpenGLWidget::initialize()
 
     initSubQImage();
 
-    // Create series of image titles
+    /// Create series of image titles
+    /// If the frames do not come from disk files, need to create one from the default frame titles
     if (rListImageManager == NULL)
     {
         for (int i = 0; i < nFrames; i++)
         {
-            windowTitleList << rMatImageList.at(i).getImageTitle() + QString::number(i+1);
+            windowTitleList << rMatImageList.at(i)->getImageTitle() + QString::number(i+1);
         }
     }
     else
     {
         for (int i = 0; i < nFrames; i++)
         {
-            windowTitleList << rMatImageList.at(i).getImageTitle();
+            windowTitleList << rMatImageList.at(i)->getImageTitle();
         }
     }
 
 }
 
 
-cv::Mat ROpenGLWidget::prepImage(RMat rMatImage)
+void ROpenGLWidget::prepImage()
 {
-    qDebug() << "ROpenGLWidget:: rMatImage.isBayer() =" << rMatImage.isBayer();
+    for (int ii = 0; ii < nFrames; ii++)
+    {
+        cv::Mat tempMatRGB = cv::Mat::zeros(naxis2, naxis1, rMatImageList.at(ii)->getMatImage().type());
 
-    if (rMatImage.isBayer())
-    {
-        cv::Mat tempMat16;
-        cv::Mat tempMatRGB;
-        rMatImage.matImage.convertTo(tempMat16, CV_16U);
-        cv::cvtColor(tempMat16, tempMatRGB, CV_BayerBG2RGB);
-        tempMatRGB.convertTo(tempMatRGB, CV_32FC3);
-//        cv::Mat tempMatRGB;
-//        cv::cvtColor(rMatImage.matImage, tempMatRGB, CV_GRAY2RGB);
-        return tempMatRGB;
+        if (rMatImageList.at(ii)->isBayer())
+        {
+            cv::Mat tempMat16;
+            rMatImageList.at(ii)->getMatImage().convertTo(tempMat16, CV_16U);
+            cv::cvtColor(tempMat16, tempMatRGB, CV_BayerBG2RGB);
+            //tempMatRGB.convertTo(tempMatRGB, CV_32FC3);
+        }
+        else if (rMatImageList.at(ii)->getMatImage().channels() == 1)
+        {
+            cv::Mat tempMat = rMatImageList.at(ii)->getMatImage();
+            cv::cvtColor(tempMat, tempMatRGB, CV_GRAY2RGB);
+        }
+        else
+        {
+            rMatImageList.at(ii)->getMatImage().copyTo(tempMatRGB);
+        }        
+        matImageListRGB.append(tempMatRGB);
     }
-    else if (rMatImage.matImage.channels() == 1)
-    {
-        cv::Mat tempMatRGB;
-        cv::cvtColor(rMatImage.matImage, tempMatRGB, CV_GRAY2RGB);
-        return tempMatRGB;
-    }
-    else
-    {
-        return rMatImage.matImage;
-    }
+
 }
 
 void ROpenGLWidget::initializeGL()
@@ -315,6 +321,8 @@ void ROpenGLWidget::initializeGL()
       qDebug("ROpenGLWidget::initializeGL():: ERROR INITIALISING OPENGL");
       exit(1);
     }
+
+
 }
 
 void ROpenGLWidget::loadGLTexture()
@@ -324,17 +332,9 @@ void ROpenGLWidget::loadGLTexture()
     {
         cv::Mat tempImageRGB = matImageListRGB.at(ii);
         //tempImageRGB.convertTo(tempImageRGB, CV_16UC3);
-        qDebug() << "ROpenGLWidget::loadGLTexture():: matImageListRGB.at(ii).channels() =" << matImageListRGB.at(ii).channels();
-        qDebug() << "ROpenGLWidget::loadGLTexture():: tempImageRGB.type() =" << tempImageRGB.type();
 
         cv::Mat tempImageGray;
         cv::cvtColor(tempImageRGB, tempImageGray, CV_RGB2GRAY);
-        //cv::cvtColor(tempImageRGB, tempImageRGB, CV_RGB2RGBA);
-        //cv::cvtColor(tempImageRGB, matImageRGBA, CV_RGB2RGBA); // Check if that's really needed, considering the shader.
-        double min = 0;
-        double max = 0;
-        cv::minMaxLoc(tempImageGray, &min, &max);
-        qDebug("ROpenGLWidget::loadGLTexture():: min = %f, max = %f", min, max);
 
         QOpenGLTexture *oglt = new QOpenGLTexture(QOpenGLTexture::Target2D);
         oglt->setSize(naxis1, naxis2);
@@ -390,6 +390,7 @@ void ROpenGLWidget::loadGLTexture()
       qDebug("ROpenGLWidget::loadGLTexture():: ERROR LOADING TEXTURES");
       exit(1);
     }
+
 
 //    texture = textureVector.at(frameIndex);
 
@@ -542,7 +543,7 @@ void ROpenGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void ROpenGLWidget::setupTableWidget(int value)
 {
-    if (rMatImageList.empty() || rMatImageList.at(value).isBayer())
+    if (rMatImageList.empty() || rMatImageList.at(value)->isBayer())
     {
         return;
     }
@@ -706,6 +707,11 @@ quint32 ROpenGLWidget::getImageCoordY()
 RListImageManager *ROpenGLWidget::getRListImageManager()
 {
     return rListImageManager;
+}
+
+QList<RMat*> ROpenGLWidget::getRMatImageList()
+{
+    return rMatImageList;
 }
 
 

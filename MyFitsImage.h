@@ -27,8 +27,6 @@ public:
 	MyFitsImage(QString filePath);
 	~MyFitsImage();
 
-    cv::Mat matFits;
-
 	// getters
 
 	qint32 getNaxis1() const;
@@ -36,6 +34,7 @@ public:
     bool isBayer() const;
     int getBscale() const;
     int getBzero() const;
+    cv::Mat getMatFits() const;
 
     int getNKeys() const;
     QVector<QString> getKeyNames() const;
@@ -55,6 +54,12 @@ private:
     int bscale;
     int bzero;
     bool bayer;
+
+    cv::Mat matFits;
+
+    ushort* image1D_ushort;
+    float* image1D_float;
+    short int* image1D_shortint;
 
 
 	// dimensions

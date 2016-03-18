@@ -46,7 +46,6 @@ SOURCES += main.cpp\
     rlineedit.cpp \
     RFrame.cpp \
     qcustomplot/qcustomplot.cpp \
-    rtableworker.cpp \
     rsubwindow.cpp
 
 HEADERS  += rmainwindow.h \
@@ -62,7 +61,6 @@ HEADERS  += rmainwindow.h \
     rlineedit.h \
     RFrame.h \
     qcustomplot/qcustomplot.h \
-    rtableworker.h \
     rsubwindow.h
 
 FORMS    += rmainwindow.ui

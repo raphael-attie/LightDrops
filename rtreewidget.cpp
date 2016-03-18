@@ -8,6 +8,7 @@ RTreeWidget::RTreeWidget(QWidget *parent) : QTreeWidget(parent)
     darkItem = new QTreeWidgetItem(this, QStringList(tr("Dark")));
     flatItem = new QTreeWidgetItem(this, QStringList(tr("Flat")));
 
+
 }
 
 void RTreeWidget::dragEnterEvent(QDragEnterEvent *event)
@@ -74,56 +75,59 @@ void RTreeWidget::dispatchUrls(QTreeWidgetItem *parentItem, QList<QUrl> urls)
     }
 }
 
-void RTreeWidget::rMatFromLightRButton(QList<RMat> *rMatImageList)
+void RTreeWidget::rMatFromLightRButton(QList<RMat*> rMatImageList)
 {
     addItems(lightItem, rMatImageList);
+    rMatLightList = rMatImageList;
+    lightsDir = rMatImageList.at(0)->getFileInfo().absoluteDir();
 }
 
-void RTreeWidget::rMatFromBiasRButton(QList<RMat> *rMatImageList)
+void RTreeWidget::rMatFromBiasRButton(QList<RMat*> rMatImageList)
 {
     addItems(biasItem, rMatImageList);
+    rMatBiasList = rMatImageList;
+    biasDir = rMatImageList.at(0)->getFileInfo().absoluteDir();
+
+    double min = 0;
+    double max = 0;
+    cv::minMaxLoc(rMatBiasList.at(0)->getMatImage(), &min, &max);
+    qDebug("RTreeWidget::rMatFromBiasRButton:: min =%f , max =%f", min, max );
 }
 
-void RTreeWidget::rMatFromDarkRButton(QList<RMat> *rMatImageList)
+void RTreeWidget::rMatFromDarkRButton(QList<RMat*> rMatImageList)
 {
     addItems(darkItem, rMatImageList);
+    rMatDarkList = rMatImageList;
+    darkDir = rMatImageList.at(0)->getFileInfo().absoluteDir();
 }
 
-void RTreeWidget::rMatFromFlatRButton(QList<RMat> *rMatImageList)
+void RTreeWidget::rMatFromFlatRButton(QList<RMat*> rMatImageList)
 {
     addItems(flatItem, rMatImageList);
+    rMatFlatList = rMatImageList;
+    flatDir = rMatImageList.at(0)->getFileInfo().absoluteDir();
 }
 
-void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat> *rMatImageList)
+void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageList)
 {
-    cleanUpItems(lightItem, rMatImageList);
-    cleanUpItems(biasItem, rMatImageList);
-    cleanUpItems(darkItem, rMatImageList);
-    cleanUpItems(flatItem, rMatImageList);
 
-    for (int i = 0 ; i < rMatImageList->size() ; i++)
+    for (int i = 0 ; i < rMatImageList.size() ; i++)
     {
-        QTreeWidgetItem *treeItem = new QTreeWidgetItem(parentItem);
-        treeItem->setText(0, rMatImageList->at(i).getImageTitle());
-        rMatImageList->operator [](i).setItem(treeItem);
-//        qDebug("RTreeWidget::addItems:: setting items in rMatImageList");
-//        qDebug() << "RTreeWidget::addItems:: rMatImageList->value(i)->getItem() =" << rMatImageList->at(i).getItem();
-    }
-}
-
-void RTreeWidget::cleanUpItems(QTreeWidgetItem *parentItem, QList<RMat> *rMatImageList)
-{
-    for (int i = 0 ; i < rMatImageList->size() ; i++)
-    {
-        //qDebug() << "RTreeWidget::cleanUpItems:: rMatImageList.[i].getItem() =" << rMatImageList[i].getItem();
-        if (rMatImageList->at(i).getItem() != NULL)
+        if (rMatImageList.at(i)->getItem() != NULL)
         {
-            parentItem->removeChild(rMatImageList->at(i).getItem());
-            //qDebug("RTreeWidget::cleanUpItems:: Cleaned up items.");
+            lightItem->removeChild(rMatImageList.at(i)->getItem());
+            biasItem->removeChild(rMatImageList.at(i)->getItem());
+            darkItem->removeChild(rMatImageList.at(i)->getItem());
+            flatItem->removeChild(rMatImageList.at(i)->getItem());
         }
+
+        QTreeWidgetItem *treeItem = new QTreeWidgetItem(parentItem);
+        treeItem->setText(0, rMatImageList.at(i)->getImageTitle());
+        rMatImageList[i]->setItem(treeItem);
     }
 
 }
+
 
 QList<QUrl> RTreeWidget::getLightUrls() const
 {

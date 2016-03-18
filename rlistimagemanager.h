@@ -9,24 +9,26 @@
 class RListImageManager
 {
 public:
+    RListImageManager();
     RListImageManager(QList<QUrl> urlList);
+    ~RListImageManager();
 
-    // return buffer of current image.
-    void* fetchData(int frameIndex);
-    ImageManager* fetchImageManager(int frameIndex);
+    void loadData(QList<QUrl> urlList);
 
-    //public member (which shall be passed by reference)
-    QList<RMat> rMatImageList;
 
     //getters
     QList<QUrl> getUrlList();
-    QList<ImageManager*> getImageManagerList();
     QList<QTableWidget*> getTableWidgetList() const;
+    QList<RMat*> getRMatImageList();
 
 private:
+
+    void cleanLists();
+
     QList<QUrl> urlList;
     QList<ImageManager*> imageManagerList;
     QList<QTableWidget*> tableWidgetList;
+    QList<RMat*> rMatImageList;
 
 };
 

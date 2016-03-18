@@ -21,7 +21,7 @@
 using namespace cv;
 
 MyFitsImage::MyFitsImage(QString filePath) :
-hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0)
+hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0), image1D_ushort(NULL), image1D_float(NULL), image1D_shortint(NULL)
 {
 
 	fitsfile *fptr;
@@ -141,42 +141,44 @@ hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0)
 
     if (bitpix == USHORT_IMG)
     {
-        ushort* image1D = new ushort[nPixels]();
-        if (fits_read_img(fptr, TUSHORT, firstPixel, nPixels, &nullval, image1D, &anynul, &status))
+        image1D_ushort = new ushort[nPixels]();
+        if (fits_read_img(fptr, TUSHORT, firstPixel, nPixels, &nullval, image1D_ushort, &anynul, &status))
             printerror(status);
 
-        matFits = Mat(naxis2, naxis1, CV_16U, image1D);
+        matFits = Mat(naxis2, naxis1, CV_16U, image1D_ushort);
 
-        delete[] image1D;
+        //delete[] image1D;
     }
     else if (bitpix == SHORT_IMG && bzero == 0)
     {
-        short int* image1D = new short int[nPixels]();
-        if (fits_read_img(fptr, TSHORT, firstPixel, nPixels, &nullval, image1D, &anynul, &status))
+        image1D_shortint = new short int[nPixels]();
+        if (fits_read_img(fptr, TSHORT, firstPixel, nPixels, &nullval, image1D_shortint, &anynul, &status))
             printerror(status);
 
-        matFits = Mat(naxis2, naxis1, CV_16S, image1D);
+        matFits = Mat(naxis2, naxis1, CV_16S, image1D_shortint);
 
-        delete[] image1D;
+        //delete[] image1D;
     }
     else if (bitpix == SHORT_IMG && bzero == 32768)
     {
-        ushort* image1D = new ushort[nPixels]();
-        if (fits_read_img(fptr, TUSHORT, firstPixel, nPixels, &nullval, image1D, &anynul, &status))
+        image1D_ushort = new ushort[nPixels]();
+        //ushort image1D(nPixels);
+
+        if (fits_read_img(fptr, TUSHORT, firstPixel, nPixels, &nullval, image1D_ushort, &anynul, &status))
             printerror(status);
 
-        matFits = Mat(naxis2, naxis1, CV_16U, image1D);
+        matFits = Mat(naxis2, naxis1, CV_16U, image1D_ushort);
 
-        delete[] image1D;
+        //delete[] image1D;
     }
     else if (bitpix == SHORT_IMG  || bitpix == FLOAT_IMG || bitpix == LONG_IMG)
     {
-        float* image1D = new float[nPixels]();
-        if (fits_read_img(fptr, TFLOAT, firstPixel, nPixels, &nullval, image1D, &anynul, &status))
+        image1D_float = new float[nPixels]();
+        if (fits_read_img(fptr, TFLOAT, firstPixel, nPixels, &nullval, image1D_float, &anynul, &status))
             printerror(status);
-        matFits = Mat(naxis2, naxis1, CV_32F, image1D);
+        matFits = Mat(naxis2, naxis1, CV_32F, image1D_float);
 
-        delete[] image1D;
+        //delete[] image1D;
     }
     else
     {
@@ -190,6 +192,7 @@ hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0)
         printerror(status);
 
     //matFits.convertTo(matFits, CV_32F);
+
     if (matFits.type() != CV_32F)
     {
         matFits.convertTo(matFits, CV_16U);
@@ -199,7 +202,10 @@ hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0)
 
 MyFitsImage::~MyFitsImage()
 {
-
+    qDebug("MyFitsImage::~MyFitsImage():: calling MyFitsImage destructor");
+    delete[] image1D_ushort;
+    delete[] image1D_shortint;
+    delete[] image1D_float;
 }
 
 // getters
@@ -228,6 +234,11 @@ int MyFitsImage::getBscale() const
 int MyFitsImage::getBzero() const
 {
     return bzero;
+}
+
+cv::Mat MyFitsImage::getMatFits() const
+{
+    return matFits;
 }
 
 void MyFitsImage::printHDUType(int hduType)

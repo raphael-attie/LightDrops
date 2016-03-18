@@ -5,7 +5,7 @@
 #include <QHeaderView>
 
 ImageManager::ImageManager(QString filePathQStr) :
-    newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL)
+    error(0), newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL), rMatImage(NULL)
 {
 
     if (filePathQStr.isEmpty())
@@ -44,21 +44,30 @@ ImageManager::ImageManager(QString filePathQStr) :
     else
     {
         qDebug("Unknown file extension");
+        error = 1;
         return;
     }
 
-    rMatImage.setImageTitle(fileName);
-    rMatImage.setFileInfo(fileInfo);
+    rMatImage->setImageTitle(fileName);
+    rMatImage->setFileInfo(fileInfo);
 
-    qDebug() << "ImageManager:: dataMin = " << dataMin;
-    qDebug() << "ImageManager:: dataMax = " << dataMax;
+    qDebug() << "ImageManager:: dataMin = " << rMatImage->getDataMin();
+    qDebug() << "ImageManager:: dataMax = " << rMatImage->getDataMax();
 
 }
 
 ImageManager::~ImageManager()
 {
+    qDebug("ImageManager::~ImageManager() calling ImageManager destructor");
+    delete tableWidget;
+    delete rMatImage;
     delete newFitsImage;
     delete newRawImage;
+}
+
+bool ImageManager::getError()
+{
+    return error;
 }
 
 
@@ -66,7 +75,13 @@ void ImageManager::loadFits()
 {
     newFitsImage = new MyFitsImage(filePathQStr);
 
-    cv::minMaxLoc(newFitsImage->matFits, &dataMin, &dataMax);
+    rMatImage = new RMat(newFitsImage->getMatFits(), newFitsImage->isBayer());
+    rMatImage->setBscale(newFitsImage->getBscale());
+    rMatImage->setBzero(newFitsImage->getBzero());
+
+    rMatImage->setWbRed(1.0);
+    rMatImage->setWbGreen(1.0);
+    rMatImage->setWbBlue(1.0);
 
     instruments instrument;
     // USET data?
@@ -75,7 +90,7 @@ void ImageManager::loadFits()
         qDebug("ImageManager::loadFits():: loading USET data");
         instrument = instruments::USET;
     }
-    else if (dataMin < -100.0)
+    else if (rMatImage->getDataMin() < -100.0)
     {
         instrument = instruments::MAG;
     }
@@ -84,31 +99,18 @@ void ImageManager::loadFits()
         instrument = instruments::generic;
     }
 
-    rMatImage = RMat(newFitsImage->matFits, newFitsImage->isBayer(), instrument);
-    rMatImage.setBscale(newFitsImage->getBscale());
-    rMatImage.setBzero(newFitsImage->getBzero());
-
-    rMatImage.setDataMin((float) dataMin);
-    rMatImage.setDataMax((float) dataMax);
-
-    rMatImage.setWbRed(1.0);
-    rMatImage.setWbGreen(1.0);
-    rMatImage.setWbBlue(1.0);
+    rMatImage->setInstrument(instrument);
 }
 
 void ImageManager::loadRaw()
 {
     newRawImage = new RawImage(filePathQStr);
-    cv::minMaxLoc(newRawImage->matCFA, &dataMin, &dataMax);
 
-    rMatImage = RMat(newRawImage->matCFA, true, instruments::DSLR);
+    rMatImage = new RMat(newRawImage->matCFA, true, instruments::DSLR);
 
-    rMatImage.setDataMin((float) dataMin);
-    rMatImage.setDataMax((float) dataMax);
-
-    rMatImage.setWbRed(newRawImage->getWbRed());
-    rMatImage.setWbGreen(newRawImage->getWbGreen());
-    rMatImage.setWbBlue(newRawImage->getWbBlue());
+    rMatImage->setWbRed(newRawImage->getWbRed());
+    rMatImage->setWbGreen(newRawImage->getWbGreen());
+    rMatImage->setWbBlue(newRawImage->getWbBlue());
 }
 
 void ImageManager::createTableWidget()
@@ -164,6 +166,11 @@ QString ImageManager::getFileName()
 QTableWidget* ImageManager::getTableWidget() const
 {
     return tableWidget;
+}
+
+RMat *ImageManager::getRMatImage()
+{
+    return rMatImage;
 }
 
 float ImageManager::getWbRed() const

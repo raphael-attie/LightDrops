@@ -11,9 +11,9 @@ RMat::RMat()
 
 }
 
-RMat::RMat(cv::Mat &matImage) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
+RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
 {
-    this->matImage = matImage;
+    mat.copyTo(this->matImage);
     this->bayer = false;
     this->imageTitle = QString("Image #");
     this->instrument = instruments::generic;
@@ -30,11 +30,14 @@ RMat::RMat(cv::Mat &matImage) : dataMin(0), dataMax(0), bscale(1), bzero(0), ite
     }
 
     calcStats();
+
+    qDebug("RMat::RMat() dataMin = %f", dataMin);
+    qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
-RMat::RMat(cv::Mat &matImage, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
+RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
 {
-    this->matImage = matImage;
+    mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("Image #");
     this->instrument = instruments::generic;
@@ -51,11 +54,14 @@ RMat::RMat(cv::Mat &matImage, bool bayer) : dataMin(0), dataMax(0), bscale(1), b
     }
 
     calcStats();
+
+    qDebug("RMat::RMat() dataMin = %f", dataMin);
+    qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
-RMat::RMat(cv::Mat &matImage, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
+RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
 {
-    this->matImage = matImage;
+    mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("Image #");
     this->instrument = instrument;
@@ -72,13 +78,16 @@ RMat::RMat(cv::Mat &matImage, bool bayer, instruments instrument) : dataMin(0), 
     }
 
     calcStats();
+
+    qDebug("RMat::RMat() dataMin = %f", dataMin);
+    qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
 
 
 RMat::~RMat()
 {
-    matImage.release();
+
 }
 
 bool RMat::empty()
@@ -104,6 +113,7 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
 
 void RMat::calcStats()
 {
+
 
     cv::Scalar meanScalar;
     cv::Scalar stdDevScalar;
@@ -151,6 +161,11 @@ void RMat::calcStats()
     qDebug("RMat::calcStats():: median = %f", median);
     qDebug("RMat::calcStats():: percentile Low = %f", intensityLow);
     qDebug("RMat::calcStats():: percentile High = %f", intensityHigh);
+}
+
+cv::Mat RMat::getMatImage() const
+{
+    return matImage;
 }
 
 float RMat::calcMedian()

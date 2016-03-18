@@ -15,7 +15,7 @@ class RProcessing: public QObject
 
 public:
     RProcessing(QObject *parent = 0);
-
+    ~RProcessing();
 
     void loadRMatLightList(QList<QUrl> urls);
     void loadRMatBiasList(QList<QUrl> urls);
@@ -23,21 +23,20 @@ public:
     void loadRMatFlatList(QList<QUrl> urls);
 
     // Calibration (bias, dark, ...)
-    void makeMasters();
     bool makeMasterBias();
     bool makeMasterDark();
     bool makeMasterFlat();
 
-    RMat average(QList<RMat> rMatList);
+    RMat *average(QList<RMat*> rMatList);
 
     // export methods
     void exportMastersToFits();
-    void exportToFits(RMat rImage, QString QStrFilename);
-    QString setupFileName(QFileInfo fileInfo);
+    void exportToFits(RMat *rMatImage, QString QStrFilename);
+    QString setupFileName(QFileInfo fileInfo, QString format);
     void loadMasterDark();
     void loadMasterFlat();
 
-
+    void showMinMax(const cv::Mat & matImage);
     // setters
     void setTreeWidget(RTreeWidget *treeWidget);
 
@@ -45,20 +44,21 @@ public:
     QString getExportMastersDir();
     QString getExportCalibrateDir();
 
-    // public properties (for "easier" referencing)
-    QList<RMat> rMatLightList;
-    QList<RMat> rMatBiasList;
-    QList<RMat> rMatDarkList;
-    QList<RMat> rMatFlatList;
+    RMat* getMasterBias();
+    RMat* getMasterDark();
+    RMat* getMasterFlat();
 
-    RMat masterBias;
-    RMat masterDark;
-    RMat masterFlat;
+    // public properties (for "easier" referencing)
+    QList<RMat*> rMatLightList;
+    QList<RMat*> rMatBiasList;
+    QList<RMat*> rMatDarkList;
+    QList<RMat*> rMatFlatList;
+
 
 signals:
 
-   void resultSignal(RMat &rMatResult, QString windowTitle = QString("Result"));
-   void listResultSignal(QList<RMat> &rMatListResult);
+   void resultSignal(RMat* rMatResult);
+   void listResultSignal(QList<RMat*> rMatListResult);
    void messageSignal(QString message);
    void tempMessageSignal(QString message, int = 3000);
 
@@ -79,7 +79,13 @@ public slots:
 
 private:
 
-    RMat normalizeByMean(RMat rImage);
+    RListImageManager *listImageManager;
+    RMat *normalizeByMean(RMat *rImage);
+    RMat *masterBias;
+    RMat *masterDark;
+    RMat *masterFlat;
+    QList<RMat*> resultList;
+
     RTreeWidget *treeWidget;
 
     QString exportMastersDir;

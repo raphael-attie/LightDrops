@@ -19,12 +19,13 @@ public:
     ImageManager(QString filePathQStre);
     ~ImageManager();
 
-    RMat rMatImage;
 
     // getters
+    bool getError();
     MyFitsImage* getNewFitsImage();
     QString getFileName();
     QTableWidget *getTableWidget() const;
+    RMat* getRMatImage();
 
     float getWbRed() const;
     float getWbGreen() const;
@@ -32,10 +33,12 @@ public:
 
 private:
 
+    bool error;
     void loadFits();
     void loadRaw();
     void createTableWidget();
 
+    RMat* rMatImage;
     QList<QString> fitsExtList;
     QList<QString> rawExtList;
     QString filePathQStr;
@@ -51,9 +54,6 @@ private:
     float wbRed;
     float wbGreen;
     float wbBlue;
-    double dataMin;
-    double dataMax;
-
 
 };
 

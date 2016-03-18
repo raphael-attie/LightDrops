@@ -32,15 +32,14 @@ class ROpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 public:
     ROpenGLWidget(QWidget *parent = 0);
     ROpenGLWidget(RListImageManager *rListImageManager, QWidget *parent = 0);
-    ROpenGLWidget(QList<RMat> & rMatImageList, QWidget *parent = 0);
-    ROpenGLWidget(RMat &rImage, QWidget *parent = 0);
+    ROpenGLWidget(QList<RMat*> rMatImageList, QWidget *parent = 0);
+    ROpenGLWidget(RMat *rMatImage, QWidget *parent = 0);
     ~ROpenGLWidget();
 
     void initSubQImage();
     void updateSubQImage();
     void updateInfo();
 
-    QList<RMat> rMatImageList;
     QList<cv::Mat> matImageListRGB;
 
     //events
@@ -52,6 +51,8 @@ public:
     quint32 getImageCoordX();
     quint32 getImageCoordY();
     RListImageManager *getRListImageManager();
+    QList<RMat*> getRMatImageList();
+
     int getFrameIndex();
     QString getCalibrationType();
     QList<QString> getWindowTitleList();
@@ -75,7 +76,6 @@ public:
     void setGamma(float newGamma);
 
     void setFrameIndex(int newFrameIndex);
-    void setRListImageManager(RListImageManager *rListImageManager);
     void setCalibrationType(QString calibrationType);
 
     void setWindowTitleList(QList<QString> newWindowTitleList);
@@ -110,12 +110,13 @@ public slots:
 
 private:
     void initialize();
-    cv::Mat prepImage(RMat rMatImage);
+    void prepImage();
 
     bool prepareShaderProgram( const QString vertexShaderPath,
                                const QString fragmentShaderPath );
 
-    bool isBayer;
+    QList<RMat*> rMatImageList;
+
     void loadGLTexture();
     void calculateDefaultSize();
 

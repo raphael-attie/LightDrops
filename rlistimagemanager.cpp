@@ -1,5 +1,11 @@
 #include "rlistimagemanager.h"
 
+
+RListImageManager::RListImageManager()
+{
+
+}
+
 RListImageManager::RListImageManager(QList<QUrl> urlList)
 {
     this->urlList = urlList;
@@ -7,35 +13,74 @@ RListImageManager::RListImageManager(QList<QUrl> urlList)
     for (long ii = 0; ii < urlList.size(); ii++)
     {
         QString filePathQStr = urlList.at(ii).toLocalFile();
-        qDebug() << "File: " << filePathQStr;
-        ImageManager *imageManager = new ImageManager(filePathQStr);
-        if (imageManager->rMatImage.empty())
+        qDebug() << "RListImageManager::RListImageManager():: File: " << filePathQStr;
+
+        ImageManager* newImageManager = new ImageManager(filePathQStr);
+
+        if (!newImageManager->getError())
         {
+            imageManagerList << newImageManager;
+            rMatImageList << newImageManager->getRMatImage();
+            tableWidgetList << newImageManager->getTableWidget();
+        }
+        else
+        {
+            qDebug("RListImageManager::RListImageManager:: Could not load file");
             return;
         }
-        imageManagerList << imageManager;
-        rMatImageList.push_back(imageManager->rMatImage);
-        tableWidgetList << imageManager->getTableWidget();
     }
 }
 
 
-void* RListImageManager::fetchData(int frameIndex)
+
+RListImageManager::~RListImageManager()
 {
-    return imageManagerList.at(frameIndex)->rMatImage.matImage.data;
+    qDebug("RListImageManager::~RListImageManager() calling RListImageManager destructor");
+
+    if (!imageManagerList.empty())
+    {
+        qDeleteAll(imageManagerList);
+        imageManagerList.clear();
+    }
+
+       rMatImageList.clear();
+
+ if (!tableWidgetList.empty())
+       {
+           qDebug("Cleaning up tableWidgetList");
+           tableWidgetList.clear();
+       }
 }
 
-ImageManager* RListImageManager::fetchImageManager(int frameIndex)
+void RListImageManager::loadData(QList<QUrl> urlList)
 {
-    return imageManagerList.at(frameIndex);
+    this->urlList = urlList;
+
+    cleanLists();
+
+    for (long ii = 0; ii < urlList.size(); ii++)
+    {
+        QString filePathQStr = urlList.at(ii).toLocalFile();
+        qDebug() << "RListImageManager::RListImageManager():: File: " << filePathQStr;
+
+        ImageManager* newImageManager = new ImageManager(filePathQStr);
+
+        if (!newImageManager->getError())
+        {
+            imageManagerList << newImageManager;
+            rMatImageList << newImageManager->getRMatImage();
+            tableWidgetList << newImageManager->getTableWidget();
+        }
+        else
+        {
+            qDebug("RListImageManager::RListImageManager:: Could not load file");
+            return;
+        }
+    }
 }
+
 
 //getters
-
-QList<ImageManager*> RListImageManager::getImageManagerList()
-{
-    return imageManagerList;
-}
 
 QList<QUrl> RListImageManager::getUrlList()
 {
@@ -45,5 +90,33 @@ QList<QUrl> RListImageManager::getUrlList()
 QList<QTableWidget*> RListImageManager::getTableWidgetList() const
 {
     return tableWidgetList;
+}
+
+QList<RMat *> RListImageManager::getRMatImageList()
+{
+    return rMatImageList;
+}
+
+void RListImageManager::cleanLists()
+{
+    if (!imageManagerList.empty())
+    {
+        qDebug("Cleaning up imageManagerList");
+        qDeleteAll(imageManagerList);
+        imageManagerList.clear();
+    }
+
+    if (!rMatImageList.empty())
+    {
+        qDebug("Cleaning up rMatImageList");
+        rMatImageList.clear();
+    }
+
+    if (!tableWidgetList.empty())
+    {
+        qDebug("Cleaning up tableWidgetList");
+        tableWidgetList.clear();
+    }
+
 }
 

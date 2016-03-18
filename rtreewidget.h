@@ -17,6 +17,8 @@ class RTreeWidget : public QTreeWidget
 public:
     RTreeWidget(QWidget *parent = 0);
 
+    QList<RMat*> rMatLightList, rMatBiasList, rMatDarkList, rMatFlatList;
+
     // getters
     QList<QUrl> getLightUrls() const;
     QList<QUrl> getBiasUrls() const;
@@ -31,8 +33,7 @@ public:
     QTreeWidgetItem* getDarkItem() const;
     QTreeWidgetItem* getFlatItem() const;
 
-    void addItems(QTreeWidgetItem* parentItem, QList<RMat> *rMatImageList);
-    void cleanUpItems(QTreeWidgetItem* parentItem, QList<RMat> *rMatImageList);
+    void addItems(QTreeWidgetItem* parentItem, QList<RMat*> rMatImageList);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event);
@@ -45,10 +46,10 @@ signals:
 public slots:
 
     void dispatchUrls(QTreeWidgetItem* parentItem, QList<QUrl> urls);
-    void rMatFromLightRButton(QList<RMat> *rMatImageList);
-    void rMatFromBiasRButton(QList<RMat> *rMatImageList);
-    void rMatFromDarkRButton(QList<RMat> *rMatImageList);
-    void rMatFromFlatRButton(QList<RMat> *rMatImageList);
+    void rMatFromLightRButton(QList<RMat*> rMatImageList);
+    void rMatFromBiasRButton(QList<RMat*> rMatImageList);
+    void rMatFromDarkRButton(QList<RMat*> rMatImageList);
+    void rMatFromFlatRButton(QList<RMat*> rMatImageList);
 
 
 private:
@@ -56,6 +57,7 @@ private:
     QTreeWidgetItem *lightItem, *biasItem, *darkItem, *flatItem;
     QList<QUrl> lightUrls, biasUrls, darkUrls, flatUrls;
     QDir lightsDir, biasDir, darkDir, flatDir;
+
 };
 
 #endif // RTREEWIDGET_H

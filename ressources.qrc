@@ -4,86 +4,404 @@
         <file>shaders/vertexShader.vert</file>
         <file>shaders/fragment32.frag</file>
     </qresource>
-    <qresource prefix="/Icons">
-        <file>Icons/SVG/ALIGN LEFT.svg</file>
-        <file>Icons/SVG/ALIGN MIDDLE.svg</file>
-        <file>Icons/SVG/ALIGN RIGHT.svg</file>
-        <file>Icons/SVG/ARROW.svg</file>
-        <file>Icons/SVG/BATTERY.svg</file>
-        <file>Icons/SVG/BELL.svg</file>
-        <file>Icons/SVG/BLANK.svg</file>
-        <file>Icons/SVG/BLUETOOTH.svg</file>
-        <file>Icons/SVG/BROWSER.svg</file>
-        <file>Icons/SVG/CAMERA.svg</file>
-        <file>Icons/SVG/CART.svg</file>
-        <file>Icons/SVG/CHAT.svg</file>
-        <file>Icons/SVG/CHECK MARK.svg</file>
-        <file>Icons/SVG/CLOCK.svg</file>
-        <file>Icons/SVG/CLOSE.svg</file>
-        <file>Icons/SVG/COCKTAIL.svg</file>
-        <file>Icons/SVG/COMPASS.svg</file>
-        <file>Icons/SVG/CONNECTION.svg</file>
-        <file>Icons/SVG/CURSOR.svg</file>
-        <file>Icons/SVG/DISPLAY.svg</file>
-        <file>Icons/SVG/DOWNLOAD.svg</file>
-        <file>Icons/SVG/DROP.svg</file>
-        <file>Icons/SVG/EMPTY BLANK.svg</file>
-        <file>Icons/SVG/FLAG.svg</file>
-        <file>Icons/SVG/FORWARD 2.svg</file>
-        <file>Icons/SVG/FORWARD.svg</file>
-        <file>Icons/SVG/GIFT.svg</file>
-        <file>Icons/SVG/GRAPHIC.svg</file>
-        <file>Icons/SVG/GRID.svg</file>
-        <file>Icons/SVG/HAMBURGER MENU.svg</file>
-        <file>Icons/SVG/HEADPHONES.svg</file>
-        <file>Icons/SVG/HEART.svg</file>
-        <file>Icons/SVG/HOME.svg</file>
-        <file>Icons/SVG/HYPERLINK.svg</file>
-        <file>Icons/SVG/JUSTIFY ALL.svg</file>
-        <file>Icons/SVG/KEY.svg</file>
-        <file>Icons/SVG/LABEL.svg</file>
-        <file>Icons/SVG/LAUNCH.svg</file>
-        <file>Icons/SVG/LOCK CLOSED.svg</file>
-        <file>Icons/SVG/LOCK OPEN.svg</file>
-        <file>Icons/SVG/MAGNET.svg</file>
-        <file>Icons/SVG/MAGNIFYING GLASS 2.svg</file>
-        <file>Icons/SVG/MAGNIFYING GLASS MINUS.svg</file>
-        <file>Icons/SVG/MAGNIFYING GLASS PLUS.svg</file>
-        <file>Icons/SVG/MAGNIFYING GLASS.svg</file>
-        <file>Icons/SVG/MAIL.svg</file>
-        <file>Icons/SVG/MAP PIN.svg</file>
-        <file>Icons/SVG/MAP.svg</file>
-        <file>Icons/SVG/MAXIMIZE.svg</file>
-        <file>Icons/SVG/MICROPHONE.svg</file>
-        <file>Icons/SVG/MINIMIZE.svg</file>
-        <file>Icons/SVG/MINUS.svg</file>
-        <file>Icons/SVG/MOUSE.svg</file>
-        <file>Icons/SVG/MUSIC.svg</file>
-        <file>Icons/SVG/NAVIGATION.svg</file>
-        <file>Icons/SVG/NOTIFICATIONS.svg</file>
-        <file>Icons/SVG/PAUSE.svg</file>
-        <file>Icons/SVG/PENCIL.svg</file>
-        <file>Icons/SVG/PLAY.svg</file>
-        <file>Icons/SVG/PLUS.svg</file>
-        <file>Icons/SVG/POWER.svg</file>
-        <file>Icons/SVG/PRINT.svg</file>
-        <file>Icons/SVG/REPEAT.svg</file>
-        <file>Icons/SVG/RULE.svg</file>
-        <file>Icons/SVG/SELECTION.svg</file>
-        <file>Icons/SVG/SETTINGS.svg</file>
-        <file>Icons/SVG/SHARE.svg</file>
-        <file>Icons/SVG/SHUFFLE.svg</file>
-        <file>Icons/SVG/SOUND MINUS.svg</file>
-        <file>Icons/SVG/SOUND PLUS.svg</file>
-        <file>Icons/SVG/SPEAKER.svg</file>
-        <file>Icons/SVG/STAR.svg</file>
-        <file>Icons/SVG/STATISTICS.svg</file>
-        <file>Icons/SVG/STOP.svg</file>
-        <file>Icons/SVG/SUN.svg</file>
-        <file>Icons/SVG/TRASH BIN.svg</file>
-        <file>Icons/SVG/UMBRELLA.svg</file>
-        <file>Icons/SVG/UPLOAD.svg</file>
-        <file>Icons/SVG/VIDEO CAMERA.svg</file>
-        <file>Icons/SVG/WIFI.svg</file>
+    <qresource prefix="/icons">
+        <file>Icons/icons1/ALIGN LEFT.svg</file>
+        <file>Icons/icons1/ALIGN MIDDLE.svg</file>
+        <file>Icons/icons1/ALIGN RIGHT.svg</file>
+        <file>Icons/icons1/ARROW.svg</file>
+        <file>Icons/icons1/BATTERY.svg</file>
+        <file>Icons/icons1/BELL.svg</file>
+        <file>Icons/icons1/BLANK.svg</file>
+        <file>Icons/icons1/BLUETOOTH.svg</file>
+        <file>Icons/icons1/BROWSER.svg</file>
+        <file>Icons/icons1/CAMERA.svg</file>
+        <file>Icons/icons1/CART.svg</file>
+        <file>Icons/icons1/CHAT.svg</file>
+        <file>Icons/icons1/CHECK MARK.svg</file>
+        <file>Icons/icons1/CLOCK.svg</file>
+        <file>Icons/icons1/CLOSE.svg</file>
+        <file>Icons/icons1/COCKTAIL.svg</file>
+        <file>Icons/icons1/COMPASS.svg</file>
+        <file>Icons/icons1/CONNECTION.svg</file>
+        <file>Icons/icons1/CURSOR.svg</file>
+        <file>Icons/icons1/DISPLAY.svg</file>
+        <file>Icons/icons1/DOWNLOAD.svg</file>
+        <file>Icons/icons1/DROP.svg</file>
+        <file>Icons/icons1/EMPTY BLANK.svg</file>
+        <file>Icons/icons1/FLAG.svg</file>
+        <file>Icons/icons1/FORWARD 2.svg</file>
+        <file>Icons/icons1/FORWARD.svg</file>
+        <file>Icons/icons1/GIFT.svg</file>
+        <file>Icons/icons1/GRAPHIC.svg</file>
+        <file>Icons/icons1/GRID.svg</file>
+        <file>Icons/icons1/HAMBURGER MENU.svg</file>
+        <file>Icons/icons1/HEADPHONES.svg</file>
+        <file>Icons/icons1/HEART.svg</file>
+        <file>Icons/icons1/HOME.svg</file>
+        <file>Icons/icons1/HYPERLINK.svg</file>
+        <file>Icons/icons1/JUSTIFY ALL.svg</file>
+        <file>Icons/icons1/KEY.svg</file>
+        <file>Icons/icons1/LABEL.svg</file>
+        <file>Icons/icons1/LAUNCH.svg</file>
+        <file>Icons/icons1/LOCK CLOSED.svg</file>
+        <file>Icons/icons1/LOCK OPEN.svg</file>
+        <file>Icons/icons1/MAGNET.svg</file>
+        <file>Icons/icons1/MAGNIFYING GLASS 2.svg</file>
+        <file>Icons/icons1/MAGNIFYING GLASS MINUS.svg</file>
+        <file>Icons/icons1/MAGNIFYING GLASS PLUS.svg</file>
+        <file>Icons/icons1/MAGNIFYING GLASS.svg</file>
+        <file>Icons/icons1/MAIL.svg</file>
+        <file>Icons/icons1/MAP PIN.svg</file>
+        <file>Icons/icons1/MAP.svg</file>
+        <file>Icons/icons1/MAXIMIZE.svg</file>
+        <file>Icons/icons1/MICROPHONE.svg</file>
+        <file>Icons/icons1/MINIMIZE.svg</file>
+        <file>Icons/icons1/MINUS.svg</file>
+        <file>Icons/icons1/MOUSE.svg</file>
+        <file>Icons/icons1/MUSIC.svg</file>
+        <file>Icons/icons1/NAVIGATION.svg</file>
+        <file>Icons/icons1/NOTIFICATIONS.svg</file>
+        <file>Icons/icons1/PAUSE.svg</file>
+        <file>Icons/icons1/PENCIL.svg</file>
+        <file>Icons/icons1/PLAY.svg</file>
+        <file>Icons/icons1/PLUS.svg</file>
+        <file>Icons/icons1/POWER.svg</file>
+        <file>Icons/icons1/PRINT.svg</file>
+        <file>Icons/icons1/REPEAT.svg</file>
+        <file>Icons/icons1/RULE.svg</file>
+        <file>Icons/icons1/SELECTION.svg</file>
+        <file>Icons/icons1/SETTINGS.svg</file>
+        <file>Icons/icons1/SHARE.svg</file>
+        <file>Icons/icons1/SHUFFLE.svg</file>
+        <file>Icons/icons1/SOUND MINUS.svg</file>
+        <file>Icons/icons1/SOUND PLUS.svg</file>
+        <file>Icons/icons1/SPEAKER.svg</file>
+        <file>Icons/icons1/STAR.svg</file>
+        <file>Icons/icons1/STATISTICS.svg</file>
+        <file>Icons/icons1/STOP.svg</file>
+        <file>Icons/icons1/SUN.svg</file>
+        <file>Icons/icons1/TRASH BIN.svg</file>
+        <file>Icons/icons1/UMBRELLA.svg</file>
+        <file>Icons/icons1/UPLOAD.svg</file>
+        <file>Icons/icons1/VIDEO CAMERA.svg</file>
+        <file>Icons/icons1/WIFI.svg</file>
+        <file>Icons/icons2/SVG/accelerator.svg</file>
+        <file>Icons/icons2/SVG/add_folder.svg</file>
+        <file>Icons/icons2/SVG/agenda.svg</file>
+        <file>Icons/icons2/SVG/alarm_clock.svg</file>
+        <file>Icons/icons2/SVG/arrow_down.svg</file>
+        <file>Icons/icons2/SVG/arrow_left.svg</file>
+        <file>Icons/icons2/SVG/arrow_right.svg</file>
+        <file>Icons/icons2/SVG/arrow_up.svg</file>
+        <file>Icons/icons2/SVG/battery_1.svg</file>
+        <file>Icons/icons2/SVG/battery_2.svg</file>
+        <file>Icons/icons2/SVG/battery_3.svg</file>
+        <file>Icons/icons2/SVG/battery_4.svg</file>
+        <file>Icons/icons2/SVG/blackboard_graph.svg</file>
+        <file>Icons/icons2/SVG/boat.svg</file>
+        <file>Icons/icons2/SVG/booknote_add.svg</file>
+        <file>Icons/icons2/SVG/booknote_remove.svg</file>
+        <file>Icons/icons2/SVG/booknote.svg</file>
+        <file>Icons/icons2/SVG/calendar.svg</file>
+        <file>Icons/icons2/SVG/camera_1.svg</file>
+        <file>Icons/icons2/SVG/camera_2.svg</file>
+        <file>Icons/icons2/SVG/case_2.svg</file>
+        <file>Icons/icons2/SVG/case.svg</file>
+        <file>Icons/icons2/SVG/cd.svg</file>
+        <file>Icons/icons2/SVG/check.svg</file>
+        <file>Icons/icons2/SVG/chronometer.svg</file>
+        <file>Icons/icons2/SVG/clock.svg</file>
+        <file>Icons/icons2/SVG/cloud_check.svg</file>
+        <file>Icons/icons2/SVG/cloud_delete.svg</file>
+        <file>Icons/icons2/SVG/cloud_download.svg</file>
+        <file>Icons/icons2/SVG/cloud_upload.svg</file>
+        <file>Icons/icons2/SVG/cloudy.svg</file>
+        <file>Icons/icons2/SVG/cocktail.svg</file>
+        <file>Icons/icons2/SVG/coffee.svg</file>
+        <file>Icons/icons2/SVG/compass.svg</file>
+        <file>Icons/icons2/SVG/compress.svg</file>
+        <file>Icons/icons2/SVG/cutlery.svg</file>
+        <file>Icons/icons2/SVG/delete_folder.svg</file>
+        <file>Icons/icons2/SVG/delete.svg</file>
+        <file>Icons/icons2/SVG/dialogue_add.svg</file>
+        <file>Icons/icons2/SVG/dialogue_delete.svg</file>
+        <file>Icons/icons2/SVG/dialogue_happy.svg</file>
+        <file>Icons/icons2/SVG/dialogue_sad.svg</file>
+        <file>Icons/icons2/SVG/dialogue_text.svg</file>
+        <file>Icons/icons2/SVG/dialogue_think.svg</file>
+        <file>Icons/icons2/SVG/diamond.svg</file>
+        <file>Icons/icons2/SVG/dish_fork.svg</file>
+        <file>Icons/icons2/SVG/dish_spoon.svg</file>
+        <file>Icons/icons2/SVG/download_folder.svg</file>
+        <file>Icons/icons2/SVG/download.svg</file>
+        <file>Icons/icons2/SVG/expand.svg</file>
+        <file>Icons/icons2/SVG/eye.svg</file>
+        <file>Icons/icons2/SVG/fast_food.svg</file>
+        <file>Icons/icons2/SVG/flag.svg</file>
+        <file>Icons/icons2/SVG/folder.svg</file>
+        <file>Icons/icons2/SVG/geolocalizator.svg</file>
+        <file>Icons/icons2/SVG/globe.svg</file>
+        <file>Icons/icons2/SVG/graph_descending.svg</file>
+        <file>Icons/icons2/SVG/graph_rising.svg</file>
+        <file>Icons/icons2/SVG/graph.svg</file>
+        <file>Icons/icons2/SVG/hammer.svg</file>
+        <file>Icons/icons2/SVG/happy_drop.svg</file>
+        <file>Icons/icons2/SVG/headphones.svg</file>
+        <file>Icons/icons2/SVG/heart_broken.svg</file>
+        <file>Icons/icons2/SVG/heart.svg</file>
+        <file>Icons/icons2/SVG/home.svg</file>
+        <file>Icons/icons2/SVG/hourglass.svg</file>
+        <file>Icons/icons2/SVG/image.svg</file>
+        <file>Icons/icons2/SVG/key.svg</file>
+        <file>Icons/icons2/SVG/life_buoy.svg</file>
+        <file>Icons/icons2/SVG/list.svg</file>
+        <file>Icons/icons2/SVG/lock_closed.svg</file>
+        <file>Icons/icons2/SVG/lock_open.svg</file>
+        <file>Icons/icons2/SVG/loudspeaker.svg</file>
+        <file>Icons/icons2/SVG/magnifier_minus.svg</file>
+        <file>Icons/icons2/SVG/magnifier_plus.svg</file>
+        <file>Icons/icons2/SVG/magnifier.svg</file>
+        <file>Icons/icons2/SVG/mail_open.svg</file>
+        <file>Icons/icons2/SVG/mail.svg</file>
+        <file>Icons/icons2/SVG/map.svg</file>
+        <file>Icons/icons2/SVG/medical_case.svg</file>
+        <file>Icons/icons2/SVG/microphone_1.svg</file>
+        <file>Icons/icons2/SVG/microphone_2.svg</file>
+        <file>Icons/icons2/SVG/minus.svg</file>
+        <file>Icons/icons2/SVG/multiple_image.svg</file>
+        <file>Icons/icons2/SVG/music_back.svg</file>
+        <file>Icons/icons2/SVG/music_backtoend.svg</file>
+        <file>Icons/icons2/SVG/music_eject.svg</file>
+        <file>Icons/icons2/SVG/music_forward.svg</file>
+        <file>Icons/icons2/SVG/music_forwardtoend.svg</file>
+        <file>Icons/icons2/SVG/music_pause.svg</file>
+        <file>Icons/icons2/SVG/music_play.svg</file>
+        <file>Icons/icons2/SVG/music_random.svg</file>
+        <file>Icons/icons2/SVG/music_repeat.svg</file>
+        <file>Icons/icons2/SVG/music_stop.svg</file>
+        <file>Icons/icons2/SVG/musical_note_2.svg</file>
+        <file>Icons/icons2/SVG/musical_note.svg</file>
+        <file>Icons/icons2/SVG/old_video_cam.svg</file>
+        <file>Icons/icons2/SVG/paper_pen.svg</file>
+        <file>Icons/icons2/SVG/paper_pencil.svg</file>
+        <file>Icons/icons2/SVG/paper_sheet.svg</file>
+        <file>Icons/icons2/SVG/pen_pencil_ruler.svg</file>
+        <file>Icons/icons2/SVG/pencil_ruler.svg</file>
+        <file>Icons/icons2/SVG/pencil.svg</file>
+        <file>Icons/icons2/SVG/plus.svg</file>
+        <file>Icons/icons2/SVG/portable_pc.svg</file>
+        <file>Icons/icons2/SVG/pricetag.svg</file>
+        <file>Icons/icons2/SVG/printer.svg</file>
+        <file>Icons/icons2/SVG/profile_add.svg</file>
+        <file>Icons/icons2/SVG/profile_remove.svg</file>
+        <file>Icons/icons2/SVG/profile.svg</file>
+        <file>Icons/icons2/SVG/rainy.svg</file>
+        <file>Icons/icons2/SVG/rotate.svg</file>
+        <file>Icons/icons2/SVG/setting_1.svg</file>
+        <file>Icons/icons2/SVG/setting_2.svg</file>
+        <file>Icons/icons2/SVG/share.svg</file>
+        <file>Icons/icons2/SVG/shield_down.svg</file>
+        <file>Icons/icons2/SVG/shield_left.svg</file>
+        <file>Icons/icons2/SVG/shield_right.svg</file>
+        <file>Icons/icons2/SVG/shield_up.svg</file>
+        <file>Icons/icons2/SVG/shopping_cart_content.svg</file>
+        <file>Icons/icons2/SVG/shopping_cart.svg</file>
+        <file>Icons/icons2/SVG/sinth.svg</file>
+        <file>Icons/icons2/SVG/smartphone.svg</file>
+        <file>Icons/icons2/SVG/spread.svg</file>
+        <file>Icons/icons2/SVG/squares.svg</file>
+        <file>Icons/icons2/SVG/stormy.svg</file>
+        <file>Icons/icons2/SVG/sunny.svg</file>
+        <file>Icons/icons2/SVG/tablet.svg</file>
+        <file>Icons/icons2/SVG/three_stripes_horiz.svg</file>
+        <file>Icons/icons2/SVG/three_stripes_vert.svg</file>
+        <file>Icons/icons2/SVG/ticket.svg</file>
+        <file>Icons/icons2/SVG/todolist_add.svg</file>
+        <file>Icons/icons2/SVG/todolist_check.svg</file>
+        <file>Icons/icons2/SVG/todolist.svg</file>
+        <file>Icons/icons2/SVG/trash_bin.svg</file>
+        <file>Icons/icons2/SVG/tshirt.svg</file>
+        <file>Icons/icons2/SVG/tv_monitor.svg</file>
+        <file>Icons/icons2/SVG/umbrella.svg</file>
+        <file>Icons/icons2/SVG/upload_folder.svg</file>
+        <file>Icons/icons2/SVG/upload.svg</file>
+        <file>Icons/icons2/SVG/variable.svg</file>
+        <file>Icons/icons2/SVG/video_cam.svg</file>
+        <file>Icons/icons2/SVG/volume_higher.svg</file>
+        <file>Icons/icons2/SVG/volume_lower.svg</file>
+        <file>Icons/icons2/SVG/volume_off.svg</file>
+        <file>Icons/icons2/SVG/watch.svg</file>
+        <file>Icons/icons2/SVG/waterfall.svg</file>
+        <file>Icons/icons2/SVG/website_1.svg</file>
+        <file>Icons/icons2/SVG/website_2.svg</file>
+        <file>Icons/icons2/SVG/wine.svg</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (1).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (2).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (3).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (4).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (5).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (6).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (7).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (8).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (9).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (10).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (11).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (12).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (13).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (14).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (15).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (16).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (17).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (18).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (19).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (20).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (21).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (22).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (23).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (24).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (25).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (26).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (27).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (28).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (29).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (30).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (31).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (32).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (33).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (34).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (35).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (36).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (37).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (38).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (39).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (40).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (41).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (42).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (43).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (44).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (45).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (46).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (47).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (48).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (49).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (50).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (51).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (52).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (53).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (54).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (55).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (56).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (57).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (58).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (59).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (60).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (61).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (62).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (63).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (64).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (65).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (66).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (67).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (68).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (69).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (70).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (71).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (72).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (73).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (74).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (75).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (76).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (77).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (78).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (79).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (80).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (81).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (82).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (83).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (84).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (85).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (86).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (87).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (88).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (89).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (90).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (91).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (92).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (93).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (94).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (95).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (96).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (97).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (98).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (99).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (100).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (101).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (102).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (103).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (104).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (105).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (106).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (107).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (108).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (109).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (110).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (111).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (112).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (113).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (114).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (115).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (116).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (117).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (118).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (119).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (120).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (121).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (122).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (123).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (124).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (125).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (126).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (127).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (128).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (129).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (130).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (131).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (132).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (133).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (134).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (135).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (136).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (137).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (138).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (139).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (140).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (141).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (142).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (143).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (144).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (145).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (146).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (147).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (148).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (149).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (150).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (151).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (152).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (153).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (154).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (155).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (156).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (157).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (158).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (159).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (160).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (161).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (162).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (163).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (164).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (165).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (166).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (167).png</file>
+        <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (168).png</file>
     </qresource>
 </RCC>

@@ -18,12 +18,10 @@ class RMat
 {
 public:
     RMat();
-    RMat(cv::Mat &matImage);
-    RMat(cv::Mat &matImage, bool bayer);
-    RMat(cv::Mat &matImage, bool bayer, instruments instrument);
+    RMat(cv::Mat mat);
+    RMat(cv::Mat mat, bool bayer);
+    RMat(cv::Mat mat, bool bayer, instruments instrument);
     ~RMat();
-
-    cv::Mat matImage;
 
     bool empty();
 
@@ -35,6 +33,7 @@ public:
     void calcStats();
 
     // getters
+    cv::Mat getMatImage() const;
     bool isBayer() const;
     int getBscale() const;
     int getBzero() const;
@@ -75,6 +74,7 @@ public:
 
 private:
 
+   cv::Mat matImage;
    bool bayer;
    int bscale;
    int bzero;

@@ -1,10 +1,11 @@
 #include "parallelcalibration.h"
 
-ParallelCalibration::ParallelCalibration(QString dir, QList<QUrl> lightFiles, RMat masterDark, RMat masterFlat, QList<RMat> &rMatList):
+ParallelCalibration::ParallelCalibration(QString dir, QList<QUrl> lightFiles, RMat* masterDark, RMat* masterFlat, QList<RMat*> rMatList):
     exportDir(dir), files(lightFiles), dark(masterDark), flat(masterFlat), resultList(rMatList)
 {
 
 }
+
 
 void ParallelCalibration::operator ()(const cv::Range& range) const
 {
@@ -13,8 +14,8 @@ void ParallelCalibration::operator ()(const cv::Range& range) const
         QString filePathQStr = files.at(i).toLocalFile();
         ImageManager *lightManager = new ImageManager(filePathQStr);
         RMat tempResult;
-        cv::subtract(lightManager->rMatImage.matImage, dark.matImage, tempResult.matImage);
-        cv::divide(tempResult.matImage, flat.matImage, tempResult.matImage);
-        tempResult.matImage.copyTo(resultList.at(i).matImage);
+        cv::subtract(lightManager->getRMatImage()->getMatImage(), dark->getMatImage(), tempResult.getMatImage());
+        cv::divide(tempResult.getMatImage(), flat->getMatImage(), tempResult.getMatImage());
+        tempResult.getMatImage().copyTo(resultList.at(i)->getMatImage());
     }
 }

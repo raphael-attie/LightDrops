@@ -11,7 +11,6 @@
 #include "ropenglwidget.h"
 #include "rprocessing.h"
 #include "RFrame.h"
-#include "rtableworker.h"
 
 //QCustomPlot
 #include <qcustomplot/qcustomplot.h>
@@ -33,10 +32,10 @@ signals:
     void messageSignal(QString message);
     void plotSignal(QCustomPlot *customPlot);
 
-    void radioLightImages(QList<RMat> *rMatImageList);
-    void radioBiasImages(QList<RMat> *rMatImageList);
-    void radioDarkImages(QList<RMat> *rMatImageList);
-    void radioFlatImages(QList<RMat> *rMatImageList);
+    void radioLightImages(QList<RMat*> rMatImageList);
+    void radioBiasImages(QList<RMat*> rMatImageList);
+    void radioDarkImages(QList<RMat*> rMatImageList);
+    void radioFlatImages(QList<RMat*> rMatImageList);
 
 protected:
     void dropEvent(QDropEvent* event);
@@ -47,8 +46,8 @@ protected:
 private slots:
 
     void createNewImage(RListImageManager *newRListImageManager);
-    void createNewImage(QList<RMat> &newRMatImageList);
-    void createNewImage(RMat &newRMatImage, QString windowTitle = QString(" "));
+    void createNewImage(QList<RMat*> newRMatImageList);
+    void createNewImage(RMat *rMatImage);
     void addImage(ROpenGLWidget *rOpenGLWidget);
     void updateDoubleSpinBox(int);
     void scaleImageSlot(int value);
@@ -56,18 +55,23 @@ private slots:
     void updateSliderValueSlot(double valueD);
     void updateWB(int value);
     void autoScale();
+    void minMaxScale();
     void updateCurrentData(ROpenGLWidget *rOpenGLWidget);
     void updateFrameInSeries(int frameIndex);
     void updateSubFrame(QImage *image, float intensity, int x, int y);
     void addPlotWidget(QCustomPlot *plotWidget);
     void addHeaderWidget();
-
     void setupExportCalibrateDir();
+    void exportMastersToFits();
+    void exportFrames();
+
 
     //sliderFrame playback buttons
     void stepForward();
     void stepBackward();
     void playForward();
+    void increaseFps();
+    void decreaseFps();
 
     void stopButtonPressed();
 
@@ -84,7 +88,7 @@ private:
     // functions
     void resizeOpenGLWidget(QScrollArea *scrollArea);
     void loadSubWindow(QScrollArea *scrollArea);
-    void dispatchRMatImages(QList<RMat>* rMatList);
+    void dispatchRMatImages(QList<RMat*> rMatList);
     float convertSliderToScale(int value);
     int convertScaleToSlider(float value);
     float convertSliderToGamma(int value);
@@ -92,7 +96,7 @@ private:
     void setupSliders();
     void setupSubImage();
     void drawHist(cv::Mat matHist);
-
+    void updateCustomPlotLineItems();
 
     // properties
     Ui::RMainWindow *ui;
@@ -101,15 +105,11 @@ private:
     QCustomPlot *customPlot;
     QCPItemLine *vertLineHigh;
     QCPItemLine *vertLineLow;
-    QTableWidget *headerWidget;
-    QThread *tableThread;
-    RTableWorker *rTableWorker;
     QString checkExistingDir();
 
     void tileView();
 
     ROpenGLWidget *currentROpenGLWidget;
-    QList<RMat> *currentRMatList;
 
     QSize oglSize;
     QSize defaultWindowSize;
