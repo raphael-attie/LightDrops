@@ -1,6 +1,7 @@
 #ifndef RTREEWIDGET_H
 #define RTREEWIDGET_H
 
+#include "winsockwrapper.h"
 #include <QtCore>
 #include <QTreeWidget>
 #include <QDragEnterEvent>

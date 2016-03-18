@@ -1,6 +1,7 @@
 #ifndef IMAGEMANAGER_H
 #define IMAGEMANAGER_H
 
+#include "winsockwrapper.h"
 #include <QtCore>
 #include <QTableWidget>
 

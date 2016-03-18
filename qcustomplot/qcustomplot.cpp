@@ -8581,7 +8581,7 @@ double QCPAbstractItem::rectSelectTest(const QRectF &rect, const QPointF &pos, b
   QList<QLineF> lines;
   lines << QLineF(rect.topLeft(), rect.topRight()) << QLineF(rect.bottomLeft(), rect.bottomRight())
         << QLineF(rect.topLeft(), rect.bottomLeft()) << QLineF(rect.topRight(), rect.bottomRight());
-  double minDistSqr = std::numeric_limits<double>::max();
+  double minDistSqr = distSqrToLine(lines.at(0).p1(), lines.at(0).p2(), pos);
   for (int i=0; i<lines.size(); ++i)
   {
     double distSqr = distSqrToLine(lines.at(i).p1(), lines.at(i).p2(), pos);

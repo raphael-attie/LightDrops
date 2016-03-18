@@ -21,8 +21,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <unistd.h>
-
 using namespace cv;
 
 // Shader sources

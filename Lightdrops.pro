@@ -11,26 +11,43 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 TARGET = Lightdrops
 TEMPLATE = app
 
-INCLUDEPATH += /opt/local/include
-INCLUDEPATH += /Usr/local/include/libraw
+win32 {
+    DEFINES += WIN32
+    INCLUDEPATH += C:/dev/cfitsio_64
+    INCLUDEPATH += C:/dev/libraw/libraw
+    INCLUDEPATH += C:/dev/opencv/build/include
+    INCLUDEPATH += C:\dev\ArrayFire\v3\include
 
-INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
-INCLUDEPATH += /usr/local/include
+    LIBS += -LC:\dev\cfitsio_64 -lcfitsio
+    LIBS += -LC:\dev\libraw\x64\Debug -llibraw
+    LIBS += -LC:\dev\opencv\build\x64\vc14\lib -lopencv_world310
+    LIBS += -LC:/dev/ArrayFire/v3/lib -lafopencl
+}
 
-LIBS += -L/opt/local/lib -lcfitsio
-LIBS += -L/usr/local/lib -lraw -lafopencl
-LIBS += -L../opencv3_tbb_opencl/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
+macx {
 
+    INCLUDEPATH += /opt/local/include
+    INCLUDEPATH += /Usr/local/include/libraw
+    INCLUDEPATH += /usr/local/include/libiomp
 
-# Setup Qt so Clang works with C++11
-LIBS += -stdlib=libc++
+#choose open cv setup
+#    INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
+    INCLUDEPATH += /Usr/local/include
 
-QMAKE_CXXFLAGS += -stdlib=libc++
-QMAKE_CXXFLAGS += -std=c++11
-QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
-QMAKE_LFLAGS += -mmacosx-version-min=10.7
+    LIBS += -L/opt/local/lib -lcfitsio
+    LIBS += -L/usr/local/lib -lraw -lafopencl
 
+#choose open cv setup
+#    LIBS += -L../opencv3_tbb_opencl/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
+    LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
 
+    QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
+    QMAKE_LFLAGS += -mmacosx-version-min=10.7
+    QMAKE_CXXFLAGS += -stdlib=libc++
+    # Setup Qt so Clang works with C++11
+    LIBS += -stdlib=libc++
+    QMAKE_CXXFLAGS += -std=c++11
+}
 
 SOURCES += main.cpp\
         rmainwindow.cpp \
@@ -48,7 +65,8 @@ SOURCES += main.cpp\
     qcustomplot/qcustomplot.cpp \
     rsubwindow.cpp
 
-HEADERS  += rmainwindow.h \
+HEADERS  += winsockwrapper.h \
+    rmainwindow.h \
     ropenglwidget.h \
     MyFitsImage.h \
     RawImage.h \
@@ -62,6 +80,8 @@ HEADERS  += rmainwindow.h \
     RFrame.h \
     qcustomplot/qcustomplot.h \
     rsubwindow.h
+    rtableworker.h \
+
 
 FORMS    += rmainwindow.ui
 

@@ -1,6 +1,7 @@
 #ifndef RLINEEDIT_H
 #define RLINEEDIT_H
 
+#include "winsockwrapper.h"
 #include <QtCore>
 #include <QLineEdit>
 #include <QDragEnterEvent>

@@ -1,6 +1,7 @@
 #ifndef RAWWIDGET_H
 #define RAWWIDGET_H
 
+#include "winsockwrapper.h"
 #include <iostream>
 #include <QString>
 #include <QColor>

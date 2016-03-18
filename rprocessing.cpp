@@ -462,12 +462,12 @@ void RProcessing::setTreeWidget(RTreeWidget *treeWidget)
 
 QString RProcessing::getExportMastersDir()
 {
-    this->exportMastersDir = exportMastersDir;
+    return this->exportMastersDir = exportMastersDir;
 }
 
 QString RProcessing::getExportCalibrateDir()
 {
-    this->exportCalibrateDir = exportCalibrateDir;
+    return this->exportCalibrateDir = exportCalibrateDir;
 }
 
 RMat* RProcessing::getMasterBias()

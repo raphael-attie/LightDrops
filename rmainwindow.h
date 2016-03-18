@@ -1,6 +1,7 @@
 #ifndef RMAINWINDOW_H
 #define RMAINWINDOW_H
 
+#include "winsockwrapper.h"
 #include <QtCore>
 #include <QMainWindow>
 #include <QTreeWidgetItem>
