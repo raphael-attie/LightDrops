@@ -78,6 +78,7 @@ void ImageManager::loadFits()
     rMatImage = new RMat(newFitsImage->getMatFits(), newFitsImage->isBayer());
     rMatImage->setBscale(newFitsImage->getBscale());
     rMatImage->setBzero(newFitsImage->getBzero());
+    rMatImage->setExpTime(newFitsImage->getExpTime());
 
     rMatImage->setWbRed(1.0);
     rMatImage->setWbGreen(1.0);

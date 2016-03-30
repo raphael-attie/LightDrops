@@ -11,7 +11,31 @@ RMat::RMat()
 
 }
 
-RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
+RMat::RMat(const RMat &rMat)
+    : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime),
+       instrument(rMat.instrument)
+{
+    rMat.matImage.copyTo(this->matImage);
+    this->imageTitle = QString("Image #");
+
+    if (matImage.channels() > 1)
+    {
+        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
+    }
+    else
+    {
+        matImageGray = matImage;
+    }
+    calcMinMax();
+    calcStats();
+
+    qDebug("RMat::RMat copy constructor:: dataMin = %f", dataMin);
+    qDebug("RMat::RMat copy constructor:: dataMax = %f", dataMax);
+}
+
+
+
+RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
 {
     mat.copyTo(this->matImage);
     this->bayer = false;
@@ -21,21 +45,19 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL
     if (matImage.channels() > 1)
     {
         cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-        cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
     }
     else
     {
         matImageGray = matImage;
-        cv::minMaxLoc(matImage, &dataMin, &dataMax);
     }
-
+    calcMinMax();
     calcStats();
 
     qDebug("RMat::RMat() dataMin = %f", dataMin);
     qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
-RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
+RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -45,21 +67,19 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
     if (matImage.channels() > 1)
     {
         cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-        cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
     }
     else
     {
         matImageGray = matImage;
-        cv::minMaxLoc(matImage, &dataMin, &dataMax);
     }
-
+    calcMinMax();
     calcStats();
 
     qDebug("RMat::RMat() dataMin = %f", dataMin);
     qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
-RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), item(NULL)
+RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -69,14 +89,12 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
     if (matImage.channels() > 1)
     {
         cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-        cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
     }
     else
     {
         matImageGray = matImage;
-        cv::minMaxLoc(matImage, &dataMin, &dataMax);
     }
-
+    calcMinMax();
     calcStats();
 
     qDebug("RMat::RMat() dataMin = %f", dataMin);
@@ -90,11 +108,6 @@ RMat::~RMat()
 
 }
 
-bool RMat::empty()
-{
-    return matImage.empty();
-}
-
 void RMat::computeHist(int nBins, float minRange, float maxRange)
 {
     float range[2];
@@ -105,10 +118,19 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
     bool accumulate = false;
 
     /// Compute the histograms:
-    cv::Mat matImageGrayShifted;
+//    cv::Mat matImageGrayShifted;
 //    matImageGray.copyTo(matImageGrayShifted);
 //    matImageGrayShifted = matImageGrayShifted + 350;
-    cv::calcHist( &matImageGray, 1, 0, cv::Mat(), matHist, 1, &nBins, &histRange, uniform, accumulate);
+
+    if (minRange == maxRange)
+    {
+       matHist = cv::Mat::zeros(1, nBins, CV_32F);
+    }
+    else
+    {
+        cv::calcHist( &matImageGray, 1, 0, cv::Mat(), matHist, 1, &nBins, &histRange, uniform, accumulate);
+    }
+    qDebug("RMat::computeHist:: matHist.type() = %i ; matHist.rows = %i ; matHist.cols = %i ; nBins = %i", matHist.type(), matHist.rows, matHist.cols, nBins);
 }
 
 void RMat::calcStats()
@@ -163,9 +185,9 @@ void RMat::calcStats()
     qDebug("RMat::calcStats():: percentile High = %f", intensityHigh);
 }
 
-cv::Mat RMat::getMatImage() const
+void RMat::calcMinMax()
 {
-    return matImage;
+    cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
 }
 
 float RMat::calcMedian()
@@ -209,7 +231,7 @@ bool RMat::isBayer() const
     return bayer;
 }
 
-int RMat::getBscale() const
+float RMat::getBscale() const
 {
     return bscale;
 }
@@ -227,6 +249,11 @@ double RMat::getDataMin() const
 double RMat::getDataMax() const
 {
     return dataMax;
+}
+
+float RMat::getExpTime() const
+{
+    return expTime;
 }
 
 float RMat::getWbRed() const
@@ -321,7 +348,7 @@ void RMat::setBayer(bool bayer)
     this->bayer = bayer;
 }
 
-void RMat::setBscale(int bscale)
+void RMat::setBscale(float bscale)
 {
     this->bscale = bscale;
 }
@@ -339,6 +366,11 @@ void RMat::setDataMin(float dataMin)
 void RMat::setDataMax(float dataMax)
 {
     this->dataMax = dataMax;
+}
+
+void RMat::setExpTime(float expTime)
+{
+    this->expTime = expTime;
 }
 
 void RMat::setWbRed(float wbRed)

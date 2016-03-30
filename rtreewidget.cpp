@@ -90,7 +90,7 @@ void RTreeWidget::rMatFromBiasRButton(QList<RMat*> rMatImageList)
 
     double min = 0;
     double max = 0;
-    cv::minMaxLoc(rMatBiasList.at(0)->getMatImage(), &min, &max);
+    cv::minMaxLoc(rMatBiasList.at(0)->matImage, &min, &max);
     qDebug("RTreeWidget::rMatFromBiasRButton:: min =%f , max =%f", min, max );
 }
 

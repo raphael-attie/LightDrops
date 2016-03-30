@@ -23,6 +23,10 @@
 #include "rmat.h"
 #include "rsubwindow.h"
 
+//QCustomPlot
+#include <qcustomplot/qcustomplot.h>
+
+
 class QPainter;
 class QOpenGLContext;
 class QOpenGLPaintDevice;
@@ -37,9 +41,11 @@ public:
     ROpenGLWidget(RMat *rMatImage, QWidget *parent = 0);
     ~ROpenGLWidget();
 
+    void initialize();
     void initSubQImage();
     void updateSubQImage();
-    void updateInfo();
+    void setupHistoPlots();
+    void updateCustomPlotLineItems();
 
     QList<cv::Mat> matImageListRGB;
 
@@ -53,23 +59,31 @@ public:
     quint32 getImageCoordY();
     RListImageManager *getRListImageManager();
     QList<RMat*> getRMatImageList();
+    float getResizeFac();
 
     int getFrameIndex();
     QString getCalibrationType();
     QList<QString> getWindowTitleList();
     QString getWindowTitle();
     RSubWindow *getTableRSubWindow();
+    QList<QCustomPlot *> getCustomPlotList();
+    QCustomPlot* fetchCurrentCustomPlot();
 
     float getGamma();
     float getNewMax();
     float getNewMin();
+    float getAlpha();
+    float getBeta();
 
     float getWbRed();
     float getWbGreen();
     float getWbBlue();
 
 
+
+
     //setters
+    void setRMatImageList(QList<RMat*> rMatImageList);
     void setNewMax(float newMax);
     void setNewMin(float newMin);
     void setAlpha(float newAlpha);
@@ -110,7 +124,6 @@ public slots:
     void changeFrame(int frameIndex);
 
 private:
-    void initialize();
     void prepImage();
 
     bool prepareShaderProgram( const QString vertexShaderPath,
@@ -177,6 +190,15 @@ private:
     RSubWindow *tableRSubWindow;
     QTableWidget *tableWidget;
     QSize tableSize;
+
+    QList<QCustomPlot*> customPlotList;
+    QList<QCPItemLine*> vertLineHighList;
+    QList<QCPItemLine*> vertLineLowList;
+
+    QCustomPlot* customPlot;
+    QCPItemLine *vertLineHigh;
+    QCPItemLine *vertLineLow;
+
 
 };
 

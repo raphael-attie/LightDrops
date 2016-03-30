@@ -13,7 +13,10 @@
 RMainWindow::RMainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::RMainWindow),
-    currentROpenGLWidget(NULL)
+    currentROpenGLWidget(NULL),
+    resultROpenGLWidget(NULL),
+    cannyContoursROpenGLWidget(NULL),
+    limbFittingROpenGLWidget(NULL)
 {
     ui->setupUi(this);
     setCentralWidget(ui->mdiArea);
@@ -35,43 +38,45 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
     //this->setTabShape(QTabWidget::Triangular);
 
-    // Connect the change of slider value to the number displayed in the spinBox
+    /// Connect the change of slider value to the number displayed in the spinBox
     connect(ui->sliderHigh, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->sliderLow, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->sliderGamma, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
 
-    // Connect the change of the number in the spinBox to the change of slider value
-    connect(ui->doubleSpinBoxHigh, SIGNAL(valueChanged(double)), this, SLOT(updateSliderValueSlot(double)));
-    connect(ui->doubleSpinBoxLow, SIGNAL(valueChanged(double)), this, SLOT(updateSliderValueSlot(double)));
-    connect(ui->doubleSpinBoxGamma, SIGNAL(valueChanged(double)), this, SLOT(updateSliderValueSlot(double)));
+    /// Connect the change of the number in the spinBox to the change of slider value
+    ///Use editingFinished() instead of valueChanged(double()) to avoid unwanted feedback on the slider.
+    connect(ui->doubleSpinBoxHigh, SIGNAL(editingFinished()), this, SLOT(updateSliderValueSlot()));
+    connect(ui->doubleSpinBoxLow, SIGNAL(editingFinished()), this, SLOT(updateSliderValueSlot()));
+    connect(ui->doubleSpinBoxGamma, SIGNAL(editingFinished()), this, SLOT(updateSliderValueSlot()));
 
-    // Connect the change of slider value to the image linear scaling and gamma scaling.
+    /// Connect the change of slider value to the image linear scaling and gamma scaling.
     connect(ui->sliderHigh, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
     connect(ui->sliderLow, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
     connect(ui->sliderGamma, SIGNAL(valueChanged(int)), this, SLOT(gammaScaleImageSlot(int)));
 
-    // Connect the white balance sliders
+    /// Connect the white balance sliders
     connect(ui->redSlider, SIGNAL(valueChanged(int)), this, SLOT(updateWB(int)));
     connect(ui->blueSlider, SIGNAL(valueChanged(int)), this, SLOT(updateWB(int)));
     connect(ui->greenSlider, SIGNAL(valueChanged(int)), this, SLOT(updateWB(int)));
 
-    // Connect the pushButton and lineEdit of the ui for creating the masters in the processing class
+    /// Connect the pushButton and lineEdit of the ui for creating the masters in the processing class
     connect(ui->makeMasterButton, SIGNAL(pressed()), processing, SLOT(createMasters()));
 
     connect(ui->calibrateDirLineEdit, SIGNAL(textChanged(QString)), processing, SLOT(setExportCalibrateDir(QString)));
 
-    // Connect the sliderFrame and playback buttons
+    /// Connect the sliderFrame and playback buttons
     connect(ui->sliderFrame, SIGNAL(valueChanged(int)), this, SLOT(updateFrameInSeries(int)));
     connect(ui->forwardButton, SIGNAL(released()), this, SLOT(stepForward()));
     connect(ui->backwardButton, SIGNAL(released()), this, SLOT(stepBackward()));
     connect(ui->playButton, SIGNAL(released()), this, SLOT(playForward()));
     connect(ui->stopButton, SIGNAL(released()), this, SLOT(stopButtonPressed()));
 
-    // Connect processing outputs to the main ui.
+    /// Connect processing outputs to the main ui.
     connect(processing, SIGNAL(tempMessageSignal(QString,int)), this->statusBar(), SLOT(showMessage(QString,int)));
     connect(processing, SIGNAL(resultSignal(RMat*)), this, SLOT(createNewImage(RMat*)));
+    connect(processing, SIGNAL(listResultSignal(QList<RMat*>)), this, SLOT(createNewImage(QList<RMat*>)));
 
-    //Connect ui radio button to tree widget to send out window titles.
+    /// Connect ui radio button to tree widget to send out window titles.
     connect(ui->lightRButton, SIGNAL(clicked(bool)), this, SLOT(radioRMatSlot()));
     connect(ui->biasRButton, SIGNAL(clicked(bool)), this, SLOT(radioRMatSlot()));
     connect(ui->darkRButton, SIGNAL(clicked(bool)), this, SLOT(radioRMatSlot()));
@@ -82,6 +87,14 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(this, SIGNAL(radioBiasImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromBiasRButton(QList<RMat*>)));
     connect(this, SIGNAL(radioDarkImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromDarkRButton(QList<RMat*>)));
     connect(this, SIGNAL(radioFlatImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromFlatRButton(QList<RMat*>)));
+
+    // Connect Canny detection
+    connect(ui->cannySlider, SIGNAL(sliderReleased()), this, SLOT(updateCannyDetection()));
+    connect(ui->cannyRegisterButton, SIGNAL(released()), this, SLOT(cannyRegisterSeries()));
+
+    // Connect QImage scenes
+    connect(processing, SIGNAL(resultQImageSignal(QImage&)), this, SLOT(createNewImage(QImage&)));
+    //connect(processing, SIGNAL(ellipseSignal(cv::RotatedRect)), this, SLOT(addEllipseToScene(cv::RotatedRect)));
 
 }
 
@@ -150,6 +163,50 @@ void RMainWindow::createNewImage(RMat *rMatImage)
     addImage(currentROpenGLWidget);
 }
 
+void RMainWindow::createNewImage(QImage &image)
+{
+//    cv::Mat ellMat = cv::Mat::zeros(500,500, CV_8U);
+//    //color = cv::Scalar( 0, 255, 0);
+//    //cv::ellipse(ellMat, ellRect, color, 2, 8);
+
+//    QImage image2(ellMat.data, ellMat.cols, ellMat.rows, QImage::Format_Grayscale8);
+
+    QSize currentSize = ui->mdiArea->currentSubWindow()->size();
+    QPixmap pixMap = QPixmap::fromImage(image);
+
+
+    qDebug("RMainWindow::createNewImage(QImage &image):: pixMap.size() = [%i ; %i]", pixMap.size().width(), pixMap.size().height());
+    //QPainter *painter = new QPainter(&image);
+    scene = new QGraphicsScene;
+    QGraphicsPixmapItem *pixMapItem = scene->addPixmap(pixMap);
+
+    pixMapItem->setScale(currentROpenGLWidget->getResizeFac());
+
+    graphicsView= new QGraphicsView(scene);
+    graphicsView->scale(1, -1);
+
+    QMdiSubWindow *newSubWindow = new QMdiSubWindow;
+    newSubWindow->setWidget(graphicsView);
+
+    ui->mdiArea->addSubWindow(newSubWindow);
+
+    newSubWindow->show();
+    newSubWindow->resize(currentSize);
+
+}
+
+//void RMainWindow::addEllipseToScene(cv::RotatedRect rect)
+//{
+////    QGraphicsEllipseItem * QGraphicsScene::addEllipse(qreal x, qreal y, qreal w, qreal h, const QPen & pen = QPen(), const QBrush & brush = QBrush())
+//    QPen pen;
+//    pen.setColor(Qt::green);
+//    QGraphicsEllipseItem *ellipseItem = new QGraphicsEllipseItem(0, 0, rect.size.width, rect.size.height);
+//    ellipseItem->setPen(pen);
+//    //ellipseItem->setScale(-currentROpenGLWidget->getResizeFac());
+//    scene->addItem(ellipseItem);
+//    qDebug("RMainWindow::addEllipseToScene():: rect.size.width = %f", rect.size.width);
+//}
+
 void RMainWindow::dispatchRMatImages(QList<RMat*> rMatList)
 {
     // Try to guess the calibration type (Light, Bias, Dark, or Flat)
@@ -194,52 +251,50 @@ void RMainWindow::dispatchRMatImages(QList<RMat*> rMatList)
 void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 {
 
-    ui->sliderFrame->setRange(0, currentROpenGLWidget->getRMatImageList().size()-1);
+    ui->sliderFrame->setRange(0, rOpenGLWidget->getRMatImageList().size()-1);
     ui->sliderFrame->setValue(0);
-    ui->imageLabel->setText(QString("1") + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
+    ui->imageLabel->setText(QString("1") + QString("/") + QString::number(rOpenGLWidget->getRMatImageList().size()));
 
-    QScrollArea *scrollArea = new QScrollArea();
-    scrollArea->setWidget(rOpenGLWidget);
+    currentScrollArea = new QScrollArea();
+    currentScrollArea->setWidget(rOpenGLWidget);
     /// The size of the scrollArea must be set to the size of whatever is needed for the ROpenGLWidget
     /// to display the whole FOV in the central widget when adding the height of the scroll bars.
     /// Note that the "height" of the scrollBar always represent the dimension perpendicular to the direction
     /// of the slider.
-    resizeOpenGLWidget(scrollArea);
+    resizeScrollArea(rOpenGLWidget, currentScrollArea);
+    loadSubWindow(currentScrollArea);
+    rOpenGLWidget->update();
 
-    loadSubWindow(scrollArea);
+    newMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
+    newMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
 
-    qDebug("RMainWindow::loadSubWindow():: scrollBarHeight = %i", scrollBarHeight);
-    qDebug() << "RMainWindow::addImage() scrollArea->size()=" << scrollArea->size();
+    displayPlotWidget(rOpenGLWidget);
+    setupSliders(rOpenGLWidget);
 
-    connect(rOpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(updateCurrentData(ROpenGLWidget*)));
+    autoScale(rOpenGLWidget);
+
+    processing->setCurrentROpenGLWidget(rOpenGLWidget);
+
+    connect(rOpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(changeROpenGLWidget(ROpenGLWidget*)));
     connect(rOpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
-    connect(this, SIGNAL(plotSignal(QCustomPlot*)), this, SLOT(addPlotWidget(QCustomPlot*)));
 
-    newMax = (float) currentROpenGLWidget->getRMatImageList().at(0)->getDataMax();
-    newMin = (float) currentROpenGLWidget->getRMatImageList().at(0)->getDataMin();
-
-    drawHist(currentROpenGLWidget->getRMatImageList().at(0)->getMatHist());
-    setupSliders();
-
-    autoScale();
 }
 
 
 void RMainWindow::loadSubWindow(QScrollArea *scrollArea)
 {
-    QMdiSubWindow *newSubWindow = new QMdiSubWindow;
-    newSubWindow->setWidget(scrollArea);
-    ui->mdiArea->addSubWindow(newSubWindow);
-    newSubWindow->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getImageTitle());
+    currentSubWindow = new QMdiSubWindow;
+    currentSubWindow->setWidget(scrollArea);
+    ui->mdiArea->addSubWindow(currentSubWindow);
+    currentSubWindow->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getImageTitle());
     /// ROpenGLWidget can only be resized once it has been assigned to the QMdiSubWindow.
     /// Otherwise the shaders will not be bound.
     currentROpenGLWidget->resize(oglSize);
     qDebug() << "RMainWindow::loadSubWindow():: oglSize=" << oglSize;
 
-    newSubWindow->resize(scrollArea->size());
-    newSubWindow->show();
+    currentSubWindow->resize(scrollArea->size());
+    currentSubWindow->show();
 
-    connect(currentROpenGLWidget, SIGNAL(sendNewTitle(QString)), newSubWindow, SLOT(setWindowTitle(QString)));
 }
 
 
@@ -250,6 +305,7 @@ void RMainWindow::updateDoubleSpinBox(int value)
     {
         float valueF = convertSliderToScale(value);
         ui->doubleSpinBoxHigh->setValue(valueF);
+        qDebug("updateDoubleSpinBox:: (high) valueF = %f", valueF);
     }
     else if (this->sender() == ui->sliderLow)
     {
@@ -272,7 +328,7 @@ void RMainWindow::scaleImageSlot(int value)
 
     if (this->sender() == ui->sliderHigh)
     {
-        newMax = convertSliderToScale(value);
+        newMax = convertSliderToScale(value);    
     }
     else if (this->sender() == ui->sliderLow)
     {
@@ -288,69 +344,82 @@ void RMainWindow::scaleImageSlot(int value)
         return;
     }
 
-    currentROpenGLWidget->setNewMax(newMax);
-    currentROpenGLWidget->setNewMin(newMin);
     float dataRange = (float) (newMax - newMin) ;
     alpha = 1.0f / dataRange;
     beta = (float) (-newMin / dataRange);
     qDebug("RMainWindow::scaleImageSlot() value = %i", value);
     qDebug("RMainWindow::scaleImageSlot() newMax = %f , newMin = %f", newMax, newMin);
-    currentROpenGLWidget->setAlpha(alpha);
-    currentROpenGLWidget->setBeta(beta);
-    currentROpenGLWidget->updateSubQImage();
-    currentROpenGLWidget->update();
-
-    updateCustomPlotLineItems();
-}
-
-void RMainWindow::updateCustomPlotLineItems()
-{
-    double nPixels = (double) currentROpenGLWidget->getRMatImageList().at(0)->getNPixels();
-    vertLineHigh->start->setCoords(newMax, 0);
-    vertLineHigh->end->setCoords(newMax, nPixels);
-    vertLineLow->start->setCoords(newMin, 0);
-    vertLineLow->end->setCoords(newMin, nPixels);
-
-    customPlot->replot();
+    updateCurrentROpenGLWidget();
 }
 
 
-void RMainWindow::setupSliders()
+
+void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
 {
     // The slider range of integer values must be consistent with the maximum data range.
     // For USET for example, it is 4096.
-
-    if (currentROpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::USET)
+    // We also need to define the number of decimals in the spinBox High and Low.
+    int matType = rOpenGLWidget->getRMatImageList().at(0)->matImage.type();
+    int decimals = 0;
+    ui->sliderHigh->blockSignals(true);
+    ui->sliderLow->blockSignals(true);
+    if (rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::USET)
     {
-        qDebug("RMainWindow::setupSliders():: setting sliders for USET data.");
+        qDebug("RMainWindow::setupSliders():: setting sliders for USET data.");        
         ui->sliderHigh->setRange(1, 4096);
         ui->sliderLow->setRange(1, 4096);
     }
-    else
+    else if (matType == CV_16U || matType == CV_16UC3 || matType == CV_32F || matType == CV_32FC3)
     {
         ui->sliderHigh->setRange(1, 65536);
         ui->sliderLow->setRange(1, 65536);
     }
-    sliderRange = (float) ui->sliderHigh->maximum() - ui->sliderHigh->minimum() + 1;
 
-    if (currentROpenGLWidget->getRMatImageList().at(0)->getBscale() == 1 && currentROpenGLWidget->getRMatImageList().at(0)->getInstrument() != instruments::MAG)
+    else if (matType == CV_8U || matType == CV_8UC3)
     {
-        sliderScale = 1.0;
+        ui->sliderHigh->setRange(1, 256);
+        ui->sliderLow->setRange(1, 256);
     }
     else
     {
-        float dataMax = (float) currentROpenGLWidget->getRMatImageList().at(0)->getDataMax();
-        float dataMin = (float) currentROpenGLWidget->getRMatImageList().at(0)->getDataMin();
+        qDebug("RMainWindow::setupSliders():: ERROR. Unknown image type. Could not setup sliders");
+        exit(1);
+    }
+
+
+    ui->sliderHigh->blockSignals(false);
+    ui->sliderLow->blockSignals(false);
+
+    sliderRange = (float) ui->sliderHigh->maximum() - ui->sliderHigh->minimum() + 1;
+
+    if (rOpenGLWidget->getRMatImageList().at(0)->getBscale() == 1
+            && rOpenGLWidget->getRMatImageList().at(0)->getInstrument() != instruments::MAG)
+    {
+        sliderScale = 1.0;
+        sliderToScaleMinimum = 0;
+    }
+    else
+    {
+         /// Here the image is assumed to be seen as scientific data
+         /// for which scaling needs to be tightly set around the min and max
+         /// so we can scan through with maximum dynamic range.
+        float dataMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
+        float dataMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
         float dataRange = dataMax - dataMin;
         sliderScale = (float) dataRange / sliderRange;
-        qDebug() << "dataMax =" << dataMax;
-        qDebug() << "dataMin =" << dataMin;
-        qDebug() << "sliderScale =" << sliderScale;
+        sliderToScaleMinimum = dataMin;
+        qDebug() << "RMainWindow::setupSliders() dataMax =" << dataMax;
+        qDebug() << "RMainWindow::setupSliders() dataMin =" << dataMin;
+        qDebug() << "RMainWindow::setupSliders() sliderScale =" << sliderScale;
+        // update the number of decimals in the spinBox High and Low
+        decimals = 2;
     }
     ui->doubleSpinBoxHigh->setMaximum(convertSliderToScale(ui->sliderHigh->maximum()));
     ui->doubleSpinBoxHigh->setMinimum(convertSliderToScale(ui->sliderHigh->minimum()));
+    ui->doubleSpinBoxHigh->setDecimals(decimals);
     ui->doubleSpinBoxLow->setMaximum(convertSliderToScale(ui->sliderLow->maximum()));
     ui->doubleSpinBoxLow->setMinimum(convertSliderToScale(ui->sliderLow->minimum()));
+    ui->doubleSpinBoxLow->setDecimals(decimals);
 }
 
 void RMainWindow::setupSubImage()
@@ -368,89 +437,95 @@ void RMainWindow::setupSubImage()
 
 }
 
-void RMainWindow::drawHist(cv::Mat matHist)
+
+void RMainWindow::cannyEdgeDetection()
 {
-    cv::Mat tempHist;
-    matHist.convertTo(tempHist, CV_64F);
-
-    int nBins = matHist.rows;
-    double minHist;
-    double maxHist;
-    cv::minMaxLoc(matHist, &minHist, &maxHist);
-    double histWidth = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getHistWidth();
-
-    double dataMax = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getDataMax();
-    double dataMin = std::min(0.0, dataMin);//currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()).getDataMin();
-
-    QVector<double> x(nBins); // y must be the histogram values
-    for (int i=0; i< nBins; ++i)
+    if (ui->treeWidget->rMatLightList.isEmpty())
     {
-      x[i] = dataMin + histWidth*i; // x goes from 0 to nBins-1
+        ui->statusBar->showMessage(QString("No lights for Canny edge detection"), 3000);
+        return;
     }
 
+    processing->setShowContours(ui->contoursCheckBox->isChecked());
+    processing->setShowLimb(ui->limbCheckBox->isChecked());
 
-    // Pointer to matHist data.
-    const double* matHistPtr = tempHist.ptr<double>(0);
-    std::vector<double> matHistStdVect(matHistPtr, matHistPtr + matHist.rows);
-    QVector<double> y = QVector<double>::fromStdVector(matHistStdVect);
+    processing->cannyEdgeDetection(ui->cannySlider->value());
 
-    // create graph and assign data to it:
-    customPlot = new QCustomPlot();
-    customPlot->addGraph();
-    customPlot->plottable(0)->setPen(QPen(QColor(125, 125, 125, 50))); // line color gray
-    customPlot->plottable(0)->setBrush(QBrush(QColor(125, 125, 125, 50)));
+    /// Results need to be displayed as ROpenGLWidget as we will, de facto,
+    /// deal with time series
+    QPoint currentPos = ui->mdiArea->currentSubWindow()->pos();
 
+    createNewImage(processing->getContoursRMatList());
+    cannyScrollArea = currentScrollArea;
+    cannySubWindow = ui->mdiArea->currentSubWindow();
+    //cannySubWindow->move(currentPos);
+    cannyContoursROpenGLWidget = currentROpenGLWidget;
 
-    customPlot->xAxis->setTicks(false);
-    customPlot->yAxis->setTicks(false);
-
-    // make left and bottom axes always transfer their ranges to right and top axes:
-    connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
-    connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
-
-    customPlot->yAxis->setScaleType(QCPAxis::stLogarithmic);
-    customPlot->graph(0)->setData(x, y);
-    customPlot->rescaleAxes();
-
-    double minXRange = currentROpenGLWidget->getRMatImageList().at(0)->getMinHistRange();
-    double maxXRange = currentROpenGLWidget->getRMatImageList().at(0)->getMaxHistRange();
-
-    if (currentROpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::USET)
-    {
-        maxXRange = 1.01 * 4095;
-    }
-
-    qDebug("RMainWindow::drawHist():: maxXRange = %f", maxXRange);
-    customPlot->xAxis->setRange(0.95*minXRange, 1.05*maxXRange);
-    customPlot->yAxis->setRange(1, maxHist);
-
-    customPlot->setInteraction(QCP::iRangeDrag, true);
-    customPlot->setInteraction(QCP::iRangeZoom, true);
-    customPlot->axisRect(0)->setRangeDrag(Qt::Horizontal);
-    customPlot->axisRect(0)->setRangeZoom(Qt::Horizontal);
-
-    double nPixels = (double) currentROpenGLWidget->getRMatImageList().at(0)->getNPixels();
-    vertLineHigh = new QCPItemLine(customPlot);
-    vertLineLow = new QCPItemLine(customPlot);
-    customPlot->addItem(vertLineHigh);
-    customPlot->addItem(vertLineLow);
-
-    vertLineHigh->start->setCoords(dataMax, 0);
-    vertLineHigh->end->setCoords(dataMax, nPixels);
-    vertLineLow->start->setCoords(dataMin, 0);
-    vertLineLow->end->setCoords(dataMin, nPixels);
-
-//    QCPItemText* itemText = new QCPItemText(customPlot);
-//    customPlot->addItem(itemText);
-
-    qDebug("customPlot ready for emit signal.");
-    emit plotSignal(customPlot);
 }
 
-void RMainWindow::addPlotWidget(QCustomPlot *plotWidget)
+
+void RMainWindow::updateCannyDetection()
 {
-    plotWidget->resize(200, 100);
-    ui->histoDock->setWidget(plotWidget);
+    processing->setShowContours(ui->contoursCheckBox->isChecked());
+    processing->setShowLimb(ui->limbCheckBox->isChecked());
+
+    processing->cannyEdgeDetection(ui->cannySlider->value());
+
+
+    delete cannyContoursROpenGLWidget;
+    //ROpenGLWidget *ptr = cannyContoursROpenGLWidget;
+    cannyContoursROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
+    //delete ptr;
+
+
+    currentROpenGLWidget = cannyContoursROpenGLWidget;
+
+    cannyScrollArea->setWidget(cannyContoursROpenGLWidget);
+    resizeScrollArea(cannyContoursROpenGLWidget, currentScrollArea);
+    cannyContoursROpenGLWidget->resize(oglSize);
+
+    cannyContoursROpenGLWidget->update();
+
+    newMax = (float) cannyContoursROpenGLWidget->getRMatImageList().at(0)->getDataMax();
+    newMin = (float) cannyContoursROpenGLWidget->getRMatImageList().at(0)->getDataMin();
+
+    displayPlotWidget(cannyContoursROpenGLWidget);
+    setupSliders(cannyContoursROpenGLWidget);
+    autoScale(cannyContoursROpenGLWidget);
+
+    connect(cannyContoursROpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(changeROpenGLWidget(ROpenGLWidget*)));
+    connect(cannyContoursROpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
+
+
+    currentScrollArea->update();
+    cannySubWindow->update();
+
+//    if (limbFittingROpenGLWidget != NULL)
+//    {
+//        limbFittingROpenGLWidget->initialize();
+//        limbFittingROpenGLWidget->update();
+//    }
+
+//    /// Update the texture in the existing resultROpenGLWidget
+//    resultROpenGLWidget->setRMatImageList(processing->getEllipseRMat());
+//    resultROpenGLWidget->initialize();
+//    resultROpenGLWidget->update();
+
+}
+
+void RMainWindow::cannyRegisterSeries()
+{
+    processing->setShowContours(ui->contoursCheckBox->isChecked());
+    processing->setShowLimb(ui->limbCheckBox->isChecked());
+    processing->cannyRegisterSeries();
+    createNewImage(processing->getResultList());
+}
+
+
+void RMainWindow::displayPlotWidget(ROpenGLWidget* rOpenGLWidget)
+{
+    ui->histoDock->setWidget(rOpenGLWidget->fetchCurrentCustomPlot());
+    rOpenGLWidget->updateCustomPlotLineItems();
 }
 
 void RMainWindow::addHeaderWidget()
@@ -491,10 +566,10 @@ void RMainWindow::updateSubFrame(QImage *image, float intensity, int x, int y)
     char format = 'f';
     int precision = 0;
 
-    if (std::abs(intensity) < 0.001)
+    if (std::abs(currentROpenGLWidget->getRMatImageList().at(0)->getDataMax()) <= 255)
     {
         format = 'g';
-        precision = 2;
+        precision = 3;
     }
 
     QString intensityQStr = QString::number(intensity, format, precision);
@@ -531,10 +606,54 @@ void RMainWindow::autoScale()
         sliderValueHigh = convertScaleToSlider(100.0f);
         sliderValueLow = convertScaleToSlider(-100.0f);
     }
+    else if (currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
+             currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
+    {
+        sliderValueHigh = convertScaleToSlider(255);
+        sliderValueLow = convertScaleToSlider(0);
+    }
     else
     {
+        /// Make the slider use the histogram autoscaling values.
         sliderValueHigh = convertScaleToSlider(currentROpenGLWidget->getRMatImageList().at(0)->getIntensityHigh());
         sliderValueLow = convertScaleToSlider(currentROpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
+    }
+
+    gamma = 1.0f;
+    sliderValueGamma = convertGammaToSlider(gamma);
+    // Below, the slider ignore the input if it is equal to the current state, but it prevents from going through
+    // scaleImageSlot subsequently. So we have to tickle it a bit.
+    ui->sliderHigh->setValue(sliderValueHigh-1);
+    ui->sliderHigh->setValue(sliderValueHigh);
+    ui->sliderLow->setValue(sliderValueLow +1);
+    ui->sliderLow->setValue(sliderValueLow);
+    ui->sliderGamma->setValue(sliderValueGamma);
+
+    qDebug("RMainWindow::autoScale() sliderValueHigh = %i , sliderValueLow = %i", sliderValueHigh, sliderValueLow);
+
+}
+
+void RMainWindow::autoScale(ROpenGLWidget *rOpenGLWidget)
+{
+    if (rOpenGLWidget == NULL)
+        return;
+
+    if (rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::MAG)
+    {
+        sliderValueHigh = convertScaleToSlider(100.0f);
+        sliderValueLow = convertScaleToSlider(-100.0f);
+    }
+    else if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
+             rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
+    {
+        sliderValueHigh = convertScaleToSlider(255);
+        sliderValueLow = convertScaleToSlider(0);
+    }
+    else
+    {
+        /// Make the slider use the histogram autoscaling values.
+        sliderValueHigh = convertScaleToSlider(rOpenGLWidget->getRMatImageList().at(0)->getIntensityHigh());
+        sliderValueLow = convertScaleToSlider(rOpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
     }
 
     gamma = 1.0f;
@@ -572,6 +691,17 @@ void RMainWindow::minMaxScale()
 
 }
 
+void RMainWindow::updateCurrentROpenGLWidget()
+{
+    currentROpenGLWidget->setAlpha(alpha);
+    currentROpenGLWidget->setBeta(beta);
+    currentROpenGLWidget->setNewMax(newMax);
+    currentROpenGLWidget->setNewMin(newMin);
+    currentROpenGLWidget->updateSubQImage();
+    currentROpenGLWidget->update();
+    currentROpenGLWidget->updateCustomPlotLineItems();
+}
+
 void RMainWindow::gammaScaleImageSlot(int value)
 {
     if (currentROpenGLWidget == NULL)
@@ -586,20 +716,28 @@ void RMainWindow::gammaScaleImageSlot(int value)
     currentROpenGLWidget->update();
 }
 
-void RMainWindow::updateSliderValueSlot(double valueD)
+void RMainWindow::updateSliderValueSlot()
 {
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
     if (this->sender() == ui->doubleSpinBoxHigh)
     {
+        double valueD = ui->doubleSpinBoxHigh->value();
         sliderValueHigh = convertScaleToSlider((float) valueD);
         ui->sliderHigh->setValue(sliderValueHigh);
     }
     else if (this->sender() == ui->doubleSpinBoxLow)
     {
+        double valueD = ui->doubleSpinBoxLow->value();
         sliderValueLow = convertScaleToSlider((float) valueD);
         ui->sliderLow->setValue(sliderValueLow);
     }
     else if (this->sender() == ui->doubleSpinBoxGamma)
     {
+        double valueD = ui->doubleSpinBoxGamma->value();
         sliderValueGamma = convertGammaToSlider((float) valueD);
         qDebug("RMainWindow::updateSliderValueSlot() valueD = %f , sliderValueGamma = %i", valueD, sliderValueGamma);
         ui->sliderGamma->setValue(sliderValueGamma);
@@ -669,15 +807,8 @@ float RMainWindow::convertSliderToScale(int value)
         return (float) scaledValue;
     }
 
-    float dataMin = 0;
-
-    if (currentROpenGLWidget->getRMatImageList().at(0)->getDataMin() < 0)
-    {
-        dataMin = currentROpenGLWidget->getRMatImageList().at(0)->getDataMin();
-    }
-
-    scaledValue = (float) ( dataMin + sliderScale * (value-1) );
-    qDebug() << "RMainWindow::convertSliderToScale:: scaledValue =" << scaledValue;
+    scaledValue = sliderToScaleMinimum + sliderScale * ((float) (value-1)) ;
+    qDebug("RMainWindow::convertSliderToScale:: sliderToScaleMinimum = %f ; sliderScale = %f ; value = %i ; scaledValue = %f", sliderToScaleMinimum, sliderScale, value, scaledValue);
     return scaledValue;
 }
 
@@ -693,16 +824,9 @@ int RMainWindow::convertScaleToSlider(float valueF)
         return sliderValue;
     }
 
-    float dataMin = 0;
-    if (currentROpenGLWidget->getRMatImageList().at(0)->getDataMin() < 0)
-    {
-        dataMin = currentROpenGLWidget->getRMatImageList().at(0)->getDataMin();
-    }
-
     // If the slider Value is greater than the range of the slider, it is ignored instead of clipped.
     // So we need to clip to the max value of the slider which is the slider range.
-
-    sliderValue = (int) std::min(std::round((valueF - dataMin)/sliderScale) + 1, sliderRange);
+    sliderValue = (int) std::min(std::round((valueF - sliderToScaleMinimum)/sliderScale) + 1, sliderRange);
 
     return sliderValue;
 }
@@ -714,16 +838,16 @@ float RMainWindow::convertSliderToGamma(int value)
 }
 
 
-void RMainWindow::updateCurrentData(ROpenGLWidget *rOpenGLWidget)
+void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
 {
     currentROpenGLWidget = rOpenGLWidget;
 
-    newMax = currentROpenGLWidget->getNewMax();
-    newMin = currentROpenGLWidget->getNewMin();
     // Restore slider values
+    setupSliders(rOpenGLWidget);
     // Scaling
-    ui->sliderHigh->setValue(convertScaleToSlider(newMax));
-    ui->sliderLow->setValue(convertScaleToSlider(newMin));
+    ui->sliderHigh->setValue(convertScaleToSlider(currentROpenGLWidget->getNewMax()));
+    ui->sliderLow->setValue(convertScaleToSlider(currentROpenGLWidget->getNewMin()));
+
     ui->sliderGamma->setValue(convertGammaToSlider(currentROpenGLWidget->getGamma()));
     // White balance
     ui->redSlider->setValue((int) std::round(currentROpenGLWidget->getWbRed() / sliderScaleWB));
@@ -734,8 +858,7 @@ void RMainWindow::updateCurrentData(ROpenGLWidget *rOpenGLWidget)
     ui->sliderFrame->setValue(currentROpenGLWidget->getFrameIndex());
     ui->imageLabel->setText(QString::number(currentROpenGLWidget->getFrameIndex()+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
 
-    drawHist(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getMatHist());
-    updateCustomPlotLineItems();
+    displayPlotWidget(rOpenGLWidget);
 
     // Refresh state of QAction buttons in toolbar
     if (currentROpenGLWidget->getTableRSubWindow() != NULL && currentROpenGLWidget->getTableRSubWindow()->isVisible())
@@ -755,7 +878,7 @@ void RMainWindow::updateFrameInSeries(int frameIndex)
     // The sliderValue minimum is 1. The frameIndex minimum is 0;
     ui->imageLabel->setText(QString::number(frameIndex+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
     currentROpenGLWidget->changeFrame(frameIndex);
-    drawHist(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getMatHist());
+    displayPlotWidget(currentROpenGLWidget);
 }
 
 
@@ -794,6 +917,49 @@ void RMainWindow::exportFrames()
     }
 
 }
+
+void RMainWindow::convertTo8Bit()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    int idx = ui->sliderFrame->value();
+    cv::Mat mat8bit = currentROpenGLWidget->getRMatImageList().at(idx)->matImage.clone();
+    mat8bit.convertTo(mat8bit, CV_32F);
+    mat8bit = mat8bit / currentROpenGLWidget->getRMatImageList().at(idx)->getMean();
+    cv::normalize(mat8bit, mat8bit, 0, 255, cv::NORM_MINMAX);
+    mat8bit.convertTo(mat8bit, CV_8U);
+
+    RMat *rMat8bit = new RMat(mat8bit, false);
+    rMat8bit->setImageTitle(QString("8-bit"));
+    createNewImage(rMat8bit);
+}
+
+void RMainWindow::convertToNeg()
+{
+    int idx = ui->sliderFrame->value();
+    cv::Mat matNeg = currentROpenGLWidget->getRMatImageList().at(idx)->matImage.clone();
+    matNeg = currentROpenGLWidget->getRMatImageList().at(idx)->getDataMax() - matNeg;
+
+    RMat *negRMat = new RMat(matNeg, false);
+    negRMat->setImageTitle(QString("Negative"));
+    negRMat->setInstrument(currentROpenGLWidget->getRMatImageList().at(idx)->getInstrument());
+    createNewImage(negRMat);
+}
+
+
+void RMainWindow::calibrateOffScreenSlot()
+{
+    processing->calibrateOffScreen();
+}
+
+void RMainWindow::registerSeries()
+{
+    processing->registerSeries();
+}
+
 
 void RMainWindow::stepForward()
 {
@@ -881,7 +1047,7 @@ void RMainWindow::radioRMatSlot()
     {
         double min = 0;
         double max = 0;
-        cv::minMaxLoc(currentROpenGLWidget->getRMatImageList().at(0)->getMatImage(), &min, &max);
+        cv::minMaxLoc(currentROpenGLWidget->getRMatImageList().at(0)->matImage, &min, &max);
         qDebug("RMainWindow::radioRMatSlot():: min =%f , max =%f", min, max );
         emit radioBiasImages(currentROpenGLWidget->getRMatImageList());
     }
@@ -932,13 +1098,13 @@ void RMainWindow::uncheckActionHeaderState()
     ui->actionHeader->setChecked(false);
 }
 
-void RMainWindow::resizeOpenGLWidget(QScrollArea *scrollArea)
+void RMainWindow::resizeScrollArea(ROpenGLWidget *rOpenGLWidget, QScrollArea *scrollArea)
 {
 
     /// Need to leave just enough space for the scroll bars. So we have to remove the scrollBarHeight from the
     /// the size of ROpenGLWidget to make sure the latter fits tightly in the QScrollArea.
-    int naxis1 = currentROpenGLWidget->getRMatImageList().at(0)->getMatImage().cols;
-    int naxis2 = currentROpenGLWidget->getRMatImageList().at(0)->getMatImage().rows;
+    int naxis1 = rOpenGLWidget->getRMatImageList().at(0)->matImage.cols;
+    int naxis2 = rOpenGLWidget->getRMatImageList().at(0)->matImage.rows;
 
     float widthFac = (float) ((this->centralWidget()->width() - scrollArea->horizontalScrollBar()->height()) / (float) naxis1);
     float heightFac = (float) ((this->centralWidget()->height() - scrollArea->horizontalScrollBar()->height()) / (float) naxis2);
@@ -955,7 +1121,12 @@ void RMainWindow::resizeOpenGLWidget(QScrollArea *scrollArea)
         oglSize = QSize((int) ((float) naxis1 * resizeFac), (int) ((float) naxis2 * resizeFac));
     }
 
-    currentROpenGLWidget->setResizeFac(resizeFac);
+    rOpenGLWidget->setResizeFac(resizeFac);
     scrollArea->resize(oglSize + QSize(5, 25));
 
+}
+
+void RMainWindow::on_actionTileView_triggered()
+{
+    ui->mdiArea->tileSubWindows();
 }

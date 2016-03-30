@@ -49,23 +49,36 @@ private slots:
     void createNewImage(RListImageManager *newRListImageManager);
     void createNewImage(QList<RMat*> newRMatImageList);
     void createNewImage(RMat *rMatImage);
+    void createNewImage(QImage &image);
+    //void addEllipseToScene(cv::RotatedRect rect);
+
+    //void createNewImage(QImage *image);
     void addImage(ROpenGLWidget *rOpenGLWidget);
     void updateDoubleSpinBox(int);
     void scaleImageSlot(int value);
     void gammaScaleImageSlot(int value);
-    void updateSliderValueSlot(double valueD);
+    void updateSliderValueSlot();
     void updateWB(int value);
     void autoScale();
+    void autoScale(ROpenGLWidget *rOpenGLWidget);
     void minMaxScale();
-    void updateCurrentData(ROpenGLWidget *rOpenGLWidget);
+    void changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget);
     void updateFrameInSeries(int frameIndex);
     void updateSubFrame(QImage *image, float intensity, int x, int y);
-    void addPlotWidget(QCustomPlot *plotWidget);
+    void displayPlotWidget(ROpenGLWidget *rOpenGLWidget);
     void addHeaderWidget();
     void setupExportCalibrateDir();
     void exportMastersToFits();
     void exportFrames();
+    void convertTo8Bit();
+    void convertToNeg();
 
+    // Processing
+    void calibrateOffScreenSlot();
+    void registerSeries();
+    void cannyEdgeDetection();
+    void updateCannyDetection();
+    void cannyRegisterSeries();
 
     //sliderFrame playback buttons
     void stepForward();
@@ -84,22 +97,30 @@ private slots:
 
     void uncheckActionHeaderState();
 
+    void on_actionTileView_triggered();
+
 private:
 
     // functions
-    void resizeOpenGLWidget(QScrollArea *scrollArea);
+    void updateCurrentROpenGLWidget();
+    void resizeScrollArea(ROpenGLWidget *rOpenGLWidget, QScrollArea *scrollArea);
     void loadSubWindow(QScrollArea *scrollArea);
     void dispatchRMatImages(QList<RMat*> rMatList);
     float convertSliderToScale(int value);
     int convertScaleToSlider(float value);
     float convertSliderToGamma(int value);
     int convertGammaToSlider(float gamma);
-    void setupSliders();
+    void setupSliders(ROpenGLWidget *rOpenGLWidget);
     void setupSubImage();
-    void drawHist(cv::Mat matHist);
     void updateCustomPlotLineItems();
 
     // properties
+    //cv::Mat ellMat;
+//    QImage image2;
+    //QGraphicsPixmapItem *item;
+    QGraphicsScene* scene;
+    QGraphicsView* graphicsView;
+
     Ui::RMainWindow *ui;
     RProcessing *processing;
     QImage *subQImage;
@@ -111,10 +132,19 @@ private:
     void tileView();
 
     ROpenGLWidget *currentROpenGLWidget;
+    ROpenGLWidget *resultROpenGLWidget;
+    ROpenGLWidget *cannyContoursROpenGLWidget;
+    ROpenGLWidget *limbFittingROpenGLWidget;
+
+    QMdiSubWindow *cannySubWindow;
+    QMdiSubWindow *currentSubWindow;
+    QMdiSubWindow *tempSubWindow;
+    QScrollArea *currentScrollArea;
+    QScrollArea *cannyScrollArea;
 
     QSize oglSize;
     QSize defaultWindowSize;
-    float sliderScale, sliderRange, sliderScaleWB;
+    float sliderScale, sliderRange, sliderScaleWB, sliderToScaleMinimum;
 
     float gammaScale, newMax, newMin, alpha, beta, gammaMin, gamma;
 

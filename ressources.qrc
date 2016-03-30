@@ -3,6 +3,7 @@
         <file>shaders/fragment16.frag</file>
         <file>shaders/vertexShader.vert</file>
         <file>shaders/fragment32.frag</file>
+        <file>shaders/fragment888.frag</file>
     </qresource>
     <qresource prefix="/icons">
         <file>Icons/icons1/ALIGN LEFT.svg</file>

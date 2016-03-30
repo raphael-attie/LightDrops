@@ -87,7 +87,7 @@ ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
-    this->rMatImageList =  QList<RMat*>() << rMatImage;
+    this->rMatImageList << rMatImage;
     //this->rMatImageList.push_back(rMatImage);
     nFrames = 1;
 
@@ -102,6 +102,16 @@ ROpenGLWidget::~ROpenGLWidget()
     m_vao.destroy();
 
     delete rListImageManager;
+
+
+    /// Deleting the rMatImageList below is causing a crash.
+    ///
+//    if (!rMatImageList.isEmpty())
+//    {
+//        qDeleteAll(rMatImageList);
+//        rMatImageList.clear();
+//    }
+
 
 //    glDeleteTextures(1, &texture);
 
@@ -118,35 +128,28 @@ ROpenGLWidget::~ROpenGLWidget()
 
 void ROpenGLWidget::initialize()
 {
+
+    customPlot = NULL;
+    vertLineHigh = NULL;
+    vertLineLow = NULL;
+
     setFocusPolicy(Qt::StrongFocus);
     frameIndex = 0;
     counter = 0;
-    dataMax = rMatImageList.at(0)->getDataMax();
-    dataMin = rMatImageList.at(0)->getDataMin();
+    dataMax = rMatImageList.at(frameIndex)->getDataMax();
+    dataMin = rMatImageList.at(frameIndex)->getDataMin();
     dataRange = (float) (dataMax - dataMin);
-    calibrationType = QString("");
-    naxis1 = rMatImageList.at(0)->getMatImage().cols;
-    naxis2 = rMatImageList.at(0)->getMatImage().rows;
-
-    double min;
-    double max;
-
-    prepImage();
-
-    cv::minMaxLoc(rMatImageList.at(0)->getMatImage(), &min, &max);
-    qDebug("ROpenGLWidget::initialize()::rMatImageList.at(0)->getMatImage()   min = %f , max = %f", min, max );
-
-
-    matImageRGB = matImageListRGB.at(0);
-
-
-    intensity = 0;
     newMin = dataMin;
     newMax = dataMax;
+
+    calibrationType = QString("");
+    naxis1 = rMatImageList.at(frameIndex)->matImage.cols;
+    naxis2 = rMatImageList.at(frameIndex)->matImage.rows;
+
+    intensity = 0;
     alpha = 1.0f/dataRange;
     beta = (float) (-dataMin / dataRange);
     gamma = 1.0;
-
     // White balance default
     wbRed = 1.0f;
     wbGreen = 1.0f;
@@ -155,7 +158,10 @@ void ROpenGLWidget::initialize()
     imageCoordX = naxis1/2;
     imageCoordY = naxis2/2;
 
+    prepImage();
+    matImageRGB = matImageListRGB.at(frameIndex);
     initSubQImage();
+    setupHistoPlots();
 
     /// Create series of image titles
     /// If the frames do not come from disk files, need to create one from the default frame titles
@@ -179,25 +185,30 @@ void ROpenGLWidget::initialize()
 
 void ROpenGLWidget::prepImage()
 {
+//    if (!matImageListRGB.isEmpty())
+//    {
+//        matImageListRGB.clear();
+//    }
+
     for (int ii = 0; ii < nFrames; ii++)
     {
-        cv::Mat tempMatRGB = cv::Mat::zeros(naxis2, naxis1, rMatImageList.at(ii)->getMatImage().type());
+        cv::Mat tempMatRGB = cv::Mat::zeros(naxis2, naxis1, rMatImageList.at(ii)->matImage.type());
 
         if (rMatImageList.at(ii)->isBayer())
         {
             cv::Mat tempMat16;
-            rMatImageList.at(ii)->getMatImage().convertTo(tempMat16, CV_16U);
+            rMatImageList.at(ii)->matImage.convertTo(tempMat16, CV_16U);
             cv::cvtColor(tempMat16, tempMatRGB, CV_BayerBG2RGB);
             //tempMatRGB.convertTo(tempMatRGB, CV_32FC3);
         }
-        else if (rMatImageList.at(ii)->getMatImage().channels() == 1)
+        else if (rMatImageList.at(ii)->matImage.channels() == 1)
         {
-            cv::Mat tempMat = rMatImageList.at(ii)->getMatImage();
+            cv::Mat tempMat = rMatImageList.at(ii)->matImage;
             cv::cvtColor(tempMat, tempMatRGB, CV_GRAY2RGB);
         }
         else
         {
-            rMatImageList.at(ii)->getMatImage().copyTo(tempMatRGB);
+            rMatImageList.at(ii)->matImage.copyTo(tempMatRGB);
         }        
         matImageListRGB.append(tempMatRGB);
     }
@@ -230,11 +241,17 @@ void ROpenGLWidget::initializeGL()
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment32.frag") )
          return;
     }
-    else
+    else if (matImageRGB.type() == CV_16UC3 || matImageRGB.type() == CV_16SC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment16.frag") )
          return;
     }
+    else if (matImageRGB.type() == CV_8UC3)
+    {
+        if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment888.frag") )
+         return;
+    }
+
 
 
     // Create Vertex Array Object
@@ -325,6 +342,11 @@ void ROpenGLWidget::initializeGL()
 
 void ROpenGLWidget::loadGLTexture()
 {
+//    if (!textureVector.isEmpty())
+//    {
+//        qDeleteAll(textureVector);
+//        textureVector.clear();
+//    }
 
     for (int ii =0; ii < nFrames; ii++)
     {
@@ -363,6 +385,13 @@ void ROpenGLWidget::loadGLTexture()
             oglt->setFormat(QOpenGLTexture::RGB16I);
             oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16);
             oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16, tempImageRGB.data);
+        }
+        else if (tempImageRGB.type() == CV_8UC3)
+        {
+            qDebug("ROpenGLWidget::loadGLTexture():: image is 8-bit unsigned integer, 3 channels");
+            oglt->setFormat(QOpenGLTexture::RGB8U);
+            oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8);
+            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8, tempImageRGB.data);
         }
         else if (tempImageRGB.type() == CV_16U)
         {
@@ -663,13 +692,109 @@ void ROpenGLWidget::updateSubQImage()
          cv::Vec3f color = matImageRGB.at<cv::Vec3f>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
-     else
+     else if (matImageRGB.type() == CV_16UC3)
      {
          cv::Vec3w color = matImageRGB.at<cv::Vec3w>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
+     else if (matImageRGB.type() == CV_8UC3)
+     {
+         cv::Vec3b color = matImageRGB.at<cv::Vec3b>(y, x);
+         this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
+     }
 
      emit sendSubQImage(subQImage, intensity, x, y);
+}
+
+void ROpenGLWidget::setupHistoPlots()
+{
+    // Create list of QcustomPlot
+
+    for (int i = 0 ; i < nFrames ; i++)
+    {
+        customPlotList << new QCustomPlot();
+        vertLineHighList << new QCPItemLine(customPlotList.at(i));
+        vertLineLowList << new QCPItemLine(customPlotList.at(i));
+
+        cv::Mat tempHist;
+        cv::Mat matHist = rMatImageList.at(i)->getMatHist();
+        matHist.convertTo(tempHist, CV_64F);
+
+        int nBins = matHist.rows;
+        double minHist;
+        double maxHist;
+        cv::minMaxLoc(matHist, &minHist, &maxHist);
+        double histWidth = rMatImageList.at(i)->getHistWidth();
+
+
+        double histoMin = std::min(0.0, rMatImageList.at(i)->getDataMin());
+        QVector<double> x(nBins); // y must be the histogram values
+        for (int ii=0; ii< nBins; ++ii)
+        {
+            x[ii] = histoMin + histWidth*ii; // x goes from 0 to nBins-1
+        }
+        // Pointer to matHist data.
+        const double* matHistPtr = tempHist.ptr<double>(0);
+        std::vector<double> matHistStdVect(matHistPtr, matHistPtr + matHist.rows);
+        QVector<double> y = QVector<double>::fromStdVector(matHistStdVect);
+
+
+        customPlotList.at(i)->addGraph();
+        customPlotList.at(i)->plottable(0)->setPen(QPen(QColor(125, 125, 125, 50))); // line color gray
+        customPlotList.at(i)->plottable(0)->setBrush(QBrush(QColor(125, 125, 125, 50)));
+
+        // setup axis
+        customPlotList.at(i)->xAxis->setTicks(false);
+        customPlotList.at(i)->yAxis->setTicks(false);
+        // Here we have put two plot axes. So we need to make left and bottom axes always transfer their ranges to right and top axes:
+        connect(customPlotList.at(i)->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlotList.at(i)->xAxis2, SLOT(setRange(QCPRange)));
+        connect(customPlotList.at(i)->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlotList.at(i)->yAxis2, SLOT(setRange(QCPRange)));
+
+        customPlotList.at(i)->yAxis->setScaleType(QCPAxis::stLogarithmic);
+        customPlotList.at(i)->graph(0)->setData(x, y);
+        customPlotList.at(i)->rescaleAxes();
+
+        double minXRange = rMatImageList.at(i)->getMinHistRange();
+        double maxXRange = rMatImageList.at(i)->getMaxHistRange();
+
+        if (rMatImageList.at(i)->getInstrument() == instruments::USET)
+        {
+            maxXRange = 1.01 * 4095;
+        }
+
+        customPlotList.at(i)->xAxis->setRange(0.95*minXRange, 1.05*maxXRange);
+        customPlotList.at(i)->yAxis->setRange(1, maxHist);
+
+        // Allow the user to zoom in / zoom out and scroll horizontally
+        customPlotList.at(i)->setInteraction(QCP::iRangeDrag, true);
+        customPlotList.at(i)->setInteraction(QCP::iRangeZoom, true);
+        customPlotList.at(i)->axisRect(0)->setRangeDrag(Qt::Horizontal);
+        customPlotList.at(i)->axisRect(0)->setRangeZoom(Qt::Horizontal);
+
+        customPlotList.at(i)->addItem(vertLineHighList.at(i));
+        customPlotList.at(i)->addItem(vertLineLowList.at(i));
+
+        double nPixels = (double) rMatImageList.at(i)->getNPixels();
+        vertLineHighList.at(i)->start->setCoords(rMatImageList.at(i)->getDataMax(), 0);
+        vertLineHighList.at(i)->end->setCoords(rMatImageList.at(i)->getDataMax(), nPixels);
+        vertLineLowList.at(i)->start->setCoords(rMatImageList.at(i)->getDataMin(), 0);
+        vertLineLowList.at(i)->end->setCoords(rMatImageList.at(i)->getDataMin(), nPixels);
+
+        customPlotList.at(i)->resize(200, 100);
+    }
+
+
+}
+
+void ROpenGLWidget::updateCustomPlotLineItems()
+{
+    double nPixels = (double) rMatImageList.at(frameIndex)->getNPixels();
+    vertLineHighList.at(frameIndex)->start->setCoords(newMax, 0);
+    vertLineHighList.at(frameIndex)->end->setCoords(newMax, nPixels);
+    vertLineLowList.at(frameIndex)->start->setCoords(newMin, 0);
+    vertLineLowList.at(frameIndex)->end->setCoords(newMin, nPixels);
+
+    customPlotList.at(frameIndex)->replot();
 }
 
 
@@ -712,6 +837,11 @@ QList<RMat*> ROpenGLWidget::getRMatImageList()
     return rMatImageList;
 }
 
+float ROpenGLWidget::getResizeFac()
+{
+    return resizeFac;
+}
+
 
 QString ROpenGLWidget::getCalibrationType()
 {
@@ -733,6 +863,16 @@ RSubWindow *ROpenGLWidget::getTableRSubWindow()
     return tableRSubWindow;
 }
 
+QList<QCustomPlot*> ROpenGLWidget::getCustomPlotList()
+{
+    return customPlotList;
+}
+
+QCustomPlot *ROpenGLWidget::fetchCurrentCustomPlot()
+{
+    return customPlotList.at(frameIndex);
+}
+
 float ROpenGLWidget::getGamma()
 {
     return gamma;
@@ -746,6 +886,16 @@ float ROpenGLWidget::getNewMax()
 float ROpenGLWidget::getNewMin()
 {
     return newMin;
+}
+
+float ROpenGLWidget::getAlpha()
+{
+    return alpha;
+}
+
+float ROpenGLWidget::getBeta()
+{
+    return beta;
 }
 
 float ROpenGLWidget::getWbRed()
@@ -763,8 +913,14 @@ float ROpenGLWidget::getWbBlue()
     return wbBlue;
 }
 
+void ROpenGLWidget::setRMatImageList(QList<RMat *> rMatImageList)
+{
+    this->rMatImageList = rMatImageList;
+}
+
 void ROpenGLWidget::setNewMax(float newMax)
 {
+
     this->newMax = newMax;
 }
 

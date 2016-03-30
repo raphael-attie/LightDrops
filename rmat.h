@@ -19,12 +19,13 @@ class RMat
 {
 public:
     RMat();
+    RMat(RMat const& rMat);
     RMat(cv::Mat mat);
     RMat(cv::Mat mat, bool bayer);
     RMat(cv::Mat mat, bool bayer, instruments instrument);
     ~RMat();
 
-    bool empty();
+    cv::Mat matImage;
 
     // Methods for getting some statistics
     void computeHist(int nBins, float minRange, float maxRange);
@@ -32,14 +33,15 @@ public:
     float calcThreshold(float cutOff, double histWidth, float minRange);
 
     void calcStats();
+    void calcMinMax();
 
     // getters
-    cv::Mat getMatImage() const;
     bool isBayer() const;
-    int getBscale() const;
+    float getBscale() const;
     int getBzero() const;
     double getDataMin() const;
     double getDataMax() const;
+    float getExpTime() const;
     float getWbRed() const;
     float getWbGreen() const;
     float getWbBlue() const;
@@ -61,10 +63,11 @@ public:
 
     // setters
     void setBayer(bool bayer);
-    void setBscale(int bscale);
+    void setBscale(float bscale);
     void setBzero(int bzero);
     void setDataMin(float dataMin);
     void setDataMax(float dataMax);
+    void setExpTime(float expTime);
     void setWbRed(float wbRed);
     void setWbGreen(float wbGreen);
     void setWbBlue(float wbBlue);
@@ -73,14 +76,15 @@ public:
     void setItem(QTreeWidgetItem* item);
     void setFileInfo(QFileInfo fileInfo);
 
+
 private:
 
-   cv::Mat matImage;
    bool bayer;
-   int bscale;
+   float bscale;
    int bzero;
    double dataMin;
    double dataMax;
+   float expTime;
    float wbRed;
    float wbGreen;
    float wbBlue;

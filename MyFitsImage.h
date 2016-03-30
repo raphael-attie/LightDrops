@@ -21,6 +21,7 @@
 // this will save performance by disbling any range checking
 //#define BOOST_DISABLE_ASSERTS 1
 
+
 class MyFitsImage
 
 {
@@ -33,7 +34,8 @@ public:
 	qint32 getNaxis1() const;
 	qint32 getNaxis2() const;
     bool isBayer() const;
-    int getBscale() const;
+    float getBscale() const;
+    float getExpTime() const;
     int getBzero() const;
     cv::Mat getMatFits() const;
 
@@ -52,7 +54,7 @@ private:
 	//array_2D_double *myImage;
 	int hduType;
     int bitpix;
-    int bscale;
+    float bscale, expTime;
     int bzero;
     bool bayer;
 

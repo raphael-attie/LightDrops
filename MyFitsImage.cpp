@@ -31,10 +31,13 @@ hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0), image1D_ushort(NULL)
     double nullval;
     char comment[FLEN_COMMENT], keyString[FLEN_VALUE], card[FLEN_CARD];
     char keyword[FLEN_KEYWORD], keyValue[FLEN_VALUE];
+    expTime = 0;
     bscale = 1;
     bzero = 0;
 
 	std::string filePathStr(filePath.toStdString());
+
+    qDebug() << "fits_is_reentrant =" << fits_is_reentrant();
 
 	if (fits_open_data(&fptr, filePathStr.c_str(), READONLY, &status))
 	{
@@ -88,7 +91,7 @@ hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0), image1D_ushort(NULL)
 
 	}
 
-    if (fits_read_key(fptr, TINT, "BSCALE", &bscale, NULL, &status))
+    if (fits_read_key(fptr, TFLOAT, "BSCALE", &bscale, NULL, &status))
     {
         qDebug() << "MyFitsImage:: No BSCALE keyword, setting default BSCALE = 1";
         status = 0;
@@ -105,11 +108,17 @@ hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0), image1D_ushort(NULL)
 
     if (fits_read_key(fptr, TLOGICAL, "BAYER", &bayer, NULL, &status))
     {
-        qDebug() << "MyFitsImage:: No BAYER keyword" ;
+        qDebug() << "MyFitsImage:: No BAYER keyword, setting default Bayer = false" ;
         status = 0;
     }
-    qDebug() << "MyFitsImage:: BAYER =" << bayer;
+    qDebug() << "MyFitsImage:: bayer =" << bayer;
 
+    if (fits_read_key(fptr, TFLOAT, "EXPTIME", &expTime, NULL, &status))
+    {
+        qDebug() << "MyFitsImage:: No EXPTIME keyword, setting default expTime = 0" ;
+        status = 0;
+    }
+    qDebug() << "MyFitsImage:: expTime =" << expTime;
 
 
 	naxis1 = naxes[0];
@@ -226,9 +235,14 @@ bool MyFitsImage::isBayer() const
     return bayer;
 }
 
-int MyFitsImage::getBscale() const
+float MyFitsImage::getBscale() const
 {
     return bscale;
+}
+
+float MyFitsImage::getExpTime() const
+{
+    return expTime;
 }
 
 int MyFitsImage::getBzero() const

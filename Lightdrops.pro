@@ -11,6 +11,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 TARGET = Lightdrops
 TEMPLATE = app
 
+<<<<<<< Updated upstream
 win32 {
     DEFINES += WIN32
     INCLUDEPATH += C:/dev/cfitsio_64
@@ -48,6 +49,27 @@ macx {
     LIBS += -stdlib=libc++
     QMAKE_CXXFLAGS += -std=c++11
 }
+=======
+INCLUDEPATH += /opt/local/include
+INCLUDEPATH += /Usr/local/include/libraw
+
+INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
+INCLUDEPATH += /usr/local/include
+
+LIBS += -L/opt/local/lib -lcfitsio
+LIBS += -L/usr/local/lib -lraw -lafopencl
+LIBS += -L../opencv3_tbb_opencl/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
+
+# Setup Qt so Clang works with C++11
+LIBS += -stdlib=libc++
+
+QMAKE_CXXFLAGS += -stdlib=libc++
+QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
+QMAKE_LFLAGS += -mmacosx-version-min=10.7
+
+
+>>>>>>> Stashed changes
 
 SOURCES += main.cpp\
         rmainwindow.cpp \
@@ -63,7 +85,10 @@ SOURCES += main.cpp\
     rlineedit.cpp \
     RFrame.cpp \
     qcustomplot/qcustomplot.cpp \
-    rsubwindow.cpp
+    rsubwindow.cpp \
+    data.cpp \
+    circle.cpp \
+    utilities.cpp
 
 HEADERS  += winsockwrapper.h \
     rmainwindow.h \
@@ -79,9 +104,17 @@ HEADERS  += winsockwrapper.h \
     rlineedit.h \
     RFrame.h \
     qcustomplot/qcustomplot.h \
+<<<<<<< Updated upstream
     rsubwindow.h
     rtableworker.h \
 
+=======
+    rsubwindow.h \
+    data.h \
+    typedefs.h \
+    circle.h \
+    utilities.h
+>>>>>>> Stashed changes
 
 FORMS    += rmainwindow.ui
 

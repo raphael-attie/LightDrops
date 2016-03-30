@@ -9,6 +9,13 @@
 #include "rlistimagemanager.h"
 #include "rtreewidget.h"
 #include "rlineedit.h"
+#include "ropenglwidget.h"
+
+#include "typedefs.h"
+#include "data.h"
+#include "circle.h"
+#include "utilities.h"
+
 
 class RProcessing: public QObject
 {
@@ -40,6 +47,9 @@ public:
     void showMinMax(const cv::Mat & matImage);
     // setters
     void setTreeWidget(RTreeWidget *treeWidget);
+    void setCurrentROpenGLWidget(ROpenGLWidget *rOpenGLWidget);
+    void setShowContours(bool status);
+    void setShowLimb(bool status);
 
     // getters
     QString getExportMastersDir();
@@ -48,6 +58,12 @@ public:
     RMat* getMasterBias();
     RMat* getMasterDark();
     RMat* getMasterFlat();
+    RMat* getCannyRMat();
+    RMat* getContoursRMat();
+    RMat* getEllipseRMat();
+    QImage* getCannyQImage();
+    QList<RMat*> getContoursRMatList();
+    QList<RMat*> getResultList();
 
     // public properties (for "easier" referencing)
     QList<RMat*> rMatLightList;
@@ -55,11 +71,16 @@ public:
     QList<RMat*> rMatDarkList;
     QList<RMat*> rMatFlatList;
 
+    static bool compareContourAreas(std::vector<cv::Point> contour1, std::vector<cv::Point> contour2);
 
 signals:
 
    void resultSignal(RMat* rMatResult);
+   void ellipseSignal(cv::RotatedRect ellRect);
    void listResultSignal(QList<RMat*> rMatListResult);
+   void resultQImageSignal(QImage &image);
+   void cannyResultsReady();
+   void cannyUpdatesReady();
    void messageSignal(QString message);
    void tempMessageSignal(QString message, int = 3000);
 
@@ -74,20 +95,44 @@ public slots:
    void calibrateOffScreen();
    //void calibrateOnScreen();
 
+
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
+   void registerSeries();
+   void cannyEdgeDetection(int thresh);
+   void setupCannyDetection(int i);
+   void cannyDetect(int thresh);
+   void updateCannyDetection(int thresh);
+   void cannyRegisterSeries();
 
 
 private:
 
+    void normalizeFlat();
+    void calibrate();
+    //int circleFitLM(Data& data, Circle& circleIni, reals LambdaIni, Circle& circle);
+
     RListImageManager *listImageManager;
-    RMat *normalizeByMean(RMat *rImage);
     RMat *masterBias;
     RMat *masterDark;
     RMat *masterFlat;
+    RMat *masterFlatN;
     QList<RMat*> resultList;
+    cv::Mat sampleMat8, sampleMatN, contoursMat;
+    QImage *cannyQImage;
+
+    RMat *cannyRMat;
+    RMat *contoursRMat;
+    RMat *ellipseRMat;
+
+
+    QList<RMat*> contoursRMatList;
+    QVector<cv::RotatedRect> ellRectList;
+    QVector<cv::Point2f> centers;
+    QVector< std::vector< std::vector<cv::Point> > > singleBiggestContourList;
 
     RTreeWidget *treeWidget;
+    ROpenGLWidget *currentROpenGLWidget;
 
     QString exportMastersDir;
     QString exportCalibrateDir;
@@ -95,7 +140,7 @@ private:
     QString masterBiasPath, masterDarkPath, masterFlatPath;
 
     bool biasSuccess, darkSuccess, flatSuccess;
-
+    bool showContours, showLimb;
 
 };
 
