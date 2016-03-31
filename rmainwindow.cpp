@@ -471,6 +471,8 @@ void RMainWindow::updateCannyDetection()
 
     processing->cannyEdgeDetection(ui->cannySlider->value());
 
+    quint32 imageCoordX = currentROpenGLWidget->getImageCoordX();
+    quint32 imageCoordY = currentROpenGLWidget->getImageCoordY();
 
     delete cannyContoursROpenGLWidget;
     //ROpenGLWidget *ptr = cannyContoursROpenGLWidget;
@@ -499,6 +501,10 @@ void RMainWindow::updateCannyDetection()
 
     currentScrollArea->update();
     cannySubWindow->update();
+
+    currentROpenGLWidget->setImageCoordX(imageCoordX);
+    currentROpenGLWidget->setImageCoordY(imageCoordY);
+    currentROpenGLWidget->updateSubQImage();
 
 //    if (limbFittingROpenGLWidget != NULL)
 //    {
@@ -878,6 +884,7 @@ void RMainWindow::updateFrameInSeries(int frameIndex)
     // The sliderValue minimum is 1. The frameIndex minimum is 0;
     ui->imageLabel->setText(QString::number(frameIndex+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
     currentROpenGLWidget->changeFrame(frameIndex);
+    ui->mdiArea->currentSubWindow()->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getImageTitle());
     displayPlotWidget(currentROpenGLWidget);
 }
 

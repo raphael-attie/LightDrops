@@ -751,7 +751,7 @@ void RProcessing::cannyDetect(int thresh)
     cv::blur(sampleMatN, sampleMatN, cv::Size(3,3));
     cv::Canny(sampleMatN, contoursMat, thresh1, thresh2, 3);
 /// void adaptiveThreshold(InputArray src, OutputArray dst, double maxValue, int adaptiveMethod, int thresholdType, int blockSize, double C)
-    //cv::adaptiveThreshold(sampleMatN, cannyMat, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, -5);
+    //cv::adaptiveThreshold(sampleMatN, contoursMat, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, -5);
 
 //    cannyRMat = new RMat(cannyMat, false);
 //    cannyRMat->setImageTitle(QString("Canny edges"));
@@ -773,35 +773,44 @@ void RProcessing::cannyDetect(int thresh)
 
     // gather points of all contours in one big vector
 
+    vector< vector<cv::Point> > biggestContours;
+    biggestContours.push_back(biggestContour);
+    biggestContours.push_back(contours[contours.size()-2]);
+    biggestContours.push_back(contours[contours.size()-3]);
+    biggestContours.push_back(contours[contours.size()-4]);
+    biggestContours.push_back(contours[contours.size()-5]);
+
+    biggestContoursList << biggestContours;
+
+
+
     size_t nContours = 0;
 
-       for (int i=0; i<contours.size(); ++i)
+       for (int i=0; i<biggestContours.size(); ++i)
        {
-            nContours += contours[i].size();
+            nContours += biggestContours[i].size();
        }
 
     vector< cv::Point > contours1D;
     contours1D.reserve(nContours);
 
-    for (int i=0; i<contours.size(); ++i)
+    for (int i=0; i<biggestContours.size(); ++i)
       {
-        const vector< cv::Point > & v = contours[i];
+        const vector< cv::Point > & v = biggestContours[i];
         contours1D.insert( contours1D.end() , v.begin() , v.end() );
       }
 
+    if (showContours)
+    {
 
+                cv::Scalar color = cv::Scalar( 0, 255, 0);
+//                cv::drawContours( contoursMat, biggestContours, 0, color, 2, 8);
 
-    vector< vector<cv::Point> > singleBiggestContour;
-    singleBiggestContour.push_back(biggestContour);
+                for( int i = 0; i< biggestContours.size(); i++ )
+                {
+                    cv::drawContours( contoursMat, biggestContours, i, color, 2, 8, hierarchy, 0, cv::Point() );
+                }
 
-    singleBiggestContourList << singleBiggestContour;
-
-
-//    if (showContours)
-//    {
-
-////                cv::Scalar color = cv::Scalar( 0, 255, 0);
-////                cv::drawContours( contoursMat, singleBiggestContour, 0, color, 2, 8);
 //        cv::RNG rng(12345);
 
 //        for( int i = 0; i< contours.size(); i++ )
@@ -810,21 +819,21 @@ void RProcessing::cannyDetect(int thresh)
 //            //cv::Scalar color = cv::Scalar( 0, 255, 0);
 //            cv::drawContours( contoursMat, contours, i, color, 2, 8, hierarchy, 0, cv::Point() );
 //        }
-//    }
+    }
 
 
     //cv::RotatedRect ellRect = cv::fitEllipse(biggestContour);
     cv::RotatedRect ellRect = cv::fitEllipse(contours1D);
 
     ellRectList << ellRect;
-    centers << ellRect.center;
 
     qDebug("RADIUS 1 = %f", ellRect.size.width/2.0f);
     qDebug("RADIUS 2 = %f", ellRect.size.height/2.0f);
     qDebug("RADIUS R = %f", (ellRect.size.height + ellRect.size.width) / 4.0f);
 
 
-/// ------------------------ FIT CIRCLE --------------------------------- ///
+/// ------------------------ FIT CIRCLE ---------------------------------
+
     reals *X = new reals[nContours];
     reals *Y = new reals[nContours];
 
@@ -832,22 +841,31 @@ void RProcessing::cannyDetect(int thresh)
     {
         X[i] = contours1D[i].x;
         Y[i] = contours1D[i].y;
-
-//        if (i<10)
-//        {
-//            qDebug("(X ; Y)[ %i ] = (%f ; %f)", i , X[i], Y[i]);
-//        }
     }
 
+//    for (size_t i=0; i<biggestContour.size(); ++i)
+//    {
+//        X[i] = biggestContour[i].x;
+//        Y[i] = biggestContour[i].y;
+//    }
 
-    Data contourData1((int) nContours, X, Y);
+    Data contourData((int) contours1D.size(), X, Y);
 
-    reals circleX = ellRect.center.x;
-    reals circleY = ellRect.center.y;
+
+    Circle circleOut1 = CircleFitByHyper(contourData);
+    qDebug("Hyper fit output:");
+    qDebug("Center at [%f ; %f]", circleOut1.a, circleOut1.b);
+    qDebug("Radius R = %f", circleOut1.r);
+
+
+//    reals circleX = ellRect.center.x;
+//    reals circleY = ellRect.center.y;
     reals circleR = 913.0f;
-    Circle circleInit(circleX, circleY, circleR);
+//    Circle circleInit(circleX, circleY, circleR);
+    Circle circleInit = circleOut1;
+    circleInit.r = circleR;
+
     reals lambdaIni = 0.001;
-    Circle circleOut;
 
     qDebug("");
     qDebug(" ----------- Circle fitting initial parameters:  ----------");
@@ -856,21 +874,24 @@ void RProcessing::cannyDetect(int thresh)
     qDebug("Center at (%f ; %f)", circleInit.a, circleInit.b);
     qDebug("");
 
-    int status = CircleFitByLevenbergMarquardtFull(contourData1, circleInit, lambdaIni, circleOut);
+    Circle circleOut2;
+    int status = CircleFitByLevenbergMarquardtFull(contourData, circleInit, lambdaIni, circleOut2);
     qDebug("LMA  output:");
     qDebug("status = %i", status);
-    qDebug("Center at [%f ; %f]", circleOut.a, circleOut.b);
-    qDebug("Radius R = %f", circleOut.r);
+    qDebug("Center at [%f ; %f]", circleOut2.a, circleOut2.b);
+    qDebug("Radius R = %f", circleOut2.r);
     qDebug("");
 
-    Data contourData2((int) nContours, X, Y);
     lambdaIni = 0.001;
-    Circle circleInitR(circleX, circleY, circleR);
-    status = CircleFitByLevenbergMarquardtReduced(contourData2, circleInitR, lambdaIni, circleOut);
+//    Circle circleInitR(circleX, circleY, circleR);
+    Circle circleInitR = circleOut1;
+    circleInitR.r = circleR;
+    Circle circleOut3;
+    status = CircleFitByLevenbergMarquardtReduced(contourData, circleInitR, lambdaIni, circleOut3);
     qDebug("LMA-reduced output:");
     qDebug("status = %i", status);
-    qDebug("Center at [%f ; %f]", circleOut.a, circleOut.b);
-    qDebug("Radius R = %f", circleOut.r);
+    qDebug("Center at [%f ; %f]", circleOut3.a, circleOut3.b);
+    qDebug("Radius R = %f", circleOut3.r);
     qDebug("");
 
 
@@ -890,20 +911,21 @@ void RProcessing::cannyDetect(int thresh)
 //    qDebug("Radius R = %f", circleOut2.r);
 //    qDebug("");
 
-//    Circle circleOut3 = CircleFitByHyper (contourData);
-//    qDebug("Hyper fit output:");
-//    qDebug("Center at [%f ; %f]", circleOut3.a, circleOut3.b);
-//    qDebug("Radius R = %f", circleOut3.r);
+    centers << cv::Point2f((float) circleOut3.a, (float) circleOut3.b);
 
 
 /// ---------------------------------------------------------------------------- ///
-    ellRect.size.width -= 2;
-    ellRect.size.height -= 2;
 
     if (showLimb)
     {
         cv::Scalar red = cv::Scalar(255, 0, 0);
-        cv::ellipse(contoursMat, ellRect, red, 2, 8);
+        cv::Scalar green = cv::Scalar(0, 255, 0);
+
+//        cv::ellipse(contoursMat, ellRect, red, 2, 8);
+
+        // draw the fitted circle
+        cv::Point2f circleCenter(circleOut2.a, circleOut2.b);
+        cv::circle(contoursMat, circleCenter, circleOut2.r, red, 2, 8);
     }
 
 
@@ -975,7 +997,7 @@ void RProcessing::cannyRegisterSeries()
 
         if (showContours)
         {
-            cv::drawContours(registeredMat, singleBiggestContourList.at(i), 0, cv::Scalar(0, 255, 0), 2, 8, cv::noArray(), 0 , delta);
+            cv::drawContours(registeredMat, biggestContoursList.at(i), 0, cv::Scalar(0, 255, 0), 2, 8, cv::noArray(), 0 , delta);
         }
 
         if (showLimb)

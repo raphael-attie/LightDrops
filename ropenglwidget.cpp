@@ -637,6 +637,8 @@ void ROpenGLWidget::initSubQImage()
 
     matFrame = cv::Mat(frameRows, frameCols, CV_32FC3, cv::Scalar(32000, 32000, 32000));
     subQImage = new QImage(subNaxis, subNaxis, QImage::Format_ARGB32);
+
+
 }
 
 void ROpenGLWidget::updateSubQImage()
@@ -942,6 +944,16 @@ void ROpenGLWidget::setBeta(float newBeta)
 void ROpenGLWidget::setGamma(float newGamma)
 {
     gamma = newGamma;
+}
+
+void ROpenGLWidget::setImageCoordX(quint32 x)
+{
+    imageCoordX = x;
+}
+
+void ROpenGLWidget::setImageCoordY(quint32 y)
+{
+   imageCoordY = y;
 }
 
 

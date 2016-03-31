@@ -90,6 +90,8 @@ public:
     void setAlpha(float newAlpha);
     void setBeta(float newBeta);
     void setGamma(float newGamma);
+    void setImageCoordX(quint32 x);
+    void setImageCoordY(quint32 y);
 
     void setFrameIndex(int newFrameIndex);
     void setCalibrationType(QString calibrationType);

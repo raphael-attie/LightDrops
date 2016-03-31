@@ -129,7 +129,7 @@ private:
     QList<RMat*> contoursRMatList;
     QVector<cv::RotatedRect> ellRectList;
     QVector<cv::Point2f> centers;
-    QVector< std::vector< std::vector<cv::Point> > > singleBiggestContourList;
+    QVector< std::vector< std::vector<cv::Point> > > biggestContoursList;
 
     RTreeWidget *treeWidget;
     ROpenGLWidget *currentROpenGLWidget;
