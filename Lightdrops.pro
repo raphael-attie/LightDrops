@@ -11,7 +11,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 TARGET = Lightdrops
 TEMPLATE = app
 
-<<<<<<< Updated upstream
 win32 {
     DEFINES += WIN32
     INCLUDEPATH += C:/dev/cfitsio_64
@@ -31,6 +30,9 @@ macx {
     INCLUDEPATH += /Usr/local/include/libraw
     INCLUDEPATH += /usr/local/include/libiomp
 
+# Homebrew boost includes
+    INCLUDEPATH += /usr/local/Cellar/boost/1.59.0/
+
 #choose open cv setup
 #    INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
     INCLUDEPATH += /Usr/local/include
@@ -49,7 +51,7 @@ macx {
     LIBS += -stdlib=libc++
     QMAKE_CXXFLAGS += -std=c++11
 }
-=======
+
 INCLUDEPATH += /opt/local/include
 INCLUDEPATH += /Usr/local/include/libraw
 
@@ -68,8 +70,6 @@ QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
 QMAKE_LFLAGS += -mmacosx-version-min=10.7
 
-
->>>>>>> Stashed changes
 
 SOURCES += main.cpp\
         rmainwindow.cpp \
@@ -104,17 +104,14 @@ HEADERS  += winsockwrapper.h \
     rlineedit.h \
     RFrame.h \
     qcustomplot/qcustomplot.h \
-<<<<<<< Updated upstream
-    rsubwindow.h
+    rsubwindow.h \
+    utilities.h \
     rtableworker.h \
-
-=======
     rsubwindow.h \
     data.h \
     typedefs.h \
     circle.h \
-    utilities.h
->>>>>>> Stashed changes
+
 
 FORMS    += rmainwindow.ui
 

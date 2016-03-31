@@ -1,4 +1,5 @@
 #include "data.h"
+#include "QDebug"
 
 Data::Data()
 {
@@ -27,17 +28,14 @@ Data::Data(int N)
 }
 
 // Constructor with assignment of each field
-Data::Data(int N, reals dataX[], reals dataY[])
+Data::Data(int N, reals *dataX, reals *dataY)
 {
     n=N;
     X = new reals[n];
     Y = new reals[n];
 
-    for (int i=0; i<n; i++)
-    {
-        X[i]=dataX[i];
-        Y[i]=dataY[i];
-    }
+    memcpy(X, dataX, n * sizeof(reals));
+    memcpy(Y, dataY, n * sizeof(reals));
 }
 
 // Routine that computes the x- and y- sample means (the coordinates of the centeroid)
@@ -106,14 +104,17 @@ void Data::print(void)
 {
     cout << endl << "The data set has " << n << " points with coordinates :"<< endl;
 
-    for (int i=0; i<n-1; i++) cout << setprecision(7) << "(" << X[i] << ","<< Y[i] << "), ";
+    for (int i=0; i<n-1; i++)
+    {
+        cout << setprecision(7) << "(" << X[i] << ","<< Y[i] << "), ";
+        cout << "(" << X[n-1] << ","<< Y[n-1] << ")\n";
+    }
 
-    cout << "(" << X[n-1] << ","<< Y[n-1] << ")\n";
 }
 
 // Destructor
 Data::~Data()
 {
     delete[] X;
-        delete[] Y;
+    delete[] Y;
 }

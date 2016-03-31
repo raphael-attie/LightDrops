@@ -20,7 +20,7 @@ public:
     // constructors
     Data();
     Data(int N);
-    Data(int N, reals X[], reals Y[]);
+    Data(int N, reals *X, reals *Y);
     // destructors
     ~Data();
 

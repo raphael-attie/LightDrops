@@ -14,6 +14,7 @@
 
 #include "imagemanager.h"
 #include "parallelcalibration.h"
+#include "typedefs.h"
 
 
 RProcessing::RProcessing(QObject *parent): QObject(parent),
@@ -758,8 +759,8 @@ void RProcessing::cannyDetect(int thresh)
 
 
     // Find contours
-    std::vector<std::vector<cv::Point> > contours;
-    std::vector<cv::Vec4i> hierarchy;
+    vector< vector <cv::Point> > contours;
+    vector< cv::Vec4i > hierarchy;
     cv::findContours(contoursMat.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
 
     cv::cvtColor(contoursMat, contoursMat, CV_GRAY2RGB);
@@ -767,48 +768,135 @@ void RProcessing::cannyDetect(int thresh)
     // sort contours
     std::sort(contours.begin(), contours.end(), compareContourAreas);
     // grab contours
-    std::vector<cv::Point> biggestContour = contours[contours.size()-1];
+    vector< cv::Point > biggestContour = contours[contours.size()-1];
     //std::vector<cv::Point> smallestContour = contours[0];
 
-    std::vector<cv::Point> allContours;
     // gather points of all contours in one big vector
-    for (int i = 0 ; i < contours.size() ; ++i)
-    {
-        for (int j = 0 ; j < contours.at(i).size() ; ++j)
-        {
-            allContours.push_back(contours.at(i).at(j));
-        }
 
-    }
+    size_t nContours = 0;
 
-    std::vector< std::vector<cv::Point> > singleBiggestContour;
+       for (int i=0; i<contours.size(); ++i)
+       {
+            nContours += contours[i].size();
+       }
+
+    vector< cv::Point > contours1D;
+    contours1D.reserve(nContours);
+
+    for (int i=0; i<contours.size(); ++i)
+      {
+        const vector< cv::Point > & v = contours[i];
+        contours1D.insert( contours1D.end() , v.begin() , v.end() );
+      }
+
+
+
+    vector< vector<cv::Point> > singleBiggestContour;
     singleBiggestContour.push_back(biggestContour);
 
     singleBiggestContourList << singleBiggestContour;
 
 
-    if (showContours)
-    {
+//    if (showContours)
+//    {
 
-//                cv::Scalar color = cv::Scalar( 0, 255, 0);
-//                cv::drawContours( contoursMat, singleBiggestContour, 0, color, 2, 8);
-        cv::RNG rng(12345);
+////                cv::Scalar color = cv::Scalar( 0, 255, 0);
+////                cv::drawContours( contoursMat, singleBiggestContour, 0, color, 2, 8);
+//        cv::RNG rng(12345);
 
-        for( int i = 0; i< contours.size(); i++ )
-        {
-            cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) ); // random rgb value
-            //cv::Scalar color = cv::Scalar( 0, 255, 0);
-            cv::drawContours( contoursMat, contours, i, color, 2, 8, hierarchy, 0, cv::Point() );
-        }
-    }
+//        for( int i = 0; i< contours.size(); i++ )
+//        {
+//            cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) ); // random rgb value
+//            //cv::Scalar color = cv::Scalar( 0, 255, 0);
+//            cv::drawContours( contoursMat, contours, i, color, 2, 8, hierarchy, 0, cv::Point() );
+//        }
+//    }
 
 
     //cv::RotatedRect ellRect = cv::fitEllipse(biggestContour);
-    cv::RotatedRect ellRect = cv::fitEllipse(allContours);
+    cv::RotatedRect ellRect = cv::fitEllipse(contours1D);
 
     ellRectList << ellRect;
     centers << ellRect.center;
 
+    qDebug("RADIUS 1 = %f", ellRect.size.width/2.0f);
+    qDebug("RADIUS 2 = %f", ellRect.size.height/2.0f);
+    qDebug("RADIUS R = %f", (ellRect.size.height + ellRect.size.width) / 4.0f);
+
+
+/// ------------------------ FIT CIRCLE --------------------------------- ///
+    reals *X = new reals[nContours];
+    reals *Y = new reals[nContours];
+
+    for (size_t i=0; i<contours1D.size(); ++i)
+    {
+        X[i] = contours1D[i].x;
+        Y[i] = contours1D[i].y;
+
+//        if (i<10)
+//        {
+//            qDebug("(X ; Y)[ %i ] = (%f ; %f)", i , X[i], Y[i]);
+//        }
+    }
+
+
+    Data contourData1((int) nContours, X, Y);
+
+    reals circleX = ellRect.center.x;
+    reals circleY = ellRect.center.y;
+    reals circleR = 913.0f;
+    Circle circleInit(circleX, circleY, circleR);
+    reals lambdaIni = 0.001;
+    Circle circleOut;
+
+    qDebug("");
+    qDebug(" ----------- Circle fitting initial parameters:  ----------");
+    qDebug("");
+    qDebug("nContours = %i", nContours);
+    qDebug("Center at (%f ; %f)", circleInit.a, circleInit.b);
+    qDebug("");
+
+    int status = CircleFitByLevenbergMarquardtFull(contourData1, circleInit, lambdaIni, circleOut);
+    qDebug("LMA  output:");
+    qDebug("status = %i", status);
+    qDebug("Center at [%f ; %f]", circleOut.a, circleOut.b);
+    qDebug("Radius R = %f", circleOut.r);
+    qDebug("");
+
+    Data contourData2((int) nContours, X, Y);
+    lambdaIni = 0.001;
+    Circle circleInitR(circleX, circleY, circleR);
+    status = CircleFitByLevenbergMarquardtReduced(contourData2, circleInitR, lambdaIni, circleOut);
+    qDebug("LMA-reduced output:");
+    qDebug("status = %i", status);
+    qDebug("Center at [%f ; %f]", circleOut.a, circleOut.b);
+    qDebug("Radius R = %f", circleOut.r);
+    qDebug("");
+
+
+//    lambdaIni = 0.001;
+//    Circle circleInit2(circleX, circleY, circleR);
+//    status = CircleFitByChernovLesort(contourData, circleInit2, lambdaIni, circleOut);
+//    qDebug("Chernov-Lesort  output:");
+//    qDebug("status = %i", status);
+//    qDebug("Center at [%f ; %f]", circleOut.a, circleOut.b);
+//    qDebug("Radius R = %f", circleOut.r);
+//    qDebug("");
+
+
+//    Circle circleOut2 = CircleFitByPratt(contourData);
+//    qDebug("Pratt fit 2  output:");
+//    qDebug("Center at [%f ; %f]", circleOut2.a, circleOut2.b);
+//    qDebug("Radius R = %f", circleOut2.r);
+//    qDebug("");
+
+//    Circle circleOut3 = CircleFitByHyper (contourData);
+//    qDebug("Hyper fit output:");
+//    qDebug("Center at [%f ; %f]", circleOut3.a, circleOut3.b);
+//    qDebug("Radius R = %f", circleOut3.r);
+
+
+/// ---------------------------------------------------------------------------- ///
     ellRect.size.width -= 2;
     ellRect.size.height -= 2;
 
