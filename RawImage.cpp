@@ -1,7 +1,7 @@
 #include "RawImage.h"
 
 // libraw
-#include <libraw.h>
+#include <libraw/libraw.h>
 
 // opencv
 #include <opencv2/core.hpp>
