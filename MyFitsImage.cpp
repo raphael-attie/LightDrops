@@ -1,21 +1,13 @@
 #include "MyFitsImage.h"
 
-//#include <cfitsio/fitsio.h> // Windows
-#include <fitsio.h>
+#include <cfitsio/fitsio.h>
 #include <cmath>
 #include <algorithm>
 
-// openmp
 #include <QtDebug>
 
 // opencv
-#include <opencv2/core.hpp>
-#include <opencv2/core/ocl.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
-// ArrayFire
-#include <arrayfire.h>
+#include <opencv2/world.hpp>
 
 
 using namespace cv;

@@ -13,7 +13,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 // libraw
-#include <libraw.h>
+#include <libraw/libraw.h>
 
 class RawImage
 {

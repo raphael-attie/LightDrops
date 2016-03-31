@@ -15,11 +15,8 @@
 #include <QElapsedTimer>
 #include <QTimer>
 
-//opencv
-#include <opencv2/core.hpp>
-#include <opencv2/core/ocl.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+/// opencv
+#include <opencv2/world.hpp>
 
 using namespace cv;
 

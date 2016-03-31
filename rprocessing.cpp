@@ -3,7 +3,7 @@
 #include <QFileDialog>
 
 // cifitsio
-#include <fitsio.h>
+#include <cfitsio/fitsio.h>
 
 //opencv
 #include <opencv2/core.hpp>

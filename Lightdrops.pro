@@ -26,23 +26,19 @@ win32 {
 
 macx {
 
-    INCLUDEPATH += /opt/local/include
-    INCLUDEPATH += /Usr/local/include/libraw
-    INCLUDEPATH += /usr/local/include/libiomp
+    INCLUDEPATH += /usr/local/include
 
-# Homebrew boost includes
-    INCLUDEPATH += /usr/local/Cellar/boost/1.59.0/
+# cfitsio
+    LIBS += -L/usr/local/lib -lcfitsio
 
-#choose open cv setup
-#    INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
-    INCLUDEPATH += /Usr/local/include
+# libraw
+    LIBS += -L/usr/local/lib -lraw
 
-    LIBS += -L/opt/local/lib -lcfitsio
-    LIBS += -L/usr/local/lib -lraw -lafopencl
+# opencv "world" (it has all modules)
+    LIBS += -L/usr/local/lib -lopencv_world
 
-#choose open cv setup
-#    LIBS += -L../opencv3_tbb_opencl/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
-    LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
+# arrayfire (not used at the moment)
+    #LIBS += -L/usr/local/lib -lafopencl
 
     QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
     QMAKE_LFLAGS += -mmacosx-version-min=10.7
@@ -51,16 +47,6 @@ macx {
     LIBS += -stdlib=libc++
     QMAKE_CXXFLAGS += -std=c++11
 }
-
-INCLUDEPATH += /opt/local/include
-INCLUDEPATH += /Usr/local/include/libraw
-
-INCLUDEPATH += ~/Dev/opencv3_tbb_opencl/include
-INCLUDEPATH += /usr/local/include
-
-LIBS += -L/opt/local/lib -lcfitsio
-LIBS += -L/usr/local/lib -lraw -lafopencl
-LIBS += -L../opencv3_tbb_opencl/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_video
 
 # Setup Qt so Clang works with C++11
 LIBS += -stdlib=libc++
@@ -106,7 +92,6 @@ HEADERS  += winsockwrapper.h \
     qcustomplot/qcustomplot.h \
     rsubwindow.h \
     utilities.h \
-    rtableworker.h \
     rsubwindow.h \
     data.h \
     typedefs.h \
