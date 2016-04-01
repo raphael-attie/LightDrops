@@ -102,7 +102,7 @@ public slots:
    void cannyEdgeDetection(int thresh);
    void setupCannyDetection(int i);
    void cannyDetect(int thresh);
-   void updateCannyDetection(int thresh);
+   void limbFit();
    void cannyRegisterSeries();
 
 

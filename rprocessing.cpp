@@ -653,6 +653,8 @@ void RProcessing::registerSeries()
     emit listResultSignal(resultList);
 }
 
+
+
 void RProcessing::cannyEdgeDetection(int thresh)
 {
     // Check if data exist
@@ -682,16 +684,17 @@ void RProcessing::cannyEdgeDetection(int thresh)
     {
         setupCannyDetection(i);
         cannyDetect(thresh);
+        limbFit();
 
         /// Draw contours of all the edges
         contoursRMat = new RMat(contoursMat.clone(), false);
         contoursRMat->setImageTitle(QString("All canny edges contours"));
         contoursRMatList << contoursRMat;
 
-        qDebug("RProcessing::cannyEdgeDetection():: [centers.at(i).x ; centers.at(i).y] = [%f ; %f]", centers.at(i).x, centers.at(i).y);
-        qDebug("RProcessing::cannyEdgeDetection():: ellRect.boundingRect().center = [%f ; %f]", (float) ellRectList.at(i).boundingRect().width/2.0f, (float) ellRectList.at(i).boundingRect().height/2.0f);
-        qDebug("RProcessing::cannyEdgeDetection():: ellRect.size = [%f ; %f]", ellRectList.at(i).size.width, ellRectList.at(i).size.height);
-        qDebug("RProcessing::cannyEdgeDetection():: ellRect.angle = %f", ellRectList.at(i).angle);
+//        qDebug("RProcessing::cannyEdgeDetection():: [centers.at(i).x ; centers.at(i).y] = [%f ; %f]", centers.at(i).x, centers.at(i).y);
+//        qDebug("RProcessing::cannyEdgeDetection():: ellRect.boundingRect().center = [%f ; %f]", (float) ellRectList.at(i).boundingRect().width/2.0f, (float) ellRectList.at(i).boundingRect().height/2.0f);
+//        qDebug("RProcessing::cannyEdgeDetection():: ellRect.size = [%f ; %f]", ellRectList.at(i).size.width, ellRectList.at(i).size.height);
+//        qDebug("RProcessing::cannyEdgeDetection():: ellRect.angle = %f", ellRectList.at(i).angle);
 
     }
 
@@ -714,17 +717,21 @@ void RProcessing::setupCannyDetection(int i)
     cv::normalize(sampleMat, sampleMat8, 0, 255, cv::NORM_MINMAX);
     cv::normalize(sampleMatN, sampleMatN, 0, 255, cv::NORM_MINMAX);
 
-    sampleMatN = 255 - sampleMatN;
+    //sampleMatN = 255 - sampleMatN;
 
 //    float newDataRange = 100.0f - 40.0f;
 //    float alpha = 255.0f / newDataRange;
 //    float beta = -40.0f * 255.0f /newDataRange;
 
-    float newMin = 150;
-    float newMax = 200;
+//    float newMin = 100;
+//    float newMax = 200;
+    float newMin = 0;
+    float newMax = 100;
     float newDataRange = newMax - newMin;
     float alpha = 255.0f / newDataRange;
     float beta = -newMin * 255.0f /newDataRange;
+//    float alpha = 1;
+//    float beta = 0;
 
     // Convert to 8 bit
     sampleMatN.convertTo(sampleMatN, CV_8U, alpha, beta);
@@ -744,26 +751,37 @@ void RProcessing::cannyDetect(int thresh)
     qDebug("updating Canny with thresh = %i", thresh);
 
     /// Detect edges using cannycompareContourAreas
-    double thresh1 = ((double) thresh) / 2.0;
+    double thresh1 = ((double) thresh) / 5.0;
     double thresh2 = (double) thresh;
 
     // Canny edge detection works best when blurring a bit.
-    cv::blur(sampleMatN, sampleMatN, cv::Size(3,3));
+    cv::blur(sampleMatN, sampleMatN, cv::Size(5,5));
     cv::Canny(sampleMatN, contoursMat, thresh1, thresh2, 3);
+
+
 /// void adaptiveThreshold(InputArray src, OutputArray dst, double maxValue, int adaptiveMethod, int thresholdType, int blockSize, double C)
     //cv::adaptiveThreshold(sampleMatN, contoursMat, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, -5);
 
-//    cannyRMat = new RMat(cannyMat, false);
+//    cannyRMat = new RMat(contoursMat, false);
 //    cannyRMat->setImageTitle(QString("Canny edges"));
-//    emit resultSignal(cannyRMat);
+//    emit resultSignal(contoursMat);
 
+}
 
+void RProcessing::limbFit()
+{
     // Find contours
     vector< vector <cv::Point> > contours;
     vector< cv::Vec4i > hierarchy;
     cv::findContours(contoursMat.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
 
     cv::cvtColor(contoursMat, contoursMat, CV_GRAY2RGB);
+
+    if (contours.size() == 0)
+    {
+        tempMessageSignal(QString("No contours found"));
+        return;
+    }
 
     // sort contours
     std::sort(contours.begin(), contours.end(), compareContourAreas);
@@ -774,7 +792,8 @@ void RProcessing::cannyDetect(int thresh)
     // gather points of all contours in one big vector
 
     vector< vector<cv::Point> > biggestContours;
-    biggestContours.push_back(biggestContour);
+    //int nSelectedContours = std::min(totalContours)
+    biggestContours.push_back(contours[contours.size()-1]);
     biggestContours.push_back(contours[contours.size()-2]);
     biggestContours.push_back(contours[contours.size()-3]);
     biggestContours.push_back(contours[contours.size()-4]);
@@ -784,15 +803,15 @@ void RProcessing::cannyDetect(int thresh)
 
 
 
-    size_t nContours = 0;
+    size_t nContourPoints = 0;
 
        for (int i=0; i<biggestContours.size(); ++i)
        {
-            nContours += biggestContours[i].size();
+            nContourPoints += biggestContours[i].size();
        }
 
     vector< cv::Point > contours1D;
-    contours1D.reserve(nContours);
+    contours1D.reserve(nContourPoints);
 
     for (int i=0; i<biggestContours.size(); ++i)
       {
@@ -834,8 +853,8 @@ void RProcessing::cannyDetect(int thresh)
 
 /// ------------------------ FIT CIRCLE ---------------------------------
 
-    reals *X = new reals[nContours];
-    reals *Y = new reals[nContours];
+    reals *X = new reals[nContourPoints];
+    reals *Y = new reals[nContourPoints];
 
     for (size_t i=0; i<contours1D.size(); ++i)
     {
@@ -870,7 +889,7 @@ void RProcessing::cannyDetect(int thresh)
     qDebug("");
     qDebug(" ----------- Circle fitting initial parameters:  ----------");
     qDebug("");
-    qDebug("nContours = %i", nContours);
+    qDebug("nContourPoints = %i", nContourPoints);
     qDebug("Center at (%f ; %f)", circleInit.a, circleInit.b);
     qDebug("");
 
@@ -942,24 +961,6 @@ void RProcessing::cannyDetect(int thresh)
 
 }
 
-void RProcessing::updateCannyDetection(int thresh)
-{
-    cannyDetect(thresh);
-
-    /// Wrap the results of cannyDetect in RMat objects.
-    /// 1) Create the Canny RMat image, with all the canny edges
-//    cannyRMat = new RMat(cannyMat, false);
-//    cannyRMat->setImageTitle(QString("Canny image"));
-
-    /// 2) Draw contours of all the edges
-    contoursRMat = new RMat(contoursMat, false);
-    contoursRMat->setImageTitle(QString("All canny edges contours"));
-
-    /// 3) Create the RMat of of the ellipse fitting the the biggest contours of the canny image.
-//    ellipseRMat = new RMat(ellipseMatRGB888, false);
-//    ellipseRMat->setImageTitle(QString("Fitted ellipse"));
-
-}
 
 void RProcessing::cannyRegisterSeries()
 {
@@ -974,6 +975,7 @@ void RProcessing::cannyRegisterSeries()
         qDeleteAll(resultList);
         resultList.clear();
     }
+
 
     for (int i = 0 ; i < rMatLightList.size() ; ++i)
     {
@@ -990,7 +992,7 @@ void RProcessing::cannyRegisterSeries()
         registeredMat.convertTo(registeredMat, CV_32F);
         //cv::warpAffine(registeredMat, registeredMat, warpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
         cv::warpAffine(registeredMat, registeredMat, warpMat, registeredMat.size(), cv::INTER_LANCZOS4);
-        registeredMat = registeredMat / rMatLightList.at(i)->getMean();
+
         cv::normalize(registeredMat, registeredMat, 0, 255, cv::NORM_MINMAX);
         registeredMat.convertTo(registeredMat, CV_8U);
         cv::cvtColor(registeredMat, registeredMat, CV_GRAY2RGB);
@@ -1006,7 +1008,9 @@ void RProcessing::cannyRegisterSeries()
             cv::ellipse(registeredMat, ellRectList.at(i), cv::Scalar(255, 0, 0), 2, 8);
         }
 
-        resultList << new RMat(registeredMat.clone(), false);
+        RMat *resultMat = new RMat(registeredMat.clone(), false);
+        resultMat->setImageTitle(QString("Registered image #") + QString::number(i));
+        resultList << resultMat;
     }
 }
 

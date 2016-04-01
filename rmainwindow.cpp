@@ -414,12 +414,19 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
         // update the number of decimals in the spinBox High and Low
         decimals = 2;
     }
+
+    ui->doubleSpinBoxHigh->blockSignals(true);
+    ui->doubleSpinBoxLow->blockSignals(true);
+
     ui->doubleSpinBoxHigh->setMaximum(convertSliderToScale(ui->sliderHigh->maximum()));
     ui->doubleSpinBoxHigh->setMinimum(convertSliderToScale(ui->sliderHigh->minimum()));
     ui->doubleSpinBoxHigh->setDecimals(decimals);
     ui->doubleSpinBoxLow->setMaximum(convertSliderToScale(ui->sliderLow->maximum()));
     ui->doubleSpinBoxLow->setMinimum(convertSliderToScale(ui->sliderLow->minimum()));
     ui->doubleSpinBoxLow->setDecimals(decimals);
+
+    ui->doubleSpinBoxHigh->blockSignals(false);
+    ui->doubleSpinBoxLow->blockSignals(false);
 }
 
 void RMainWindow::setupSubImage()
@@ -466,6 +473,11 @@ void RMainWindow::cannyEdgeDetection()
 
 void RMainWindow::updateCannyDetection()
 {
+    if (processing->getContoursRMatList().isEmpty())
+    {
+        return;
+    }
+
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
 
@@ -646,21 +658,32 @@ void RMainWindow::autoScale(ROpenGLWidget *rOpenGLWidget)
 
     if (rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::MAG)
     {
-        sliderValueHigh = convertScaleToSlider(100.0f);
-        sliderValueLow = convertScaleToSlider(-100.0f);
+        newMax = 100.0f;
+        newMin = -100.0f;
+
+        sliderValueHigh = convertScaleToSlider(newMax);
+        sliderValueLow = convertScaleToSlider(newMin);
     }
     else if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
              rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
     {
-        sliderValueHigh = convertScaleToSlider(255);
-        sliderValueLow = convertScaleToSlider(0);
+        newMax = 255;
+        newMin = 0;
+        sliderValueHigh = convertScaleToSlider(newMax);
+        sliderValueLow = convertScaleToSlider(newMin);
+
     }
     else
     {
         /// Make the slider use the histogram autoscaling values.
-        sliderValueHigh = convertScaleToSlider(rOpenGLWidget->getRMatImageList().at(0)->getIntensityHigh());
-        sliderValueLow = convertScaleToSlider(rOpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
+        newMax = rOpenGLWidget->getRMatImageList().at(0)->getIntensityHigh();
+        newMin = rOpenGLWidget->getRMatImageList().at(0)->getIntensityLow();
+
+        sliderValueHigh = convertScaleToSlider(newMax);
+        sliderValueLow = convertScaleToSlider(newMin);
+
     }
+
 
     gamma = 1.0f;
     sliderValueGamma = convertGammaToSlider(gamma);
@@ -846,13 +869,22 @@ float RMainWindow::convertSliderToGamma(int value)
 
 void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
 {
+
     currentROpenGLWidget = rOpenGLWidget;
 
+    newMin = rOpenGLWidget->getNewMin();
+    newMax = rOpenGLWidget->getNewMax();
+
     // Restore slider values
+    qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
     setupSliders(rOpenGLWidget);
     // Scaling
+    qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
     ui->sliderHigh->setValue(convertScaleToSlider(currentROpenGLWidget->getNewMax()));
     ui->sliderLow->setValue(convertScaleToSlider(currentROpenGLWidget->getNewMin()));
+
+    qDebug("RMainWindow::changeROpenGLWidget:: currentROpenGLWidget->getNewMin() = %f", currentROpenGLWidget->getNewMin());
+    qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
 
     ui->sliderGamma->setValue(convertGammaToSlider(currentROpenGLWidget->getGamma()));
     // White balance
@@ -863,6 +895,7 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
     ui->sliderFrame->setRange(0, currentROpenGLWidget->getRMatImageList().size()-1);
     ui->sliderFrame->setValue(currentROpenGLWidget->getFrameIndex());
     ui->imageLabel->setText(QString::number(currentROpenGLWidget->getFrameIndex()+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
+
 
     displayPlotWidget(rOpenGLWidget);
 

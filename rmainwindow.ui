@@ -1700,7 +1700,7 @@
                   <number>256</number>
                  </property>
                  <property name="value">
-                  <number>150</number>
+                  <number>50</number>
                  </property>
                 </widget>
                </item>
@@ -1715,7 +1715,7 @@
                 <number>256</number>
                </property>
                <property name="value">
-                <number>150</number>
+                <number>50</number>
                </property>
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -1723,25 +1723,12 @@
               </widget>
              </item>
              <item>
-              <spacer name="verticalSpacer_7">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
               <widget class="QCheckBox" name="contoursCheckBox">
                <property name="text">
                 <string>Show contours</string>
                </property>
                <property name="checked">
-                <bool>true</bool>
+                <bool>false</bool>
                </property>
               </widget>
              </item>
