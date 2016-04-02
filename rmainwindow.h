@@ -146,7 +146,7 @@ private:
     QSize defaultWindowSize;
     float sliderScale, sliderRange, sliderScaleWB, sliderToScaleMinimum;
 
-    float gammaScale, newMax, newMin, alpha, beta, gammaMin, gamma;
+    float gammaScale, alpha, beta, gammaMin, gamma;
 
     int doubleSpinBoxDecimals;
     int sliderValueHigh, sliderValueLow, sliderValueGamma;

@@ -265,9 +265,6 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
     loadSubWindow(currentScrollArea);
     rOpenGLWidget->update();
 
-    newMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
-    newMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
-
     displayPlotWidget(rOpenGLWidget);
     setupSliders(rOpenGLWidget);
 
@@ -328,27 +325,22 @@ void RMainWindow::scaleImageSlot(int value)
 
     if (this->sender() == ui->sliderHigh)
     {
-        newMax = convertSliderToScale(value);    
+        currentROpenGLWidget->setNewMax(convertSliderToScale(value));
     }
     else if (this->sender() == ui->sliderLow)
     {
-        newMin = convertSliderToScale(value);
+        currentROpenGLWidget->setNewMin(convertSliderToScale(value));
     }
     else
     {
         return;
     }
 
-    if (newMin == newMax)
+    if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
     {
         return;
     }
 
-    float dataRange = (float) (newMax - newMin) ;
-    alpha = 1.0f / dataRange;
-    beta = (float) (-newMin / dataRange);
-    qDebug("RMainWindow::scaleImageSlot() value = %i", value);
-    qDebug("RMainWindow::scaleImageSlot() newMax = %f , newMin = %f", newMax, newMin);
     updateCurrentROpenGLWidget();
 }
 
@@ -499,9 +491,6 @@ void RMainWindow::updateCannyDetection()
     cannyContoursROpenGLWidget->resize(oglSize);
 
     cannyContoursROpenGLWidget->update();
-
-    newMax = (float) cannyContoursROpenGLWidget->getRMatImageList().at(0)->getDataMax();
-    newMin = (float) cannyContoursROpenGLWidget->getRMatImageList().at(0)->getDataMin();
 
     displayPlotWidget(cannyContoursROpenGLWidget);
     setupSliders(cannyContoursROpenGLWidget);
@@ -658,32 +647,32 @@ void RMainWindow::autoScale(ROpenGLWidget *rOpenGLWidget)
 
     if (rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::MAG)
     {
-        newMax = 100.0f;
-        newMin = -100.0f;
+        rOpenGLWidget->setNewMax(100.0f);
+        rOpenGLWidget->setNewMin(-100.0f);
 
-        sliderValueHigh = convertScaleToSlider(newMax);
-        sliderValueLow = convertScaleToSlider(newMin);
+        sliderValueHigh = convertScaleToSlider(rOpenGLWidget->getNewMax());
+        sliderValueLow = convertScaleToSlider(rOpenGLWidget->getNewMin());
     }
     else if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
              rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
     {
-        newMax = 255;
-        newMin = 0;
-        sliderValueHigh = convertScaleToSlider(newMax);
-        sliderValueLow = convertScaleToSlider(newMin);
+        rOpenGLWidget->setNewMax(255);
+        rOpenGLWidget->setNewMin(0);
+
+        sliderValueHigh = convertScaleToSlider(rOpenGLWidget->getNewMax());
+        sliderValueLow = convertScaleToSlider(rOpenGLWidget->getNewMin());
 
     }
     else
     {
         /// Make the slider use the histogram autoscaling values.
-        newMax = rOpenGLWidget->getRMatImageList().at(0)->getIntensityHigh();
-        newMin = rOpenGLWidget->getRMatImageList().at(0)->getIntensityLow();
+        rOpenGLWidget->setNewMax(rOpenGLWidget->getRMatImageList().at(0)->getIntensityHigh());
+        rOpenGLWidget->setNewMin(rOpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
 
-        sliderValueHigh = convertScaleToSlider(newMax);
-        sliderValueLow = convertScaleToSlider(newMin);
+        sliderValueHigh = convertScaleToSlider(rOpenGLWidget->getNewMax());
+        sliderValueLow = convertScaleToSlider(rOpenGLWidget->getNewMin());
 
     }
-
 
     gamma = 1.0f;
     sliderValueGamma = convertGammaToSlider(gamma);
@@ -722,10 +711,12 @@ void RMainWindow::minMaxScale()
 
 void RMainWindow::updateCurrentROpenGLWidget()
 {
+    float dataRange = (float) (currentROpenGLWidget->getNewMax() - currentROpenGLWidget->getNewMin()) ;
+    alpha = 1.0f / dataRange;
+    beta = (float) (- currentROpenGLWidget->getNewMin() / dataRange);
+
     currentROpenGLWidget->setAlpha(alpha);
     currentROpenGLWidget->setBeta(beta);
-    currentROpenGLWidget->setNewMax(newMax);
-    currentROpenGLWidget->setNewMin(newMin);
     currentROpenGLWidget->updateSubQImage();
     currentROpenGLWidget->update();
     currentROpenGLWidget->updateCustomPlotLineItems();
@@ -736,7 +727,7 @@ void RMainWindow::gammaScaleImageSlot(int value)
     if (currentROpenGLWidget == NULL)
         return;
 
-    if (newMin == newMax)
+    if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
         return;
 
     gamma = convertSliderToGamma(value);
@@ -871,9 +862,6 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
 {
 
     currentROpenGLWidget = rOpenGLWidget;
-
-    newMin = rOpenGLWidget->getNewMin();
-    newMax = rOpenGLWidget->getNewMax();
 
     // Restore slider values
     qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
