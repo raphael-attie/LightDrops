@@ -803,6 +803,7 @@ void RMainWindow::updateWB(int value)
     }
 
     currentROpenGLWidget->update();
+    currentROpenGLWidget->updateSubQImage();
 }
 
 int RMainWindow::convertGammaToSlider(float gamma)

@@ -660,9 +660,9 @@ void ROpenGLWidget::updateSubQImage()
              else
              {
                  cv::Scalar color = subMatImage.at<uchar>(i, j);
-                 red = (int) (wbRed * color.val[0]);
-                 green = (int) (wbBlue * color.val[0]);
-                 blue = (int) (wbGreen * color.val[0]);
+                 red = (int) std::min(wbRed * (float) color.val[0], 255.0f);
+                 green = (int) std::min(wbBlue * (float) color.val[0], 255.0f);
+                 blue = (int) std::min(wbGreen * (float) color.val[0], 255.0f);
              }
 
              QRgb pcolor = qRgb(red, green, blue);
