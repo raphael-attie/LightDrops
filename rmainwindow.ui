@@ -1303,7 +1303,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -1311,7 +1311,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>109</height>
+          <height>210</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -1416,7 +1416,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>124</height>
+          <height>210</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -1429,9 +1429,6 @@
          <string>Calibration</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_3">
-         <property name="spacing">
-          <number>5</number>
-         </property>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
@@ -1497,8 +1494,8 @@
            </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>17</width>
-             <height>25</height>
+             <width>20</width>
+             <height>68</height>
             </size>
            </property>
           </spacer>
@@ -1553,9 +1550,9 @@
           </layout>
          </item>
         </layout>
-        <zorder>verticalSpacer_2</zorder>
         <zorder>calibrateDirLineEdit</zorder>
         <zorder></zorder>
+        <zorder>verticalSpacer_2</zorder>
        </widget>
        <widget class="QWidget" name="registrationPage">
         <property name="geometry">
@@ -1777,8 +1774,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>100</width>
-          <height>30</height>
+          <width>201</width>
+          <height>210</height>
          </rect>
         </property>
         <attribute name="label">
@@ -1790,8 +1787,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>100</width>
-          <height>30</height>
+          <width>201</width>
+          <height>210</height>
          </rect>
         </property>
         <attribute name="label">

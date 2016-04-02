@@ -452,8 +452,6 @@ void RMainWindow::cannyEdgeDetection()
 
     /// Results need to be displayed as ROpenGLWidget as we will, de facto,
     /// deal with time series
-    QPoint currentPos = ui->mdiArea->currentSubWindow()->pos();
-
     createNewImage(processing->getContoursRMatList());
     cannyScrollArea = currentScrollArea;
     cannySubWindow = ui->mdiArea->currentSubWindow();

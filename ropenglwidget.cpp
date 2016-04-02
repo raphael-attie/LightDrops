@@ -18,31 +18,6 @@
 /// opencv
 #include <opencv2/world.hpp>
 
-using namespace cv;
-
-// Shader sources
-const GLchar* vertexSource =
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 position;"
-    "layout (location = 1) in vec2 texCoord;"
-    "out vec2 TexCoord;"
-    "void main()"
-    "{"
-    "    gl_Position = vec4(position, 1.0f);"
-    "    TexCoord = texCoord;"
-    "}";
-const GLchar* fragmentSource =
-    "#version 330 core\n"
-    "in vec2 TexCoord;"
-    "out vec4 color;"
-    "uniform usampler2D ourTexture;"
-    "void main()"
-    "{"
-    "    vec3 textureColor = texture(ourTexture, TexCoord).rgb /65535.0 * 20.0;"
-    "    color = vec4(textureColor.rgb, 1.0);"
-    "}";
-
-
 ROpenGLWidget::ROpenGLWidget(QWidget *parent) :
     QOpenGLWidget(parent)
 {
@@ -50,14 +25,15 @@ ROpenGLWidget::ROpenGLWidget(QWidget *parent) :
 }
 
 ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *parent)
-    :QOpenGLWidget(parent), tableWidget(NULL), tableRSubWindow(NULL)
+    :QOpenGLWidget(parent)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+    , tableRSubWindow(NULL), tableWidget(NULL)
 {
     this->rListImageManager = rListImageManager;
     this->rMatImageList = rListImageManager->getRMatImageList();
-    nFrames = rMatImageList.size();
+    this->nFrames = rMatImageList.size();
 
     initialize();
     //setupTableWidget();
@@ -67,26 +43,28 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
 }
 
 ROpenGLWidget::ROpenGLWidget(QList<RMat *> rMatImageList, QWidget *parent)
-    :QOpenGLWidget(parent), rListImageManager(NULL), tableWidget(NULL), tableRSubWindow(NULL)
+    :QOpenGLWidget(parent), rListImageManager(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+    , tableRSubWindow(NULL), tableWidget(NULL)
 {
     this->rMatImageList = rMatImageList;
-    nFrames = rMatImageList.size();
+    this->nFrames = rMatImageList.size();
 
     initialize();
 }
 
 ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
-    :QOpenGLWidget(parent), rListImageManager(NULL), tableWidget(NULL), tableRSubWindow(NULL)
+    :QOpenGLWidget(parent), rListImageManager(NULL)
     , m_shader(0)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
+    , tableRSubWindow(NULL), tableWidget(NULL)
 {
     this->rMatImageList << rMatImage;
     //this->rMatImageList.push_back(rMatImage);
-    nFrames = 1;
+    this->nFrames = 1;
 
     initialize();
 }
@@ -108,17 +86,6 @@ ROpenGLWidget::~ROpenGLWidget()
 //        qDeleteAll(rMatImageList);
 //        rMatImageList.clear();
 //    }
-
-
-//    glDeleteTextures(1, &texture);
-
-//    glDeleteProgram(shaderProgram);
-//    glDeleteShader(fragmentShader);
-//    glDeleteShader(vertexShader);
-
-//    glDeleteBuffers(1, &ebo);
-//    glDeleteBuffers(1, &vbo);
-//    glDeleteVertexArrays(1, &vao);
 
 }
 
@@ -201,7 +168,8 @@ void ROpenGLWidget::prepImage()
         else if (rMatImageList.at(ii)->matImage.channels() == 1)
         {
             cv::Mat tempMat = rMatImageList.at(ii)->matImage;
-            cv::cvtColor(tempMat, tempMatRGB, CV_GRAY2RGB);
+            tempMatRGB = tempMat.clone();
+            //cv::cvtColor(tempMat, tempMatRGB, CV_GRAY2RGB);
         }
         else
         {
@@ -241,6 +209,11 @@ void ROpenGLWidget::initializeGL()
     else if (matImageRGB.type() == CV_16UC3 || matImageRGB.type() == CV_16SC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment16.frag") )
+         return;
+    }
+    else if (matImageRGB.type() == CV_16U)
+    {
+        if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment16uc1.frag") )
          return;
     }
     else if (matImageRGB.type() == CV_8UC3)
@@ -348,10 +321,6 @@ void ROpenGLWidget::loadGLTexture()
     for (int ii =0; ii < nFrames; ii++)
     {
         cv::Mat tempImageRGB = matImageListRGB.at(ii);
-        //tempImageRGB.convertTo(tempImageRGB, CV_16UC3);
-
-        cv::Mat tempImageGray;
-        cv::cvtColor(tempImageRGB, tempImageGray, CV_RGB2GRAY);
 
         QOpenGLTexture *oglt = new QOpenGLTexture(QOpenGLTexture::Target2D);
         oglt->setSize(naxis1, naxis2);
@@ -634,18 +603,27 @@ void ROpenGLWidget::initSubQImage()
     subNaxis = 60;
     int frameRows = naxis2 + subNaxis +1;
     int frameCols = naxis1 + subNaxis +1;
+    int channels = matImageRGB.channels();
 
-    matFrame = cv::Mat(frameRows, frameCols, CV_32FC3, cv::Scalar(32000, 32000, 32000));
-    subQImage = new QImage(subNaxis, subNaxis, QImage::Format_ARGB32);
+    if (channels == 3)
+    {
+        matFrame = cv::Mat(frameRows, frameCols, CV_32FC3, cv::Scalar(32000, 32000, 32000));
+    }
+    else if (channels == 1)
+    {
+        matFrame = cv::Mat(frameRows, frameCols, CV_32F, cv::Scalar(32000));
+    }
 
+    subQImage = new QImage(subNaxis, subNaxis, QImage::Format_ARGB32_Premultiplied);
 
 }
 
 void ROpenGLWidget::updateSubQImage()
 {
-    matImageRGB = matImageListRGB.at(frameIndex);
-    matImageRGB.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
 
+    matImageListRGB.at(frameIndex).copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
+
+    int channels = matFrame.channels();
 
     float alpha2 = (float) (255.0f * alpha);
     float beta2 = (float) (255.0f * beta);
@@ -664,16 +642,29 @@ void ROpenGLWidget::updateSubQImage()
     FOV.height = subNaxis;
 
     cv::Mat tempMat = matFrame(FOV);
-    tempMat.convertTo(subMatImage, CV_8UC3, alpha2, beta2);
+    tempMat.convertTo(subMatImage, CV_8UC(channels), alpha2, beta2);
 
-     for (int i=0; i<subNaxis; i++)
+    int red, green, blue;
+     for (uint i=0; i<subNaxis; i++)
      {
-         for (int j=0; j < subNaxis; j++)
+         for (uint j=0; j < subNaxis; j++)
          {
-             cv::Vec3b color = subMatImage.at<cv::Vec3b>(i, j);
-             int red = (int) (color.val[0]);
-             int green = (int) (color.val[1]);
-             int blue = (int) (color.val[2]);
+
+             if (channels == 3)
+             {
+                 cv::Vec3b color = subMatImage.at<cv::Vec3b>(i, j);
+                 red = (int) (color.val[0]);
+                 green = (int) (color.val[1]);
+                 blue = (int) (color.val[2]);
+             }
+             else
+             {
+                 cv::Scalar color = subMatImage.at<uchar>(i, j);
+                 red = (int) (wbRed * color.val[0]);
+                 green = (int) (wbBlue * color.val[0]);
+                 blue = (int) (wbGreen * color.val[0]);
+             }
+
              QRgb pcolor = qRgb(red, green, blue);
              subQImage->setPixel(j, i, pcolor);
          }
@@ -696,11 +687,22 @@ void ROpenGLWidget::updateSubQImage()
          cv::Vec3w color = matImageRGB.at<cv::Vec3w>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
+     else if (matImageRGB.type() == CV_16U)
+     {
+         cv::Scalar color = matImageRGB.at<ushort>(y, x);
+         this->intensity = (float) color.val[0];
+     }
      else if (matImageRGB.type() == CV_8UC3)
      {
          cv::Vec3b color = matImageRGB.at<cv::Vec3b>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
+     else if (matImageRGB.type() == CV_8UC1)
+     {
+         cv::Scalar color = matImageRGB.at<uchar>(y, x);
+         this->intensity = (float) color.val[0];
+     }
+
 
      emit sendSubQImage(subQImage, intensity, x, y);
 }
@@ -799,13 +801,14 @@ void ROpenGLWidget::updateCustomPlotLineItems()
 
 void ROpenGLWidget::focusInEvent(QFocusEvent * event)
 {
+    event->accept();
     qDebug("ROpenGLWidget:: emitting gotSelected(this) signal");
     emit gotSelected(this);
 }
 
 void ROpenGLWidget::focusOutEvent(QFocusEvent * event)
 {
-
+    event->accept();
 }
 
 // Getters

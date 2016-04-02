@@ -33,17 +33,17 @@ RProcessing::~RProcessing()
     /// masterDark sometimes will share the same pointer
     /// as masterBias so we need to check that we don't
     /// delete another time what is already deleted.
-    if (!masterDark != NULL && masterDark != masterBias)
+    if (masterDark != NULL && masterDark != masterBias)
     {
         delete masterDark;
     }
 
-    if (!masterFlat != NULL)
+    if (masterFlat != NULL)
     {
         delete masterFlat;
     }
 
-    if (!masterFlatN != NULL)
+    if (masterFlatN != NULL)
     {
         delete masterFlatN;
     }
@@ -786,22 +786,20 @@ void RProcessing::limbFit()
     // sort contours
     std::sort(contours.begin(), contours.end(), compareContourAreas);
     // grab contours
-    vector< cv::Point > biggestContour = contours[contours.size()-1];
+    //vector< cv::Point > biggestContour = contours[contours.size()-1];
     //std::vector<cv::Point> smallestContour = contours[0];
 
     // gather points of all contours in one big vector
 
     vector< vector<cv::Point> > biggestContours;
-    //int nSelectedContours = std::min(totalContours)
-    biggestContours.push_back(contours[contours.size()-1]);
-    biggestContours.push_back(contours[contours.size()-2]);
-    biggestContours.push_back(contours[contours.size()-3]);
-    biggestContours.push_back(contours[contours.size()-4]);
-    biggestContours.push_back(contours[contours.size()-5]);
+    size_t nSelectedContours = std::min(contours.size(), (size_t) 10);
+
+    for (size_t i = 1 ; i <= nSelectedContours ; ++i)
+    {
+        biggestContours.push_back(contours[contours.size() - i]);
+    }
 
     biggestContoursList << biggestContours;
-
-
 
     size_t nContourPoints = 0;
 

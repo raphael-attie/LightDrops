@@ -13,19 +13,17 @@
 using namespace cv;
 
 MyFitsImage::MyFitsImage(QString filePath) :
-hduType(0), naxis1(0), naxis2(0), bayer(false), nPixels(0), image1D_ushort(NULL), image1D_float(NULL), image1D_shortint(NULL)
+hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), bzero(0), bayer(false), bitpix(0)
+,image1D_ushort(NULL), image1D_float(NULL), image1D_shortint(NULL)
 {
 
-	fitsfile *fptr;
-    nKeys=0;
+    fitsfile *fptr;
     int status = 0, morekeys=0, nfound, anynul;
     long naxes[2], firstPixel, ii;
     double nullval;
     char comment[FLEN_COMMENT], keyString[FLEN_VALUE], card[FLEN_CARD];
     char keyword[FLEN_KEYWORD], keyValue[FLEN_VALUE];
-    expTime = 0;
-    bscale = 1;
-    bzero = 0;
+
 
 	std::string filePathStr(filePath.toStdString());
 

@@ -40,22 +40,11 @@ macx {
 # arrayfire (not used at the moment)
     #LIBS += -L/usr/local/lib -lafopencl
 
-    QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
-    QMAKE_LFLAGS += -mmacosx-version-min=10.7
+# Setup Qt so Clang works with C++11
     QMAKE_CXXFLAGS += -stdlib=libc++
-    # Setup Qt so Clang works with C++11
     LIBS += -stdlib=libc++
     QMAKE_CXXFLAGS += -std=c++11
 }
-
-# Setup Qt so Clang works with C++11
-LIBS += -stdlib=libc++
-
-QMAKE_CXXFLAGS += -stdlib=libc++
-QMAKE_CXXFLAGS += -std=c++11
-QMAKE_CXXFLAGS += -mmacosx-version-min=10.7
-QMAKE_LFLAGS += -mmacosx-version-min=10.7
-
 
 SOURCES += main.cpp\
         rmainwindow.cpp \
@@ -103,4 +92,5 @@ FORMS    += rmainwindow.ui
 RESOURCES += \
     ressources.qrc
 
-DISTFILES +=
+DISTFILES += \
+    shaders/fragment16uc1.frag

@@ -51,26 +51,22 @@ private:
 	//valarray<float> *fitsValArray;
 	//array_2D_double *myImage;
 	int hduType;
-    int bitpix;
+    // dimensions
+    qint32 naxis1;
+    qint32 naxis2;
+    long nPixels;
+    int nKeys;
     float bscale, expTime;
     int bzero;
     bool bayer;
-
-    cv::Mat matFits;
+    int bitpix;
 
     ushort* image1D_ushort;
     float* image1D_float;
     short int* image1D_shortint;
 
+    cv::Mat matFits;
 
-	// dimensions
-	qint32 naxis1; 
-	qint32 naxis2;
-
-	long nPixels;
-
-
-    int nKeys;
     QVector<QString> keyNames;
     QVector<QString> keyValues;
     QVector<QString> keyComments;

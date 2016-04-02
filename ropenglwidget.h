@@ -171,10 +171,11 @@ private:
 //    GLuint ebo;
 //    GLuint texture;
 
+    QOpenGLShaderProgram m_shader;
     QOpenGLVertexArrayObject m_vao;
     QOpenGLBuffer m_vertexBuffer;
     QOpenGLBuffer m_indexBuffer;
-    QOpenGLShaderProgram m_shader;
+
     QOpenGLTexture *texture;
     QVector<QOpenGLTexture*> textureVector;
 
