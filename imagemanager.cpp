@@ -51,9 +51,6 @@ ImageManager::ImageManager(QString filePathQStr) :
     rMatImage->setImageTitle(fileName);
     rMatImage->setFileInfo(fileInfo);
 
-    qDebug() << "ImageManager:: dataMin = " << rMatImage->getDataMin();
-    qDebug() << "ImageManager:: dataMax = " << rMatImage->getDataMax();
-
 }
 
 ImageManager::~ImageManager()
@@ -88,7 +85,6 @@ void ImageManager::loadFits()
     // USET data?
     if (newFitsImage->getKeyValues().contains(QString("USET")))
     {
-        qDebug("ImageManager::loadFits():: loading USET data");
         instrument = instruments::USET;
     }
     else if (rMatImage->getDataMin() < -100.0)

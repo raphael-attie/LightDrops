@@ -439,7 +439,7 @@ void RMainWindow::setupSubImage()
 
 void RMainWindow::cannyEdgeDetection()
 {
-    if (ui->treeWidget->rMatLightList.isEmpty())
+    if (ui->treeWidget->rMatLightList.isEmpty() && ui->treeWidget->getLightUrls().empty())
     {
         ui->statusBar->showMessage(QString("No lights for Canny edge detection"), 3000);
         return;
@@ -448,15 +448,23 @@ void RMainWindow::cannyEdgeDetection()
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
 
-    processing->cannyEdgeDetection(ui->cannySlider->value());
+    if (!ui->treeWidget->rMatLightList.isEmpty())
+    {
+        processing->cannyEdgeDetection(ui->cannySlider->value());
+        /// Results need to be displayed as ROpenGLWidget as we will, de facto,
+        /// deal with time series
+        createNewImage(processing->getContoursRMatList());
+        cannyScrollArea = currentScrollArea;
+        cannySubWindow = ui->mdiArea->currentSubWindow();
+        //cannySubWindow->move(currentPos);
+        cannyContoursROpenGLWidget = currentROpenGLWidget;
+    }
+    else if (!ui->treeWidget->getLightUrls().empty())
+    {
+        processing->cannyEdgeDetectionOffScreen(ui->cannySlider->value());
+    }
 
-    /// Results need to be displayed as ROpenGLWidget as we will, de facto,
-    /// deal with time series
-    createNewImage(processing->getContoursRMatList());
-    cannyScrollArea = currentScrollArea;
-    cannySubWindow = ui->mdiArea->currentSubWindow();
-    //cannySubWindow->move(currentPos);
-    cannyContoursROpenGLWidget = currentROpenGLWidget;
+
 
 }
 

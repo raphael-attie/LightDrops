@@ -54,6 +54,12 @@ RProcessing::~RProcessing()
         resultList.clear();
     }
 
+    if (!imageManagerList.isEmpty())
+    {
+        qDeleteAll(imageManagerList);
+        resultList.clear();
+    }
+
 /// Do not to delete the rMatLightList if it comes from the treeWidget->rMatLightList
 //    if (!rMatLightList.isEmpty())
 //    {
@@ -480,7 +486,7 @@ void RProcessing::calibrate()
 
     for(int i = 0; i < treeWidget->getLightUrls().size(); i++)
     {
-        qDebug("RProcessing::calibrate():: image #%i", i);
+        qDebug("RProcessing:: cannyEdgeDetection() on image #%i", i);
         QString filePathQStr = treeWidget->getLightUrls().at(i).toLocalFile();
         ImageManager lightManager(filePathQStr);
         cv::Mat matResult;
@@ -653,6 +659,40 @@ void RProcessing::registerSeries()
     emit listResultSignal(resultList);
 }
 
+void RProcessing::cannyEdgeDetectionOffScreen(int thresh)
+{
+    if (treeWidget->getLightUrls().empty())
+    {
+        qDebug("ProcessingWidget::cannyEdgeDetectionOffScreen():: No lights");
+        tempMessageSignal(QString("No Light image(s)"));
+        return;
+    }
+
+    if (!contoursRMatList.isEmpty())
+    {
+        qDeleteAll(contoursRMatList);
+        contoursRMatList.clear();
+    }
+
+    for(int i = 0; i < treeWidget->getLightUrls().size(); i++)
+    {
+        qDebug("RProcessing:: cannyEdgeDetection() on image #%i", i);
+        QString filePathQStr = treeWidget->getLightUrls().at(i).toLocalFile();
+        imageManagerList.append(new ImageManager(filePathQStr));
+        rMatLightList.append(imageManagerList.last()->getRMatImage());
+        setupCannyDetection(i);
+        cannyDetect(thresh);
+        limbFit();
+
+        /// Get results showing contours of all the edges
+        contoursRMat = new RMat(contoursMat.clone(), false);
+        contoursRMat->setImageTitle(QString("All canny edges contours"));
+        contoursRMatList << contoursRMat;
+    }
+
+    tempMessageSignal(QString("Canny detection done."), 0);
+}
+
 
 
 void RProcessing::cannyEdgeDetection(int thresh)
@@ -686,7 +726,7 @@ void RProcessing::cannyEdgeDetection(int thresh)
         cannyDetect(thresh);
         limbFit();
 
-        /// Draw contours of all the edges
+        /// Get results showing contours of all the edges
         contoursRMat = new RMat(contoursMat.clone(), false);
         contoursRMat->setImageTitle(QString("All canny edges contours"));
         contoursRMatList << contoursRMat;
@@ -792,7 +832,7 @@ void RProcessing::limbFit()
     // gather points of all contours in one big vector
 
     vector< vector<cv::Point> > biggestContours;
-    size_t nSelectedContours = std::min(contours.size(), (size_t) 10);
+    size_t nSelectedContours = std::min(contours.size(), (size_t) 5);
 
     for (size_t i = 1 ; i <= nSelectedContours ; ++i)
     {
@@ -992,21 +1032,22 @@ void RProcessing::cannyRegisterSeries()
         cv::warpAffine(registeredMat, registeredMat, warpMat, registeredMat.size(), cv::INTER_LANCZOS4);
 
         cv::normalize(registeredMat, registeredMat, 0, 255, cv::NORM_MINMAX);
-        registeredMat.convertTo(registeredMat, CV_8U);
-        cv::cvtColor(registeredMat, registeredMat, CV_GRAY2RGB);
+        cv::Mat registeredMat8;
+        registeredMat.convertTo(registeredMat8, CV_8U);
+        cv::cvtColor(registeredMat8, registeredMat8, CV_GRAY2RGB);
 
         if (showContours)
         {
-            cv::drawContours(registeredMat, biggestContoursList.at(i), 0, cv::Scalar(0, 255, 0), 2, 8, cv::noArray(), 0 , delta);
+            cv::drawContours(registeredMat8, biggestContoursList.at(i), 0, cv::Scalar(0, 255, 0), 2, 8, cv::noArray(), 0 , delta);
         }
 
         if (showLimb)
         {
             ellRectList[i].center = origin;
-            cv::ellipse(registeredMat, ellRectList.at(i), cv::Scalar(255, 0, 0), 2, 8);
+            cv::ellipse(registeredMat8, ellRectList.at(i), cv::Scalar(255, 0, 0), 2, 8);
         }
 
-        RMat *resultMat = new RMat(registeredMat.clone(), false);
+        RMat *resultMat = new RMat(registeredMat8.clone(), false);
         resultMat->setImageTitle(QString("Registered image #") + QString::number(i));
         resultList << resultMat;
     }

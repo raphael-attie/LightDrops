@@ -99,6 +99,7 @@ public slots:
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
    void registerSeries();
+   void cannyEdgeDetectionOffScreen(int thresh);
    void cannyEdgeDetection(int thresh);
    void setupCannyDetection(int i);
    void cannyDetect(int thresh);
@@ -125,7 +126,7 @@ private:
     RMat *contoursRMat;
     RMat *ellipseRMat;
 
-
+    QList<ImageManager*> imageManagerList;
     QList<RMat*> contoursRMatList;
     QVector<cv::RotatedRect> ellRectList;
     QVector<cv::Point2f> centers;
