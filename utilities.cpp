@@ -15,7 +15,7 @@ reals Sigma (Data& data, Circle& circle)
     {
         dx = data.X[i] - circle.a;
         dy = data.Y[i] - circle.b;
-        sum += pow(sqrt(dx*dx+dy*dy) - circle.r, 2.0);
+        sum += pow(sqrt(dx*dx+dy*dy) - circle.r, 2.0f);
     }
     return sqrt(sum/data.n);
 }
@@ -42,7 +42,7 @@ reals SigmaReduced (Data& data, Circle& circle)
     }
     r = sum/n;
 
-    for (sum=0., i=0; i<n; i++)  sum += pow(D[i] - r, 2.0);
+    for (sum=0., i=0; i<n; i++)  sum += pow(D[i] - r, 2.0f);
 
     return sqrt(sum/n);
 }
@@ -94,7 +94,7 @@ reals SigmaReducedForCenteredScaled (Data& data, Circle& circle)
     }
     r = sum/n;
 
-    return sqrt(pow(circle.a, 2.0)+pow(circle.b, 2.0)-r*r+Two);
+    return sqrt(pow(circle.a, 2.0f)+pow(circle.b, 2.0f)-r*r+Two);
 }
 
 //****************** OptimalRadius ******************************

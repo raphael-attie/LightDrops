@@ -941,7 +941,7 @@ void RMainWindow::exportFrames()
 
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {
-        QString fileName(QString("test_") + QString::number(i) + QString(".") + format);
+        QString fileName(QString("image_") + QString::number(i) + QString(".") + format);
         QFileInfo fileInfo(exportDir.filePath(fileName));
         QString filePath = processing->setupFileName(fileInfo, format);
         qDebug() << "RMainWindow::exportFrames():: filePath =" << filePath;
