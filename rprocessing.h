@@ -50,6 +50,9 @@ public:
     void setCurrentROpenGLWidget(ROpenGLWidget *rOpenGLWidget);
     void setShowContours(bool status);
     void setShowLimb(bool status);
+    void setUseXCorr(bool useXCorr);
+    void setCvRectROI(cv::Rect cvRect);
+    void setUseROI(bool status);
 
     // getters
     QString getExportMastersDir();
@@ -64,6 +67,9 @@ public:
     QImage* getCannyQImage();
     QList<RMat*> getContoursRMatList();
     QList<RMat*> getResultList();
+    QList<RMat*> getResultList2();
+    QList<RMat*> getLimbFitPreviewList();
+    QVector<Circle> getCircleOutList();
 
     // public properties (for "easier" referencing)
     QList<RMat*> rMatLightList;
@@ -76,9 +82,11 @@ public:
 signals:
 
    void resultSignal(RMat* rMatResult);
-   void ellipseSignal(cv::RotatedRect ellRect);
+   void resultSignal(cv::Mat matImage, bool bayer, instruments instrument);
    void listResultSignal(QList<RMat*> rMatListResult);
+   void ellipseSignal(cv::RotatedRect ellRect);
    void resultQImageSignal(QImage &image);
+   void processingQImageSignal(QImage &image);
    void cannyResultsReady();
    void cannyUpdatesReady();
    void messageSignal(QString message);
@@ -99,13 +107,18 @@ public slots:
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
    void registerSeries();
+   void registerSeries(QList<RMat*> rMatList);
    void cannyEdgeDetectionOffScreen(int thresh);
    void cannyEdgeDetection(int thresh);
    void setupCannyDetection(int i);
    void cannyDetect(int thresh);
-   void limbFit();
+   void limbFit(int i);
    void cannyRegisterSeries();
-
+   void blurRMat(RMat* rMat);
+   QList<RMat*> normalizeSeriesByStats(QList<RMat*> rMatImageList);
+   RMat* normalizeByStats(RMat* rMat);
+   void normalizeByStatsInPlace(RMat* rMat);
+   cv::Mat normalizeClipByThresh(RMat* rMat, float newMin, float newMax);
 
 private:
 
@@ -119,6 +132,7 @@ private:
     RMat *masterFlat;
     RMat *masterFlatN;
     QList<RMat*> resultList;
+    QList<RMat*> resultList2;
     cv::Mat sampleMat8, sampleMatN, contoursMat;
     QImage *cannyQImage;
 
@@ -128,6 +142,7 @@ private:
 
     QList<ImageManager*> imageManagerList;
     QList<RMat*> contoursRMatList;
+    QList<RMat*> limbFitPreviewList;
     QVector<cv::RotatedRect> ellRectList;
     QVector<cv::Point2f> centers;
     QVector< std::vector< std::vector<cv::Point> > > biggestContoursList;
@@ -142,6 +157,16 @@ private:
 
     bool biasSuccess, darkSuccess, flatSuccess;
     bool showContours, showLimb;
+    bool useXCorr;
+
+    float radius, radius1, radius2, radius3;
+    cv::Rect cvRectROI;
+    bool useROI;
+    Circle circleOut;
+    QVector<Circle> circleOutList;
+
+    // plots
+    QCustomPlot *limbFitPlot;
 
 };
 

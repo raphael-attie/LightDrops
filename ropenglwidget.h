@@ -137,6 +137,7 @@ private:
     void loadGLTexture();
     void calculateDefaultSize();
 
+
     int nFrames;
     uint counter;
     double dataMax;
@@ -198,10 +199,14 @@ private:
     QList<QCustomPlot*> customPlotList;
     QList<QCPItemLine*> vertLineHighList;
     QList<QCPItemLine*> vertLineLowList;
+    QList<QCPItemText*> itemTextHighList;
+    QList<QCPItemText*> itemTextLowList;
 
     QCustomPlot* customPlot;
     QCPItemLine *vertLineHigh;
     QCPItemLine *vertLineLow;
+    QCPItemText *itemTextHigh;
+    QCPItemText *itemTextLow;
 
 
 };

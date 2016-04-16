@@ -12,6 +12,7 @@
 #include "ropenglwidget.h"
 #include "rprocessing.h"
 #include "RFrame.h"
+#include "rgraphicsscene.h"
 
 //QCustomPlot
 #include <qcustomplot/qcustomplot.h>
@@ -49,11 +50,19 @@ private slots:
     void createNewImage(RListImageManager *newRListImageManager);
     void createNewImage(QList<RMat*> newRMatImageList);
     void createNewImage(RMat *rMatImage);
+    void createNewImage(cv::Mat cvImage, bool bayer, instruments instrument);
     void createNewImage(QImage &image);
+
+    void processQImage(QImage &image, QString windowTitle = QString("Processing Window"));
+    void selectROI();
+    void setRect(QRect rect);
+    void extractNewImageROI();
+
     //void addEllipseToScene(cv::RotatedRect rect);
 
     //void createNewImage(QImage *image);
     void addImage(ROpenGLWidget *rOpenGLWidget);
+    void addImageView(ROpenGLWidget *rOpenGLWidget);
     void updateDoubleSpinBox(int);
     void scaleImageSlot(int value);
     void gammaScaleImageSlot(int value);
@@ -62,6 +71,7 @@ private slots:
     void autoScale();
     void autoScale(ROpenGLWidget *rOpenGLWidget);
     void minMaxScale();
+    void rangeScale();
     void changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget);
     void updateFrameInSeries(int frameIndex);
     void updateSubFrame(QImage *image, float intensity, int x, int y);
@@ -79,6 +89,10 @@ private slots:
     void cannyEdgeDetection();
     void updateCannyDetection();
     void cannyRegisterSeries();
+    void normalizeCurrentSeries();
+
+    // Plots
+    void showLimbFitStats();
 
     //sliderFrame playback buttons
     void stepForward();
@@ -91,13 +105,15 @@ private slots:
 
     void radioRMatSlot();
 
-    void on_actionHeader_triggered();
-
     void on_actionHeader_toggled(bool arg1);
 
     void uncheckActionHeaderState();
 
     void on_actionTileView_triggered();
+
+    void on_actionROISelect_triggered();
+
+    void on_actionROIExtract_triggered();
 
 private:
 
@@ -118,8 +134,9 @@ private:
     //cv::Mat ellMat;
 //    QImage image2;
     //QGraphicsPixmapItem *item;
-    QGraphicsScene* scene;
+    RGraphicsScene* scene;
     QGraphicsView* graphicsView;
+    QGraphicsPixmapItem *pixMapItem;
 
     Ui::RMainWindow *ui;
     RProcessing *processing;
@@ -132,15 +149,19 @@ private:
     void tileView();
 
     ROpenGLWidget *currentROpenGLWidget;
+    ROpenGLWidget *lastROpenGLWidget;
     ROpenGLWidget *resultROpenGLWidget;
     ROpenGLWidget *cannyContoursROpenGLWidget;
     ROpenGLWidget *limbFittingROpenGLWidget;
 
     QMdiSubWindow *cannySubWindow;
+    QMdiSubWindow *limbRegisterSubWindow;
     QMdiSubWindow *currentSubWindow;
+    QMdiSubWindow *plotSubWindow;
     QMdiSubWindow *tempSubWindow;
     QScrollArea *currentScrollArea;
     QScrollArea *cannyScrollArea;
+    QScrollArea *processingScrollArea;
 
     QSize oglSize;
     QSize defaultWindowSize;
@@ -153,6 +174,10 @@ private:
     int scrollBarHeight;
 
     bool stopButtonStatus;
+
+    QRect rect;
+    //QCustomPlot *limbFitPlot;
+
 
 
 };

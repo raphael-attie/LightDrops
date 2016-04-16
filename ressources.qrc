@@ -5,6 +5,7 @@
         <file>shaders/fragment32.frag</file>
         <file>shaders/fragment888.frag</file>
         <file>shaders/fragment16uc1.frag</file>
+        <file>shaders/fragment8.frag</file>
     </qresource>
     <qresource prefix="/icons">
         <file>Icons/icons1/ALIGN LEFT.svg</file>
@@ -405,5 +406,109 @@
         <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (166).png</file>
         <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (167).png</file>
         <file>Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (168).png</file>
+        <file>Icons/icons4/SVG/adjustments.svg</file>
+        <file>Icons/icons4/SVG/alarmclock.svg</file>
+        <file>Icons/icons4/SVG/anchor.svg</file>
+        <file>Icons/icons4/SVG/aperture.svg</file>
+        <file>Icons/icons4/SVG/attachments.svg</file>
+        <file>Icons/icons4/SVG/bargraph.svg</file>
+        <file>Icons/icons4/SVG/basket.svg</file>
+        <file>Icons/icons4/SVG/beaker.svg</file>
+        <file>Icons/icons4/SVG/bike.svg</file>
+        <file>Icons/icons4/SVG/book-open.svg</file>
+        <file>Icons/icons4/SVG/briefcase.svg</file>
+        <file>Icons/icons4/SVG/browser.svg</file>
+        <file>Icons/icons4/SVG/calendar.svg</file>
+        <file>Icons/icons4/SVG/camera.svg</file>
+        <file>Icons/icons4/SVG/caution.svg</file>
+        <file>Icons/icons4/SVG/chat.svg</file>
+        <file>Icons/icons4/SVG/circle-compass.svg</file>
+        <file>Icons/icons4/SVG/clipboard.svg</file>
+        <file>Icons/icons4/SVG/clock.svg</file>
+        <file>Icons/icons4/SVG/cloud.svg</file>
+        <file>Icons/icons4/SVG/compass.svg</file>
+        <file>Icons/icons4/SVG/desktop.svg</file>
+        <file>Icons/icons4/SVG/dial.svg</file>
+        <file>Icons/icons4/SVG/document.svg</file>
+        <file>Icons/icons4/SVG/documents.svg</file>
+        <file>Icons/icons4/SVG/download.svg</file>
+        <file>Icons/icons4/SVG/dribbble.svg</file>
+        <file>Icons/icons4/SVG/edit.svg</file>
+        <file>Icons/icons4/SVG/envelope.svg</file>
+        <file>Icons/icons4/SVG/expand.svg</file>
+        <file>Icons/icons4/SVG/facebook.svg</file>
+        <file>Icons/icons4/SVG/flag.svg</file>
+        <file>Icons/icons4/SVG/focus.svg</file>
+        <file>Icons/icons4/SVG/gears.svg</file>
+        <file>Icons/icons4/SVG/genius.svg</file>
+        <file>Icons/icons4/SVG/gift.svg</file>
+        <file>Icons/icons4/SVG/global.svg</file>
+        <file>Icons/icons4/SVG/globe.svg</file>
+        <file>Icons/icons4/SVG/googleplus.svg</file>
+        <file>Icons/icons4/SVG/grid.svg</file>
+        <file>Icons/icons4/SVG/happy.svg</file>
+        <file>Icons/icons4/SVG/hazardous.svg</file>
+        <file>Icons/icons4/SVG/heart.svg</file>
+        <file>Icons/icons4/SVG/hotairballoon.svg</file>
+        <file>Icons/icons4/SVG/hourglass.svg</file>
+        <file>Icons/icons4/SVG/key.svg</file>
+        <file>Icons/icons4/SVG/laptop.svg</file>
+        <file>Icons/icons4/SVG/layers.svg</file>
+        <file>Icons/icons4/SVG/lifesaver.svg</file>
+        <file>Icons/icons4/SVG/lightbulb.svg</file>
+        <file>Icons/icons4/SVG/linegraph.svg</file>
+        <file>Icons/icons4/SVG/linkedin.svg</file>
+        <file>Icons/icons4/SVG/lock.svg</file>
+        <file>Icons/icons4/SVG/magnifying-glass.svg</file>
+        <file>Icons/icons4/SVG/map-pin.svg</file>
+        <file>Icons/icons4/SVG/map.svg</file>
+        <file>Icons/icons4/SVG/megaphone.svg</file>
+        <file>Icons/icons4/SVG/mic.svg</file>
+        <file>Icons/icons4/SVG/mobile.svg</file>
+        <file>Icons/icons4/SVG/newspaper.svg</file>
+        <file>Icons/icons4/SVG/notebook.svg</file>
+        <file>Icons/icons4/SVG/paintbrush.svg</file>
+        <file>Icons/icons4/SVG/paperclip.svg</file>
+        <file>Icons/icons4/SVG/pencil.svg</file>
+        <file>Icons/icons4/SVG/phone.svg</file>
+        <file>Icons/icons4/SVG/picture.svg</file>
+        <file>Icons/icons4/SVG/pictures.svg</file>
+        <file>Icons/icons4/SVG/piechart.svg</file>
+        <file>Icons/icons4/SVG/presentation.svg</file>
+        <file>Icons/icons4/SVG/pricetags.svg</file>
+        <file>Icons/icons4/SVG/printer.svg</file>
+        <file>Icons/icons4/SVG/profile-female.svg</file>
+        <file>Icons/icons4/SVG/profile-male.svg</file>
+        <file>Icons/icons4/SVG/puzzle.svg</file>
+        <file>Icons/icons4/SVG/quote.svg</file>
+        <file>Icons/icons4/SVG/recycle.svg</file>
+        <file>Icons/icons4/SVG/refresh.svg</file>
+        <file>Icons/icons4/SVG/ribbon.svg</file>
+        <file>Icons/icons4/SVG/rss.svg</file>
+        <file>Icons/icons4/SVG/sad.svg</file>
+        <file>Icons/icons4/SVG/scissors.svg</file>
+        <file>Icons/icons4/SVG/scope.svg</file>
+        <file>Icons/icons4/SVG/search.svg</file>
+        <file>Icons/icons4/SVG/shield.svg</file>
+        <file>Icons/icons4/SVG/speedometer.svg</file>
+        <file>Icons/icons4/SVG/strategy.svg</file>
+        <file>Icons/icons4/SVG/streetsign.svg</file>
+        <file>Icons/icons4/SVG/tablet.svg</file>
+        <file>Icons/icons4/SVG/telescope.svg</file>
+        <file>Icons/icons4/SVG/toolbox.svg</file>
+        <file>Icons/icons4/SVG/tools-2.svg</file>
+        <file>Icons/icons4/SVG/tools.svg</file>
+        <file>Icons/icons4/SVG/traget.svg</file>
+        <file>Icons/icons4/SVG/trophy.svg</file>
+        <file>Icons/icons4/SVG/tumblr.svg</file>
+        <file>Icons/icons4/SVG/twitter.svg</file>
+        <file>Icons/icons4/SVG/upload.svg</file>
+        <file>Icons/icons4/SVG/video.svg</file>
+        <file>Icons/icons4/SVG/wallet.svg</file>
+        <file>Icons/icons4/SVG/wine.svg</file>
+        <file>Icons/myIcons/selection_1.png</file>
+        <file>Icons/myIcons/extract_ROI_1.png</file>
+        <file>Icons/myIcons/selection_2.png</file>
+        <file>Icons/myIcons/extract_ROI_2.png</file>
     </qresource>
 </RCC>

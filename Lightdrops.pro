@@ -63,7 +63,8 @@ SOURCES += main.cpp\
     rsubwindow.cpp \
     data.cpp \
     circle.cpp \
-    utilities.cpp
+    utilities.cpp \
+    rgraphicsscene.cpp
 
 HEADERS  += winsockwrapper.h \
     rmainwindow.h \
@@ -85,6 +86,7 @@ HEADERS  += winsockwrapper.h \
     data.h \
     typedefs.h \
     circle.h \
+    rgraphicsscene.h
 
 
 FORMS    += rmainwindow.ui
@@ -93,4 +95,5 @@ RESOURCES += \
     ressources.qrc
 
 DISTFILES += \
-    shaders/fragment16uc1.frag
+    shaders/fragment16uc1.frag \
+    shaders/fragment8.frag

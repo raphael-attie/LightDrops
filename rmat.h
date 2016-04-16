@@ -57,8 +57,13 @@ public:
     uint getNPixels() const;
     float getMinHistRange() const;
     float getMaxHistRange() const;
+    float getDataRange() const;
     QTreeWidgetItem* getItem() const;
     QFileInfo getFileInfo() const;
+    QString getDate_obs() const;
+    QString getTime_obs() const;
+    QString getDate_time() const;
+
 
 
     // setters
@@ -75,6 +80,10 @@ public:
     void setInstrument(instruments instrument);
     void setItem(QTreeWidgetItem* item);
     void setFileInfo(QFileInfo fileInfo);
+    void setDate_obs(QString date_obs);
+    void setTime_obs(QString time_obs);
+    void setDate_time(QString date_time);
+
 
 
 private:
@@ -92,6 +101,9 @@ private:
    instruments instrument;
    QString imageTitle;
    QFileInfo fileInfo;
+   QString date_obs;
+   QString time_obs;
+   QString date_time;
 
    cv::Mat matImageGray;
 
@@ -105,6 +117,7 @@ private:
    float minHistRange;
    float maxHistRange;
    uint nPixels;
+   float dataRange;
 
    // for QTreeWidget
    QTreeWidgetItem* item;

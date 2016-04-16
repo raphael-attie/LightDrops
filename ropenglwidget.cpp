@@ -156,24 +156,17 @@ void ROpenGLWidget::prepImage()
 
     for (int ii = 0; ii < nFrames; ii++)
     {
-        cv::Mat tempMatRGB = cv::Mat::zeros(naxis2, naxis1, rMatImageList.at(ii)->matImage.type());
+        cv::Mat tempMatRGB(naxis2, naxis1, rMatImageList.at(ii)->matImage.type());
 
         if (rMatImageList.at(ii)->isBayer())
         {
             cv::Mat tempMat16;
             rMatImageList.at(ii)->matImage.convertTo(tempMat16, CV_16U);
             cv::cvtColor(tempMat16, tempMatRGB, CV_BayerBG2RGB);
-            //tempMatRGB.convertTo(tempMatRGB, CV_32FC3);
-        }
-        else if (rMatImageList.at(ii)->matImage.channels() == 1)
-        {
-            cv::Mat tempMat = rMatImageList.at(ii)->matImage;
-            tempMatRGB = tempMat.clone();
-            //cv::cvtColor(tempMat, tempMatRGB, CV_GRAY2RGB);
         }
         else
         {
-            rMatImageList.at(ii)->matImage.copyTo(tempMatRGB);
+            tempMatRGB = rMatImageList.at(ii)->matImage.clone();
         }        
         matImageListRGB.append(tempMatRGB);
     }
@@ -219,6 +212,11 @@ void ROpenGLWidget::initializeGL()
     else if (matImageRGB.type() == CV_8UC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment888.frag") )
+         return;
+    }
+    else if (matImageRGB.type() == CV_8U)
+    {
+        if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment8.frag") )
          return;
     }
 
@@ -352,6 +350,13 @@ void ROpenGLWidget::loadGLTexture()
             oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16);
             oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16, tempImageRGB.data);
         }
+        else if (tempImageRGB.type() == CV_16U)
+        {
+            qDebug("ROpenGLWidget::loadGLTexture():: image is 16-bit unsigned integer, 1 channel");
+            oglt->setFormat(QOpenGLTexture::R16U);
+            oglt->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16);
+            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, tempImageRGB.data);
+        }
         else if (tempImageRGB.type() == CV_8UC3)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 8-bit unsigned integer, 3 channels");
@@ -359,12 +364,12 @@ void ROpenGLWidget::loadGLTexture()
             oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8);
             oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8, tempImageRGB.data);
         }
-        else if (tempImageRGB.type() == CV_16U)
+        else if (tempImageRGB.type() == CV_8U)
         {
-            qDebug("ROpenGLWidget::loadGLTexture():: image is 16-bit unsigned integer, 1 channel");
-            oglt->setFormat(QOpenGLTexture::R16U);
-            oglt->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16);
-            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, tempImageRGB.data);
+            qDebug("ROpenGLWidget::loadGLTexture():: image is 8-bit unsigned integer, 1 channel");
+            oglt->setFormat(QOpenGLTexture::R8U);
+            oglt->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8);
+            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, tempImageRGB.data);
         }
         else
         {
@@ -383,44 +388,6 @@ void ROpenGLWidget::loadGLTexture()
       qDebug("ROpenGLWidget::loadGLTexture():: ERROR LOADING TEXTURES");
       exit(1);
     }
-
-
-//    texture = textureVector.at(frameIndex);
-
-    ///// --------- PURE OPENGL COMMANDS -------- /////////
-
-//    //unsigned char* image = matImageListRGB.at(0).data;
-
-//    float borderColor[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-
-//    //glEnable(GL_TEXTURE_2D);
-//    glGenTextures(1, &texture);
-//    //glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, texture);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-//    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-
-////    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-////    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-//    // Load the image in the texture.
-//    cv::Mat matImageRGB16;
-//    matImageListRGB.at(0).convertTo(matImageRGB16, CV_16UC3);
-
-//    QElapsedTimer timer;
-//    timer.start();
-
-//    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, naxis1, naxis2, 0, GL_RGB, GL_FLOAT, matImageListRGB.at(0).data);
-//   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16UI, naxis1, naxis2, 0, GL_RGB_INTEGER, GL_UNSIGNED_SHORT, matImageRGB16.data);
-
-////   glGenerateMipmap(GL_TEXTURE_2D);
-
-//    qDebug()<<"ROpenGLWidget::initializeGL():: Time for opengl initialize():" <<  timer.elapsed() << "ms";
-
-//   glBindTexture(GL_TEXTURE_2D, 0);
 
 }
 
@@ -458,16 +425,6 @@ void ROpenGLWidget::paintGL()
     }
     m_vao.release();
     m_shader.release(); // unbind?
-
-
-//    glBindVertexArray(vao);
-
-//    glBindTexture(GL_TEXTURE_2D, texture);
-//    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-//    glBindTexture(GL_TEXTURE_2D, 0);
-
-//    glBindVertexArray(0);
-//    m_shader.release();
 
 }
 
@@ -621,7 +578,8 @@ void ROpenGLWidget::initSubQImage()
 void ROpenGLWidget::updateSubQImage()
 {
 
-    matImageListRGB.at(frameIndex).copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
+    matImageRGB = matImageListRGB.at(frameIndex);
+    matImageRGB.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
 
     int channels = matFrame.channels();
 
@@ -714,8 +672,16 @@ void ROpenGLWidget::setupHistoPlots()
     for (int i = 0 ; i < nFrames ; i++)
     {
         customPlotList << new QCustomPlot();
-        vertLineHighList << new QCPItemLine(customPlotList.at(i));
-        vertLineLowList << new QCPItemLine(customPlotList.at(i));
+        vertLineHigh = new QCPItemLine(customPlotList.at(i));
+        vertLineLow = new QCPItemLine(customPlotList.at(i));
+        itemTextHigh = new QCPItemText(customPlotList.at(i));
+        itemTextLow = new QCPItemText(customPlotList.at(i));
+
+        vertLineHighList << vertLineHigh;
+        vertLineLowList << vertLineLow;
+
+        itemTextHighList << itemTextHigh;
+        itemTextLowList << itemTextLow;
 
         cv::Mat tempHist;
         cv::Mat matHist = rMatImageList.at(i)->getMatHist();
@@ -728,25 +694,44 @@ void ROpenGLWidget::setupHistoPlots()
         double histWidth = rMatImageList.at(i)->getHistWidth();
 
 
-        double histoMin = std::min(0.0, rMatImageList.at(i)->getDataMin());
-        QVector<double> x(nBins); // y must be the histogram values
+        // This needs to be fully consistent with RMat::calcStats()
+        double minXRange = rMatImageList.at(i)->getMinHistRange();
+        double maxXRange = rMatImageList.at(i)->getMaxHistRange();
+
+        QVector<double> x(nBins);
+
         for (int ii=0; ii< nBins; ++ii)
         {
-            x[ii] = histoMin + histWidth*ii; // x goes from 0 to nBins-1
+            // This needs to be fully consistent with RMat::calcStats()
+            // x goes from 0 to nBins-1
+            // y must be the histogram values
+            x[ii] = minXRange + histWidth*ii;
         }
+
+        maxXRange = 1.01 * rMatImageList.at(i)->getMaxHistRange();
+
+        QVector<double> xTicks(2);
+        xTicks[0] = std::min(0.0f, rMatImageList.at(i)->getMinHistRange());
+        xTicks[1] = rMatImageList.at(i)->getMaxHistRange();
+
         // Pointer to matHist data.
         const double* matHistPtr = tempHist.ptr<double>(0);
         std::vector<double> matHistStdVect(matHistPtr, matHistPtr + matHist.rows);
         QVector<double> y = QVector<double>::fromStdVector(matHistStdVect);
-
 
         customPlotList.at(i)->addGraph();
         customPlotList.at(i)->plottable(0)->setPen(QPen(QColor(125, 125, 125, 50))); // line color gray
         customPlotList.at(i)->plottable(0)->setBrush(QBrush(QColor(125, 125, 125, 50)));
 
         // setup axis
-        customPlotList.at(i)->xAxis->setTicks(false);
+        //customPlotList.at(i)->xAxis->setTicks(false);
+        //customPlotList.at(i)->xAxis->setTickLabels(false);
+        customPlotList.at(i)->xAxis->setAutoTicks(false);
+        customPlotList.at(i)->xAxis->setTickVector(xTicks);
+
         customPlotList.at(i)->yAxis->setTicks(false);
+
+        //customPlotList.at(i)->yAxis->setTickLabels(false);
         // Here we have put two plot axes. So we need to make left and bottom axes always transfer their ranges to right and top axes:
         connect(customPlotList.at(i)->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlotList.at(i)->xAxis2, SLOT(setRange(QCPRange)));
         connect(customPlotList.at(i)->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlotList.at(i)->yAxis2, SLOT(setRange(QCPRange)));
@@ -755,15 +740,8 @@ void ROpenGLWidget::setupHistoPlots()
         customPlotList.at(i)->graph(0)->setData(x, y);
         customPlotList.at(i)->rescaleAxes();
 
-        double minXRange = rMatImageList.at(i)->getMinHistRange();
-        double maxXRange = rMatImageList.at(i)->getMaxHistRange();
 
-        if (rMatImageList.at(i)->getInstrument() == instruments::USET)
-        {
-            maxXRange = 1.01 * 4095;
-        }
-
-        customPlotList.at(i)->xAxis->setRange(0.95*minXRange, 1.05*maxXRange);
+        customPlotList.at(i)->xAxis->setRange(0, 1.05*maxXRange);
         customPlotList.at(i)->yAxis->setRange(1, maxHist);
 
         // Allow the user to zoom in / zoom out and scroll horizontally
@@ -772,14 +750,20 @@ void ROpenGLWidget::setupHistoPlots()
         customPlotList.at(i)->axisRect(0)->setRangeDrag(Qt::Horizontal);
         customPlotList.at(i)->axisRect(0)->setRangeZoom(Qt::Horizontal);
 
-        customPlotList.at(i)->addItem(vertLineHighList.at(i));
-        customPlotList.at(i)->addItem(vertLineLowList.at(i));
 
         double nPixels = (double) rMatImageList.at(i)->getNPixels();
-        vertLineHighList.at(i)->start->setCoords(rMatImageList.at(i)->getDataMax(), 0);
-        vertLineHighList.at(i)->end->setCoords(rMatImageList.at(i)->getDataMax(), nPixels);
-        vertLineLowList.at(i)->start->setCoords(rMatImageList.at(i)->getDataMin(), 0);
-        vertLineLowList.at(i)->end->setCoords(rMatImageList.at(i)->getDataMin(), nPixels);
+        vertLineHigh->start->setCoords(rMatImageList.at(i)->getDataMax(), 0);
+        vertLineHigh->end->setCoords(rMatImageList.at(i)->getDataMax(), nPixels);
+        vertLineLow->start->setCoords(rMatImageList.at(i)->getDataMin(), 0);
+        vertLineLow->end->setCoords(rMatImageList.at(i)->getDataMin(), nPixels);
+
+        // Text item
+        // Max Threshold
+        itemTextHigh->setClipToAxisRect(false);
+        itemTextHigh->setRotation(90);
+        // Min Threshold
+        itemTextLow->setClipToAxisRect(false);
+        itemTextLow->setRotation(90);
 
         customPlotList.at(i)->resize(200, 100);
     }
@@ -789,15 +773,27 @@ void ROpenGLWidget::setupHistoPlots()
 
 void ROpenGLWidget::updateCustomPlotLineItems()
 {
+    double xRangeUpper = customPlotList.at(frameIndex)->xAxis->range().upper;
+    double yRangeUpper = customPlotList.at(frameIndex)->yAxis->range().upper;
+    //double xRangeLower = customPlotList.at(frameIndex)->xAxis->range().lower;
+
     double nPixels = (double) rMatImageList.at(frameIndex)->getNPixels();
     vertLineHighList.at(frameIndex)->start->setCoords(newMax, 0);
     vertLineHighList.at(frameIndex)->end->setCoords(newMax, nPixels);
     vertLineLowList.at(frameIndex)->start->setCoords(newMin, 0);
     vertLineLowList.at(frameIndex)->end->setCoords(newMin, nPixels);
 
+    // Max Threshold
+    itemTextHighList.at(frameIndex)->position->setCoords(newMax + 0.05*xRangeUpper, 0.1*yRangeUpper);
+    QString maxQString = QString::number(100.0f * newMax / rMatImageList.at(frameIndex)->getMaxHistRange(), 'f', 0) + QString("%");
+    itemTextHighList.at(frameIndex)->setText(maxQString);
+    // Min Threshold
+    QString minQString = QString::number(100.0f * newMin / rMatImageList.at(frameIndex)->getMaxHistRange(), 'f', 0) + QString("%");
+    itemTextLowList.at(frameIndex)->position->setCoords(newMin + 0.05*xRangeUpper, 0.1*yRangeUpper);
+    itemTextLowList.at(frameIndex)->setText(minQString);
+
     customPlotList.at(frameIndex)->replot();
 }
-
 
 void ROpenGLWidget::focusInEvent(QFocusEvent * event)
 {

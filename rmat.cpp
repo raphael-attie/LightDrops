@@ -29,14 +29,13 @@ RMat::RMat(const RMat &rMat)
     calcMinMax();
     calcStats();
 
-    qDebug("RMat::RMat copy constructor:: dataMin = %f", dataMin);
-    qDebug("RMat::RMat copy constructor:: dataMax = %f", dataMax);
 }
 
 
 
 RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
 {
+    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = false;
     this->imageTitle = QString("Image #");
@@ -53,12 +52,11 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
     calcMinMax();
     calcStats();
 
-    qDebug("RMat::RMat() dataMin = %f", dataMin);
-    qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
 RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
 {
+    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("Image #");
@@ -72,15 +70,13 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
     {
         matImageGray = matImage;
     }
-    calcMinMax();
-    calcStats();
 
-    qDebug("RMat::RMat() dataMin = %f", dataMin);
-    qDebug("RMat::RMat() dataMax = %f", dataMax);
+    calcStats();
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
 {
+    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("Image #");
@@ -94,11 +90,10 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
     {
         matImageGray = matImage;
     }
-    calcMinMax();
+
+
     calcStats();
 
-    qDebug("RMat::RMat() dataMin = %f", dataMin);
-    qDebug("RMat::RMat() dataMax = %f", dataMax);
 }
 
 
@@ -118,24 +113,51 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
     bool accumulate = false;
 
     /// Compute the histograms:
-//    cv::Mat matImageGrayShifted;
-//    matImageGray.copyTo(matImageGrayShifted);
-//    matImageGrayShifted = matImageGrayShifted + 350;
 
     if (minRange == maxRange)
     {
-       matHist = cv::Mat::zeros(1, nBins, CV_32F);
+       matHist = cv::Mat::zeros(nBins, 1, CV_32F);
     }
     else
     {
         cv::calcHist( &matImageGray, 1, 0, cv::Mat(), matHist, 1, &nBins, &histRange, uniform, accumulate);
     }
-    qDebug("RMat::computeHist:: matHist.type() = %i ; matHist.rows = %i ; matHist.cols = %i ; nBins = %i", matHist.type(), matHist.rows, matHist.cols, nBins);
+
+    float cdf = 0;
+    for (int i = 0 ; i < matHist.rows ; ++i)
+    {
+        cdf += matHist.at<float>(i);
+    }
 }
 
 void RMat::calcStats()
 {
 
+    calcMinMax();
+    qDebug("RMat::calcStats():: [dataMin , dataMax] = [%f , %f]", (float) dataMin, (float) dataMax);
+
+
+    /// Determine a range of the histogram
+    /// These params depend on the instrument's sensor (different bit depths).
+
+    if (instrument == instruments::USET)
+    {
+        maxHistRange = 4095.0f;
+    }
+    else if (instrument == instruments::DSLR || matImage.type() == CV_16U)
+    {
+        maxHistRange = 65535.0f;
+    }
+    else if (matImage.type() == CV_8U || matImage.type() == CV_8UC3)
+    {
+        maxHistRange = 255.0f;
+    }
+    else
+    {
+        maxHistRange = (float) dataMax;
+    }
+
+    minHistRange = (float) dataMin;
 
     cv::Scalar meanScalar;
     cv::Scalar stdDevScalar;
@@ -144,16 +166,12 @@ void RMat::calcStats()
     stdDev = (float) stdDevScalar.val[0];
     nPixels = (uint) matImage.cols * matImage.rows;
 
-    /// Set the range and bins of the histogram
-    /// These params depend on the instrument's sensor (different bit depths).
-
+    /// Histogram bin counts
     int nBins = 256;
 
-    minHistRange = std::min(0.0, dataMin);
-    maxHistRange = (float) dataMax;
 
     // Get histogram
-    computeHist(nBins, minHistRange, maxHistRange);
+    computeHist(nBins, minHistRange, maxHistRange + 1);
    // Calculate median
     median = calcMedian();
 
@@ -180,9 +198,26 @@ void RMat::calcStats()
 
     intensityLow = calcThreshold(cutOffLow, histWidth, minHistRange);
     intensityHigh = calcThreshold(cutOffHigh, histWidth, minHistRange);
-    qDebug("RMat::calcStats():: median = %f", median);
-    qDebug("RMat::calcStats():: percentile Low = %f", intensityLow);
-    qDebug("RMat::calcStats():: percentile High = %f", intensityHigh);
+
+    int matType = matImage.type();
+    if (instrument == instruments::USET)
+    {
+        dataRange = 4096.0f;
+    }
+    else if (matType == CV_16U || matType == CV_16UC3 || matType == CV_32F || matType == CV_32FC3)
+    {
+        dataRange = 65536.0f;
+    }
+
+    else if (matType == CV_8U || matType == CV_8UC3)
+    {
+        dataRange = 256.0f;
+    }
+    else
+    {
+        qDebug("RMat::calcStats():: ERROR. Unknown dataRange");
+        exit(1);
+    }
 }
 
 void RMat::calcMinMax()
@@ -192,9 +227,9 @@ void RMat::calcMinMax()
 
 float RMat::calcMedian()
 {
-    int cdf = 0;
+    float cdf = 0;
     int nBins = matHist.rows;
-    int medianLimit = std::round(nBins/2);
+    float medianLimit = std::round((float)nBins/2.0f);
 
     float medianVal = -1;
     for (int i = 1; i < nBins && medianVal < 0.0; i++){
@@ -331,6 +366,11 @@ float RMat::getMaxHistRange() const
     return maxHistRange;
 }
 
+float RMat::getDataRange() const
+{
+    return dataRange;
+}
+
 QTreeWidgetItem* RMat::getItem() const
 {
     return item;
@@ -339,6 +379,21 @@ QTreeWidgetItem* RMat::getItem() const
 QFileInfo RMat::getFileInfo() const
 {
     return fileInfo;
+}
+
+QString RMat::getDate_obs() const
+{
+    return date_obs;
+}
+
+QString RMat::getTime_obs() const
+{
+    return time_obs;
+}
+
+QString RMat::getDate_time() const
+{
+    return date_time;
 }
 
 
@@ -406,6 +461,21 @@ void RMat::setItem(QTreeWidgetItem *item)
 void RMat::setFileInfo(QFileInfo fileInfo)
 {
     this->fileInfo = fileInfo;
+}
+
+void RMat::setDate_obs(QString date_obs)
+{
+    this->date_obs = date_obs;
+}
+
+void RMat::setTime_obs(QString time_obs)
+{
+    this->time_obs = time_obs;
+}
+
+void RMat::setDate_time(QString date_time)
+{
+    this->date_time = date_time;
 }
 
 

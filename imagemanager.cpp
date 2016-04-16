@@ -55,11 +55,11 @@ ImageManager::ImageManager(QString filePathQStr) :
 
 ImageManager::~ImageManager()
 {
-    qDebug("ImageManager::~ImageManager() calling ImageManager destructor");
-    delete tableWidget;
-    delete rMatImage;
-    delete newFitsImage;
-    delete newRawImage;
+//    qDebug("ImageManager::~ImageManager() calling ImageManager destructor");
+//    delete tableWidget;
+//    delete rMatImage;
+//    delete newFitsImage;
+//    delete newRawImage;
 }
 
 bool ImageManager::getError()
@@ -97,6 +97,35 @@ void ImageManager::loadFits()
     }
 
     rMatImage->setInstrument(instrument);
+
+    if (newFitsImage->getKeyNames().contains(QString("DATE-OBS")))
+    {
+
+        int dateIndex = newFitsImage->getKeyNames().indexOf(QString("DATE-OBS"));
+        date_obs = newFitsImage->getKeyValues().at(dateIndex);
+    }
+    else
+    {
+        date_obs = QString("Date???");
+    }
+
+    if (newFitsImage->getKeyNames().contains(QString("TIME")))
+    {
+
+        int timeIndex = newFitsImage->getKeyNames().indexOf(QString("TIME"));
+        time_obs = newFitsImage->getKeyValues().at(timeIndex);
+    }
+    else
+    {
+        time_obs = QString("Time???");
+    }
+
+    rMatImage->setDate_obs(date_obs);
+    rMatImage->setTime_obs(time_obs);
+    rMatImage->setDate_time(date_obs + QString(" ") + time_obs);
+
+    rMatImage->calcStats();
+
 }
 
 void ImageManager::loadRaw()
@@ -168,6 +197,16 @@ QTableWidget* ImageManager::getTableWidget() const
 RMat *ImageManager::getRMatImage()
 {
     return rMatImage;
+}
+
+QString ImageManager::getDate_obs()
+{
+    return date_obs;
+}
+
+QString ImageManager::getTime_obs()
+{
+    return time_obs;
 }
 
 float ImageManager::getWbRed() const

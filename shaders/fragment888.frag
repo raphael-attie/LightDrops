@@ -15,7 +15,6 @@ uniform mediump vec3 wbRGB;
 void main()
 {
     vec3 textureColor = texture(ourTexture, TexCoord).rgb;
-    //textureColor = textureColor * wbRGB;
     mediump vec3 scaledRGB;
 
     if (textureColor.r == 255 && textureColor.g != 255)
@@ -36,8 +35,6 @@ void main()
         mediump vec3 gammaVec = vec3(gamma);
         scaledRGB = pow(scaledRGB, gammaVec);
     }
-
-    //mediump vec3 scaledRGB = textureColor.rgb;
 
     color = vec4(scaledRGB, 1.0);
 }

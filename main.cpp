@@ -8,15 +8,17 @@ int main(int argc, char *argv[])
     format.setDepthBufferSize(24);
     format.setStencilBufferSize(8);
     format.setProfile(QSurfaceFormat::CoreProfile);
-    //format.setVersion(3, 3);
     format.setVersion(3, 3);
+    //format.setSamples(4);
     QSurfaceFormat::setDefaultFormat(format);
+
 
     QApplication a(argc, argv);
 
+    qDebug() << "opengGL version:" << format.version();
+
     //a.setStyle("fusion");
 
-    qDebug() << "opengGL version:" << format.version();
 
 //    cv::Mat ellMat = cv::Mat::zeros(500,500, CV_8U);
 //    QImage image2(ellMat.data, ellMat.cols, ellMat.rows, QImage::Format_Grayscale8);

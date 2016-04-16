@@ -27,7 +27,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 
 	std::string filePathStr(filePath.toStdString());
 
-    qDebug() << "fits_is_reentrant =" << fits_is_reentrant();
+    //qDebug() << "fits_is_reentrant =" << fits_is_reentrant();
 
 	if (fits_open_data(&fptr, filePathStr.c_str(), READONLY, &status))
 	{
@@ -39,76 +39,58 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 	if (fits_get_hdu_type(fptr, &hduType, &status))
 		printerror(status);
 	
-    printHDUType(hduType);
+    //printHDUType(hduType);
 
 	// If ZCMPTYPE does not exist, data are uncompressed -> Read NAXIS
 	// else, data are compressed, read ZNAXIS. 
     if (fits_read_key(fptr, TSTRING, "ZCMPTYPE", keyString, NULL, &status))
 	{   
-        qDebug() << "MyFitsImage:: No ZCMPTYPE keyword, reading UNCOMPRESSED data" ;
-		status = 0;
+        status = 0;
 		/* read the NAXIS1 and NAXIS2 keyword to get image size */
 		if (fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
 		{
-            qDebug() << "MyFitsImage:: Error reading NAXIS keyword";
-			printerror(status);
+            printerror(status);
 		}
 
         if (fits_read_key(fptr, TINT, "BITPIX", &bitpix, NULL, &status))
         {
-            qDebug() << "MyFitsImage:: Error reading BITPIX keyword";
             printerror(status);
         }
-        qDebug() << "MyFitsImage:: BITPIX =" << bitpix;
 
 	}
 	else
 	{
-        qDebug() << "MyFitsImage:: ZCMPTYPE = " << keyString;
-        qDebug() << "MyFitsImage:: Reading COMPRESSED data";
-		/* read the NAXIS1 and NAXIS2 keyword to get image size */
+        /* read the NAXIS1 and NAXIS2 keyword to get image size */
 		if (fits_read_keys_lng(fptr, "ZNAXIS", 1, 2, naxes, &nfound, &status))
 		{
-            qDebug() << "MyFitsImage:: Error reading ZNAXIS keyword";
-			printerror(status);
+            printerror(status);
 		}
         if (fits_read_key(fptr, TINT, "ZBITPIX", &bitpix, NULL, &status))
         {
-            qDebug() << "MyFitsImage:: Error reading ZBITPIX keyword";
             printerror(status);
         }
-        qDebug() << "MyFitsImage:: ZBITPIX =" << bitpix;
-
 	}
 
     if (fits_read_key(fptr, TFLOAT, "BSCALE", &bscale, NULL, &status))
     {
-        qDebug() << "MyFitsImage:: No BSCALE keyword, setting default BSCALE = 1";
         status = 0;
     }
-    qDebug() << "MyFitsImage:: BSCALE =" << bscale;
 
     if (fits_read_key(fptr, TINT, "BZERO", &bzero, NULL, &status))
     {
-        qDebug() << "MyFitsImage:: No BZERO keyword, setting default BZERO = 0";
         status = 0;
     }
-    qDebug() << "MyFitsImage:: BZERO =" << bzero;
 
 
     if (fits_read_key(fptr, TLOGICAL, "BAYER", &bayer, NULL, &status))
     {
-        qDebug() << "MyFitsImage:: No BAYER keyword, setting default Bayer = false" ;
         status = 0;
     }
-    qDebug() << "MyFitsImage:: bayer =" << bayer;
 
     if (fits_read_key(fptr, TFLOAT, "EXPTIME", &expTime, NULL, &status))
     {
-        qDebug() << "MyFitsImage:: No EXPTIME keyword, setting default expTime = 0" ;
         status = 0;
     }
-    qDebug() << "MyFitsImage:: expTime =" << expTime;
 
 
 	naxis1 = naxes[0];
@@ -201,7 +183,6 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 
 MyFitsImage::~MyFitsImage()
 {
-    qDebug("MyFitsImage::~MyFitsImage():: calling MyFitsImage destructor");
     delete[] image1D_ushort;
     delete[] image1D_shortint;
     delete[] image1D_float;

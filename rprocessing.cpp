@@ -6,11 +6,11 @@
 #include <cfitsio/fitsio.h>
 
 //opencv
-#include <opencv2/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/video.hpp>
-#include <opencv2/core/ocl.hpp>
+#include <opencv2/world.hpp>
+//#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/video.hpp>
+//#include <opencv2/core/ocl.hpp>
 
 #include "imagemanager.h"
 #include "parallelcalibration.h"
@@ -18,7 +18,8 @@
 
 
 RProcessing::RProcessing(QObject *parent): QObject(parent),
-    masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL)
+    masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), useXCorr(false),
+    radius(0), radius1(0), radius2(0), radius3(0)
 {
     listImageManager = new RListImageManager();
 }
@@ -48,11 +49,11 @@ RProcessing::~RProcessing()
         delete masterFlatN;
     }
 
-    if (!resultList.empty())
-    {
-        qDeleteAll(resultList);
-        resultList.clear();
-    }
+//    if (!resultList.empty())
+//    {
+//        qDeleteAll(resultList);
+//        resultList.clear();
+//    }
 
     if (!imageManagerList.isEmpty())
     {
@@ -516,6 +517,7 @@ void RProcessing::calibrate()
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
         resultList.at(i)->setBscale(masterFlatN->getDataMax()/masterFlat->getDataMax());
+        resultList.at(i)->setImageTitle(QString("Limb-registered image # %i").arg(i+1));
     }
     /// We can assign the result as the rMatLightList since the processing is off-screen,
     /// and thus we do not overwrite anything.
@@ -659,6 +661,129 @@ void RProcessing::registerSeries()
     emit listResultSignal(resultList);
 }
 
+void RProcessing::registerSeries(QList<RMat *> rMatList)
+{
+
+    int nFrames = rMatList.size();
+
+    resultList2.reserve(nFrames);
+
+    // Define the motion model
+    const int warp_mode_1 = cv::MOTION_TRANSLATION;
+    const int warp_mode_2 = cv::MOTION_EUCLIDEAN;
+
+    // Specify the number of iterations.
+//    int number_of_iterations_1 = 50; // stellar
+//    int number_of_iterations_2 = 50; // stellar
+    int number_of_iterations_1 = 100; // solar
+    int number_of_iterations_2 = 200; // solar
+
+    // Specify the threshold of the increment
+    // in the correlation coefficient between two iterations
+//    double termination_eps_1 = 1e-1; // stellar
+//    double termination_eps_2 = 1e-2; // stellar
+    double termination_eps_1 = 1e-2; // solar
+    double termination_eps_2 = 1e-3; // solar
+
+    // Define termination criteria
+    //cv::TermCriteria criteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, number_of_iterations, termination_eps);
+    //cv::TermCriteria criteria(cv::TermCriteria::EPS, number_of_iterations, termination_eps);
+    cv::TermCriteria criteria1(cv::TermCriteria::COUNT, number_of_iterations_1, termination_eps_1);
+    cv::TermCriteria criteria2(cv::TermCriteria::EPS, number_of_iterations_2, termination_eps_2);
+
+
+    // Get the 1st image of the rMatLightList as the reference image (and put as 1st element of resultList)
+
+    cv::Mat refMat;
+    rMatList.at(0)->matImage.convertTo(refMat, CV_16U);
+
+
+    RMat *refRMat = new RMat(refMat, false, rMatLightList.at(0)->getInstrument());
+    resultList2 << refRMat;
+    resultList2.at(0)->setImageTitle(QString("X-corr registered image # 1"));
+
+    // Get the new reference image (at i = 0).
+    cv::Mat refMat1 = normalizeClipByThresh(rMatList.at(0), 1000.0f, 2000.0f);
+    // The output is already converted to CV_32F, so no need to convert
+    cv::Mat refMat2;
+    if (useROI)
+    {
+        refMat2 = refMat1(cvRectROI);
+    }
+    else
+    {
+        refMat2 = refMat1;
+    }
+    refMat2.convertTo(refMat2, CV_32F);
+
+    // Get a resampled version of the reference image. 1/4 on each axis.
+    cv::Mat refMat2R;
+    cv::resize(refMat2, refMat2R, cv::Size(), 0.25, 0.25, CV_INTER_AREA);
+
+
+    for (int i = 1 ; i < nFrames; ++i)
+    {
+
+        qDebug("Registering image #%i/%i", i, nFrames);
+
+        // Get the image to co-align with respect to the reference image
+        cv::Mat registeredMat = normalizeClipByThresh(rMatList.at(i), 1000.0f, 2000.0f);
+
+        cv::Mat registeredMat2;
+        if (useROI)
+        {
+            registeredMat2 = registeredMat(cvRectROI);
+        }
+        else
+        {
+            registeredMat2 = registeredMat;
+        }
+
+
+        registeredMat2.convertTo(registeredMat2, CV_32F);
+
+        //resultSignal(registeredMat2, false, instruments::generic);
+
+        // Get a resampled version. 1/4 on each axis.
+        cv::Mat registeredMat2R;
+        cv::resize(registeredMat2, registeredMat2R, cv::Size(), 0.25, 0.25, CV_INTER_AREA);
+
+        cv::Mat warp_matrix_1 = cv::Mat::eye(2, 3, CV_32F);
+        double eccEps = 0;
+        // 1st pass of the ECC algorithm on the decimated image. The results are stored in warp_matrix.
+
+        eccEps = cv::findTransformECC(
+                    refMat2R,
+                    registeredMat2R,
+                    warp_matrix_1,
+                    warp_mode_1,
+                    criteria1
+                    );
+
+        qDebug() << "eccEps 1 =" << eccEps / 0.25;
+        warp_matrix_1.at<float>(0, 2) /= 0.25;
+        warp_matrix_1.at<float>(1, 2) /= 0.25;
+        std::cout << "result warp_matrix 1 =" << std::endl << warp_matrix_1 << std::endl << std::endl;
+
+        // 2nd pass on the full resolution images.
+        eccEps = cv::findTransformECC(
+                    refMat2,
+                    registeredMat2,
+                    warp_matrix_1,
+                    warp_mode_2,
+                    criteria2
+                    );
+
+        qDebug() << "eccEps 2 =" << eccEps;
+        std::cout << "result warp_matrix 2 =" << std::endl << warp_matrix_1 << std::endl << std::endl;
+
+        cv::warpAffine(rMatList.at(i)->matImage, registeredMat, warp_matrix_1, registeredMat.size(), cv::INTER_CUBIC + CV_WARP_INVERSE_MAP);
+        registeredMat.convertTo(registeredMat, CV_16U);
+        resultList2 << new RMat(registeredMat, false, rMatLightList.at(i)->getInstrument()); // This RMat is necessarily non-bayer.
+        resultList2.at(i)->setImageTitle(QString("X-corr registered image # %1").arg(i));
+    }
+}
+
 void RProcessing::cannyEdgeDetectionOffScreen(int thresh)
 {
     if (treeWidget->getLightUrls().empty())
@@ -674,15 +799,24 @@ void RProcessing::cannyEdgeDetectionOffScreen(int thresh)
         contoursRMatList.clear();
     }
 
+    if (!centers.isEmpty())
+    {
+        centers.clear();
+    }
+
+    centers.reserve(treeWidget->getLightUrls().size());
+    radius = 0;
+
     for(int i = 0; i < treeWidget->getLightUrls().size(); i++)
     {
         qDebug("RProcessing:: cannyEdgeDetection() on image #%i", i);
         QString filePathQStr = treeWidget->getLightUrls().at(i).toLocalFile();
-        imageManagerList.append(new ImageManager(filePathQStr));
-        rMatLightList.append(imageManagerList.last()->getRMatImage());
+        ImageManager *newImageManager = new ImageManager(filePathQStr);
+        imageManagerList << newImageManager;
+        rMatLightList << newImageManager->getRMatImage();
         setupCannyDetection(i);
         cannyDetect(thresh);
-        limbFit();
+        limbFit(i);
 
         /// Get results showing contours of all the edges
         contoursRMat = new RMat(contoursMat.clone(), false);
@@ -720,95 +854,83 @@ void RProcessing::cannyEdgeDetection(int thresh)
         centers.clear();
     }
 
+    if (!circleOutList.isEmpty())
+    {
+        circleOutList.clear();
+    }
+
+    radius = 0;
+
     for (int i = 0 ; i < rMatLightList.size() ; ++i)
     {
+        qDebug("RProcessing:: cannyEdgeDetection() on image #%i", i);
         setupCannyDetection(i);
         cannyDetect(thresh);
-        limbFit();
+        limbFit(i);
 
         /// Get results showing contours of all the edges
         contoursRMat = new RMat(contoursMat.clone(), false);
-        contoursRMat->setImageTitle(QString("All canny edges contours"));
+        contoursRMat->setImageTitle(QString("Canny edges: Image # %1").arg(i));
         contoursRMatList << contoursRMat;
 
 //        qDebug("RProcessing::cannyEdgeDetection():: [centers.at(i).x ; centers.at(i).y] = [%f ; %f]", centers.at(i).x, centers.at(i).y);
 //        qDebug("RProcessing::cannyEdgeDetection():: ellRect.boundingRect().center = [%f ; %f]", (float) ellRectList.at(i).boundingRect().width/2.0f, (float) ellRectList.at(i).boundingRect().height/2.0f);
 //        qDebug("RProcessing::cannyEdgeDetection():: ellRect.size = [%f ; %f]", ellRectList.at(i).size.width, ellRectList.at(i).size.height);
 //        qDebug("RProcessing::cannyEdgeDetection():: ellRect.angle = %f", ellRectList.at(i).angle);
-
     }
+
+    radius = radius / (float) rMatLightList.size();
+    radius1 = radius1 / (float) rMatLightList.size();
+    radius2 = radius2 / (float) rMatLightList.size();
+    qDebug("RProcessing:: average radius (fitEllipse) = %f", radius);
+    qDebug("RProcessing:: average radius (HyperEllipse) = %f", radius1);
+    qDebug("RProcessing:: average radius (L-M) = %f", radius2);
+    // 917.05 px from cv::fitEllipse
+    // 916.86 px from Hyper
+    // 916.89 px from L-M
 
 }
 
 void RProcessing::setupCannyDetection(int i)
 {
 
-    // Deep-copy of one sample
-    cv::Mat sampleMat = rMatLightList.at(i)->matImage.clone();
-    sampleMat.convertTo(sampleMat, CV_32F);
-    sampleMat = sampleMat / rMatLightList.at(i)->getMean();
-    //sampleMat = sampleMat * currentROpenGLWidget->getAlpha() + currentROpenGLWidget->getBeta();
-    sampleMatN = sampleMat.clone();
+    // Normalize the data to have equivalent statistics / histograms
+    //normalizeByStats(rMatLightList.at(i));
 
+    cv::Mat normalizedMat = normalizeClipByThresh(rMatLightList.at(i), rMatLightList.at(i)->getIntensityLow(), rMatLightList.at(i)->getIntensityHigh());
 
-//    cv::threshold(sampleMatN, sampleMatN, 100, 100, cv::THRESH_TRUNC);
-//    cv::threshold(sampleMatN, sampleMatN, 60, 60, cv::THRESH_TOZERO);
+    normalizedMat.convertTo(sampleMat8, CV_8U, 256.0f / rMatLightList.at(i)->getDataRange());
+    normalizedMat.convertTo(sampleMatN, CV_8U, 256.0f / rMatLightList.at(i)->getDataRange());
 
-    cv::normalize(sampleMat, sampleMat8, 0, 255, cv::NORM_MINMAX);
-    cv::normalize(sampleMatN, sampleMatN, 0, 255, cv::NORM_MINMAX);
-
-    //sampleMatN = 255 - sampleMatN;
-
-//    float newDataRange = 100.0f - 40.0f;
-//    float alpha = 255.0f / newDataRange;
-//    float beta = -40.0f * 255.0f /newDataRange;
-
-//    float newMin = 100;
-//    float newMax = 200;
+    // Setting for contrast stretching to boost contrast between limb and off-limb
     float newMin = 0;
     float newMax = 100;
     float newDataRange = newMax - newMin;
-    float alpha = 255.0f / newDataRange;
-    float beta = -newMin * 255.0f /newDataRange;
-//    float alpha = 1;
-//    float beta = 0;
+    float alpha = 256.0f / newDataRange;
+    float beta = -newMin * 256.0f /newDataRange;
 
-    // Convert to 8 bit
+    // Convert to 8 bit with contrast stretching to boost contrast between limb and off-limb
     sampleMatN.convertTo(sampleMatN, CV_8U, alpha, beta);
-    sampleMat8.convertTo(sampleMat8, CV_8U);
 
-//    RMat *rMatN = new RMat(sampleMatN.clone(), false);
-//    rMatN->setImageTitle(QString("Normalized-rescaled 8-bit image"));
-//    emit resultSignal(rMatN);
-
-//    cv::threshold(sampleMatN, sampleMatN, 225, 225, cv::THRESH_TRUNC);    // for a negative image
-//    cv::threshold(sampleMatN, sampleMatN, 175, 175, cv::THRESH_TOZERO); // for a negative image
 
 }
 
 void RProcessing::cannyDetect(int thresh)
 {
-    qDebug("updating Canny with thresh = %i", thresh);
-
     /// Detect edges using cannycompareContourAreas
-    double thresh1 = ((double) thresh) / 5.0;
+    double thresh1 = ((double) thresh) / 3.0;
     double thresh2 = (double) thresh;
 
     // Canny edge detection works best when blurring a bit.
-    cv::blur(sampleMatN, sampleMatN, cv::Size(5,5));
+    cv::blur(sampleMatN, sampleMatN, cv::Size(3,3));
     cv::Canny(sampleMatN, contoursMat, thresh1, thresh2, 3);
-
 
 /// void adaptiveThreshold(InputArray src, OutputArray dst, double maxValue, int adaptiveMethod, int thresholdType, int blockSize, double C)
     //cv::adaptiveThreshold(sampleMatN, contoursMat, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 5, -5);
 
-//    cannyRMat = new RMat(contoursMat, false);
-//    cannyRMat->setImageTitle(QString("Canny edges"));
-//    emit resultSignal(contoursMat);
-
 }
 
-void RProcessing::limbFit()
+void RProcessing::limbFit(int i)
 {
     // Find contours
     vector< vector <cv::Point> > contours;
@@ -819,8 +941,8 @@ void RProcessing::limbFit()
 
     if (contours.size() == 0)
     {
-        tempMessageSignal(QString("No contours found"));
-        return;
+        qDebug("No contours found at image %i", i+1);
+        exit(1);
     }
 
     // sort contours
@@ -832,28 +954,28 @@ void RProcessing::limbFit()
     // gather points of all contours in one big vector
 
     vector< vector<cv::Point> > biggestContours;
-    size_t nSelectedContours = std::min(contours.size(), (size_t) 5);
+    size_t nSelectedContours = std::min(contours.size(), (size_t) 20);
 
-    for (size_t i = 1 ; i <= nSelectedContours ; ++i)
+    for (size_t ii = 1 ; ii <= nSelectedContours ; ++ii)
     {
-        biggestContours.push_back(contours[contours.size() - i]);
+        biggestContours.push_back(contours[contours.size() - ii]);
     }
 
     biggestContoursList << biggestContours;
 
     size_t nContourPoints = 0;
 
-       for (int i=0; i<biggestContours.size(); ++i)
+       for (int ii = 0; ii < biggestContours.size(); ++ii)
        {
-            nContourPoints += biggestContours[i].size();
+            nContourPoints += biggestContours[ii].size();
        }
 
     vector< cv::Point > contours1D;
     contours1D.reserve(nContourPoints);
 
-    for (int i=0; i<biggestContours.size(); ++i)
+    for (int ii = 0; ii < biggestContours.size(); ++ii)
       {
-        const vector< cv::Point > & v = biggestContours[i];
+        const vector< cv::Point > & v = biggestContours[ii];
         contours1D.insert( contours1D.end() , v.begin() , v.end() );
       }
 
@@ -863,9 +985,9 @@ void RProcessing::limbFit()
                 cv::Scalar color = cv::Scalar( 0, 255, 0);
 //                cv::drawContours( contoursMat, biggestContours, 0, color, 2, 8);
 
-                for( int i = 0; i< biggestContours.size(); i++ )
+                for( int ii = 0; ii < biggestContours.size(); ++ii )
                 {
-                    cv::drawContours( contoursMat, biggestContours, i, color, 2, 8, hierarchy, 0, cv::Point() );
+                    cv::drawContours( contoursMat, biggestContours, ii, color, 2, 8, hierarchy, 0, cv::Point() );
                 }
 
 //        cv::RNG rng(12345);
@@ -879,13 +1001,13 @@ void RProcessing::limbFit()
     }
 
 
-    //cv::RotatedRect ellRect = cv::fitEllipse(biggestContour);
     cv::RotatedRect ellRect = cv::fitEllipse(contours1D);
 
     ellRectList << ellRect;
 
-    qDebug("RADIUS 1 = %f", ellRect.size.width/2.0f);
-    qDebug("RADIUS 2 = %f", ellRect.size.height/2.0f);
+    radius += (ellRect.size.height + ellRect.size.width) / 4.0f;
+//    qDebug("RADIUS 1 = %f", ellRect.size.width/2.0f);
+//    qDebug("RADIUS 2 = %f", ellRect.size.height/2.0f);
     qDebug("RADIUS R = %f", (ellRect.size.height + ellRect.size.width) / 4.0f);
 
 
@@ -894,108 +1016,78 @@ void RProcessing::limbFit()
     reals *X = new reals[nContourPoints];
     reals *Y = new reals[nContourPoints];
 
-    for (size_t i=0; i<contours1D.size(); ++i)
+    for (size_t ii = 0; ii < contours1D.size(); ++ii)
     {
-        X[i] = contours1D[i].x;
-        Y[i] = contours1D[i].y;
+        X[ii] = contours1D[ii].x;
+        Y[ii] = contours1D[ii].y;
     }
-
-//    for (size_t i=0; i<biggestContour.size(); ++i)
-//    {
-//        X[i] = biggestContour[i].x;
-//        Y[i] = biggestContour[i].y;
-//    }
 
     Data contourData((int) contours1D.size(), X, Y);
 
 
     Circle circleOut1 = CircleFitByHyper(contourData);
-    qDebug("Hyper fit output:");
-    qDebug("Center at [%f ; %f]", circleOut1.a, circleOut1.b);
-    qDebug("Radius R = %f", circleOut1.r);
-
+//    qDebug("Hyper fit output:");
+//    qDebug("Center at [%f ; %f]", circleOut1.a, circleOut1.b);
+//    qDebug("Radius R = %f", circleOut1.r);
+    radius1 += circleOut1.r;
 
 //    reals circleX = ellRect.center.x;
 //    reals circleY = ellRect.center.y;
-    reals circleR = 913.0f;
+//    reals circleR = 913.0f;
 //    Circle circleInit(circleX, circleY, circleR);
     Circle circleInit = circleOut1;
-    circleInit.r = circleR;
+    //circleInit.r = 917.0f;
 
     reals lambdaIni = 0.001;
 
-    qDebug("");
-    qDebug(" ----------- Circle fitting initial parameters:  ----------");
-    qDebug("");
-    qDebug("nContourPoints = %i", nContourPoints);
-    qDebug("Center at (%f ; %f)", circleInit.a, circleInit.b);
-    qDebug("");
-
-    Circle circleOut2;
-    int status = CircleFitByLevenbergMarquardtFull(contourData, circleInit, lambdaIni, circleOut2);
-    qDebug("LMA  output:");
-    qDebug("status = %i", status);
-    qDebug("Center at [%f ; %f]", circleOut2.a, circleOut2.b);
-    qDebug("Radius R = %f", circleOut2.r);
-    qDebug("");
-
-    lambdaIni = 0.001;
-//    Circle circleInitR(circleX, circleY, circleR);
-    Circle circleInitR = circleOut1;
-    circleInitR.r = circleR;
-    Circle circleOut3;
-    status = CircleFitByLevenbergMarquardtReduced(contourData, circleInitR, lambdaIni, circleOut3);
-    qDebug("LMA-reduced output:");
-    qDebug("status = %i", status);
-    qDebug("Center at [%f ; %f]", circleOut3.a, circleOut3.b);
-    qDebug("Radius R = %f", circleOut3.r);
-    qDebug("");
-
-
-//    lambdaIni = 0.001;
-//    Circle circleInit2(circleX, circleY, circleR);
-//    status = CircleFitByChernovLesort(contourData, circleInit2, lambdaIni, circleOut);
-//    qDebug("Chernov-Lesort  output:");
-//    qDebug("status = %i", status);
-//    qDebug("Center at [%f ; %f]", circleOut.a, circleOut.b);
-//    qDebug("Radius R = %f", circleOut.r);
+//    qDebug("");
+//    qDebug(" ----------- Circle fitting initial parameters:  ----------");
+//    qDebug("");
+//    qDebug("nContourPoints = %i", nContourPoints);
+//    qDebug("Center at (%f ; %f)", circleInit.a, circleInit.b);
 //    qDebug("");
 
-
-//    Circle circleOut2 = CircleFitByPratt(contourData);
-//    qDebug("Pratt fit 2  output:");
+    CircleFitByLevenbergMarquardtFull(contourData, circleInit, lambdaIni, circleOut);
+    radius2 += circleOut.r;
+    centers.append(cv::Point2f((float) circleOut.a, (float) circleOut.b));
+    circleOutList << circleOut;
+//    qDebug("LMA  output:");
+//    qDebug("status = %i", status);
 //    qDebug("Center at [%f ; %f]", circleOut2.a, circleOut2.b);
 //    qDebug("Radius R = %f", circleOut2.r);
 //    qDebug("");
 
-    centers << cv::Point2f((float) circleOut3.a, (float) circleOut3.b);
+//    Circle circleInitR(circleX, circleY, circleR);
+//    Circle circleInitR = circleOut1;
+//    circleInitR.r = circleR;
+//    Circle circleOut3;
+//    CircleFitByLevenbergMarquardtReduced(contourData, circleInit, lambdaIni, circleOut3);
+//    qDebug("LMA-reduced output:");
+//    qDebug("status = %i", status);
+//    qDebug("Center at [%f ; %f]", circleOut3.a, circleOut3.b);
+//    qDebug("Radius R = %f", circleOut3.r);
+//    qDebug("");
 
-
+//    centers.append(cv::Point2f((float) circleOut3.a, (float) circleOut3.b));
+    //centers.append(ellRect.center);
 /// ---------------------------------------------------------------------------- ///
 
     if (showLimb)
     {
-        cv::Scalar red = cv::Scalar(255, 0, 0);
-        cv::Scalar green = cv::Scalar(0, 255, 0);
+//        cv::RotatedRect cvRect;
+//        cvRect.center = centers.at(i);
+//        cvRect.size = cv::Size2f(radius2, radius2);
+//        cvRect.angle = 0.0f;
 
-//        cv::ellipse(contoursMat, ellRect, red, 2, 8);
+        cv::Scalar red = cv::Scalar(255, 0, 0);
+//        cv::Scalar green = cv::Scalar(0, 255, 0);
+
+        //cv::ellipse(contoursMat, ellRect, red, 2, 8);
 
         // draw the fitted circle
-        cv::Point2f circleCenter(circleOut2.a, circleOut2.b);
-        cv::circle(contoursMat, circleCenter, circleOut2.r, red, 2, 8);
+        cv::Point2f circleCenter(circleOut.a, circleOut.b);
+        cv::circle(contoursMat, circleCenter, circleOut.r, red, 2, 8);
     }
-
-
-    // Make another ellipse, 2px wider, red.
-//    cv::Scalar red = cv::Scalar( 255, 0, 0);
-//    ellRect2.size.width += 4;
-//    ellRect2.size.height += 4;
-//    cv::ellipse(contoursMat, ellRect2, red, 2, 8);
-
-//    cannyQImage = new QImage(contoursMat.data, contoursMat.cols, contoursMat.rows, QImage::Format_RGB888);
-//    emit resultQImageSignal(ellQImage);
-//    emit ellipseSignal(ellRect);
-
 
 }
 
@@ -1014,9 +1106,17 @@ void RProcessing::cannyRegisterSeries()
         resultList.clear();
     }
 
+    if (!limbFitPreviewList.isEmpty())
+    {
+        qDeleteAll(limbFitPreviewList);
+        limbFitPreviewList.clear();
+    }
+
+
 
     for (int i = 0 ; i < rMatLightList.size() ; ++i)
     {
+        qDebug("Canny-registering image # %i ", i+1);
         /// Register series
         cv::Mat warpMat = cv::Mat::eye( 2, 3, CV_32FC1 );
         cv::Point2f origin(rMatLightList.at(i)->matImage.cols / 2.0f, rMatLightList.at(i)->matImage.rows / 2.0f);
@@ -1024,33 +1124,174 @@ void RProcessing::cannyRegisterSeries()
         cv::Point2f delta = origin - centers.at(i);
         warpMat.at<float>(0, 2) = delta.x;
         warpMat.at<float>(1, 2) = delta.y;
-        std::cout << "warpMat = " << std::endl << " " << warpMat << std::endl << std::endl;
+        //std::cout << "warpMat = " << std::endl << " " << warpMat << std::endl << std::endl;
 
         cv::Mat registeredMat = rMatLightList.at(i)->matImage.clone();
         registeredMat.convertTo(registeredMat, CV_32F);
         //cv::warpAffine(registeredMat, registeredMat, warpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
         cv::warpAffine(registeredMat, registeredMat, warpMat, registeredMat.size(), cv::INTER_LANCZOS4);
+        registeredMat.convertTo(registeredMat, CV_16U);
 
-        cv::normalize(registeredMat, registeredMat, 0, 255, cv::NORM_MINMAX);
-        cv::Mat registeredMat8;
-        registeredMat.convertTo(registeredMat8, CV_8U);
-        cv::cvtColor(registeredMat8, registeredMat8, CV_GRAY2RGB);
+        RMat *resultMat = new RMat(registeredMat, false, rMatLightList.at(i)->getInstrument());
+        resultMat->setImageTitle(QString("Registered image # ") + QString::number(i));
+        resultMat->setDate_time(rMatLightList.at(i)->getDate_time());
+        resultList << resultMat;
 
-        if (showContours)
+        cv::Mat previewMat = registeredMat;
+        if (rMatLightList.at(i)->getInstrument() == instruments::USET)
         {
-            cv::drawContours(registeredMat8, biggestContoursList.at(i), 0, cv::Scalar(0, 255, 0), 2, 8, cv::noArray(), 0 , delta);
+            registeredMat.convertTo(previewMat, CV_8U, 1.0f/16.0f, 0.0f);
+
         }
+        else
+        {
+            registeredMat.convertTo(previewMat, CV_8U, 1.0f/255.0f, 0.0f);
+        }
+        cv::cvtColor(previewMat, previewMat, CV_GRAY2RGB);
+
+        RMat *previewRMat = new RMat(previewMat, false);
+        normalizeByStatsInPlace(previewRMat);
+        previewRMat->setImageTitle(QString("(Preview) Registered image # ") + QString::number(i+1));
+        previewRMat->setDate_time(rMatLightList.at(i)->getDate_time());
+
+//        if (showContours)
+//        {
+//            cv::drawContours(registeredMat8, biggestContoursList.at(i), 0, cv::Scalar(0, 255, 0), 2, 8, cv::noArray(), 0 , delta);
+//        }
 
         if (showLimb)
         {
-            ellRectList[i].center = origin;
-            cv::ellipse(registeredMat8, ellRectList.at(i), cv::Scalar(255, 0, 0), 2, 8);
+            Circle circle = circleOutList.at(i);
+            cv::Point2f circleCenter(circle.a, circle.b);
+            circleCenter += delta;
+            cv::Scalar red = cv::Scalar(255, 0, 0);
+            cv::circle(previewRMat->matImage, circleCenter, circle.r, red, 2, 8);
+
+
+//            ellRectList[i].center = origin;
+//            cv::ellipse(registeredMat8, ellRectList.at(i), cv::Scalar(255, 0, 0), 2, 8);
         }
 
-        RMat *resultMat = new RMat(registeredMat8.clone(), false);
-        resultMat->setImageTitle(QString("Registered image #") + QString::number(i));
-        resultList << resultMat;
+        /// void putText(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
+        //putText(registeredMat8, date_time, cv::Point(0, 20), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), true);
+
+
+        limbFitPreviewList << previewRMat;
+
     }
+
+    if (useXCorr)
+    {
+        qDebug("Canny registration:: refinement with cross-correlation");
+        registerSeries(resultList);
+    }
+
+    limbFitPlot = new QCustomPlot();
+    limbFitPlot->addGraph();
+
+    // Prepare the plot data
+    QVector<double> frameNumbers(rMatLightList.size());
+    QVector<double> radius(rMatLightList.size());
+    for (int i = 0 ; i < rMatLightList.size() ; ++i)
+    {
+        frameNumbers << i;
+        radius << circleOutList.at(i).r;
+    }
+
+    limbFitPlot->graph(0)->setData(frameNumbers, radius);
+    limbFitPlot->rescaleAxes();
+    limbFitPlot->xAxis->setRange(0, rMatLightList.size());
+}
+
+QList<RMat *> RProcessing::normalizeSeriesByStats(QList<RMat*> rMatImageList)
+{
+    QList<RMat*> normalizedRMatImageList;
+
+    for (int i =0 ; i < rMatImageList.size() ; ++i)
+    {
+        normalizedRMatImageList << normalizeByStats(rMatImageList.at(i));
+        normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("# %1").arg(i));
+    }
+
+    return normalizedRMatImageList;
+}
+
+void RProcessing::blurRMat(RMat *rMat)
+{
+    cv::Mat blurMat;
+    cv::blur(rMat->matImage, blurMat, cv::Size(5, 5));
+
+    blurMat.convertTo(blurMat, CV_8U, 256.0f/rMat->getDataRange());
+    QImage blurImage(blurMat.data, blurMat.cols, blurMat.rows, QImage::Format_Grayscale8);
+    emit resultQImageSignal(blurImage);
+}
+
+RMat* RProcessing::normalizeByStats(RMat *rMat)
+{
+    /// This is like normalizeClipByThresh() using newMin and newMax as intensityLow and
+    /// intensityHigh from RMat::calcStats()
+
+    cv::Mat matImage;
+
+    rMat->matImage.convertTo(matImage, CV_32F);
+    qDebug("RProcessing::normalizeByStats()   rMat->getDataRange() = %f", rMat->getDataRange());
+
+    float newMin = rMat->getIntensityLow();
+    float newMax = rMat->getIntensityHigh();
+    float newDataRange = newMax - newMin;
+    float alpha = rMat->getDataRange() / newDataRange;
+    float beta = -newMin * rMat->getDataRange() /newDataRange;
+
+    matImage.convertTo(matImage, rMat->matImage.type(), alpha, beta);
+
+    RMat* normalizeRMat = new RMat(matImage, rMat->isBayer(), rMat->getInstrument());
+    normalizeRMat->setImageTitle(QString("Normalized image "));
+    qDebug("RProcessing::normalizeByStats()   [newMin , newMax] = [%f , %f]", newMin, newMax);
+    showMinMax(matImage);
+
+    return normalizeRMat;
+}
+
+void RProcessing::normalizeByStatsInPlace(RMat *rMat)
+{
+    /// Overload of normalizeByStats(RMat *rMat) for the series "in place", no copy.
+
+    int type = rMat->matImage.type();
+    float newMin = rMat->getIntensityLow();
+    float newMax = rMat->getIntensityHigh();
+    float newDataRange = newMax - newMin;
+    float alpha = rMat->getDataRange() / newDataRange;
+    float beta = -newMin * rMat->getDataRange() /newDataRange;
+
+    rMat->matImage.convertTo(rMat->matImage, CV_32F);
+    rMat->matImage.convertTo(rMat->matImage, type, alpha, beta);
+}
+
+
+
+cv::Mat RProcessing::normalizeClipByThresh(RMat *rMat, float newMin, float newMax)
+{
+    /// This function do contrast stretching and clips the intensity between newMin and newMax.
+
+    // Change the series "in situ". No copy.
+    cv::Mat matImage = rMat->matImage.clone();
+    matImage.convertTo(matImage, CV_32F);
+
+    float newDataRange = newMax - newMin;
+    float alpha = rMat->getDataRange() / newDataRange;
+    float beta = -newMin * rMat->getDataRange() /newDataRange;
+    matImage = matImage * alpha + beta;
+    // Now we need to clip the image between the max and min of the extrema of the instrument data type range.
+    cv::threshold(matImage, matImage, newMax, newMax, cv::THRESH_TRUNC);
+    matImage = newMax - matImage;
+    cv::threshold(matImage, matImage, newMax - newMin, newMax - newMin, cv::THRESH_TRUNC);
+    matImage = newMax - matImage;
+
+    matImage.convertTo(matImage, rMat->matImage.type());
+
+
+
+    return matImage;
 }
 
 
@@ -1098,6 +1339,21 @@ void RProcessing::setShowLimb(bool status)
     showLimb = status;
 }
 
+void RProcessing::setUseXCorr(bool useXCorr)
+{
+    this->useXCorr = useXCorr;
+}
+
+void RProcessing::setCvRectROI(cv::Rect cvRect)
+{
+    this->cvRectROI = cvRect;
+}
+
+void RProcessing::setUseROI(bool status)
+{
+    this->useROI = status;
+}
+
 // getters
 
 QString RProcessing::getExportMastersDir()
@@ -1143,6 +1399,21 @@ QList<RMat *> RProcessing::getContoursRMatList()
 QList<RMat *> RProcessing::getResultList()
 {
     return resultList;
+}
+
+QList<RMat *> RProcessing::getResultList2()
+{
+    return resultList2;
+}
+
+QList<RMat *> RProcessing::getLimbFitPreviewList()
+{
+    return limbFitPreviewList;
+}
+
+QVector<Circle> RProcessing::getCircleOutList()
+{
+    return circleOutList;
 }
 
 RMat *RProcessing::getCannyRMat()

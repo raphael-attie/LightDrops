@@ -27,6 +27,8 @@ public:
     QString getFileName();
     QTableWidget *getTableWidget() const;
     RMat* getRMatImage();
+    QString getDate_obs();
+    QString getTime_obs();
 
     float getWbRed() const;
     float getWbGreen() const;
@@ -50,6 +52,10 @@ private:
     MyFitsImage *newFitsImage;
     QVector<MyFitsImage*> fitsSeries;
     RawImage *newRawImage;
+
+    // Header info
+    QString date_obs;
+    QString time_obs;
 
     // white balance
     float wbRed;
