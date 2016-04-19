@@ -66,6 +66,7 @@ private slots:
     void updateDoubleSpinBox(int);
     void scaleImageSlot(int value);
     void gammaScaleImageSlot(int value);
+    void toneMappingSlot();
     void updateSliderValueSlot();
     void updateWB(int value);
     void autoScale();
@@ -87,12 +88,16 @@ private slots:
     void calibrateOffScreenSlot();
     void registerSeries();
     void cannyEdgeDetection();
-    void updateCannyDetection();
     void cannyRegisterSeries();
     void normalizeCurrentSeries();
 
     // Plots
     void showLimbFitStats();
+
+    // ToneMapping
+    void setupToneMappingCurve();
+    void updateToneMappingCurve();
+    void applyToneMappingCurve();
 
     //sliderFrame playback buttons
     void stepForward();
@@ -144,6 +149,10 @@ private:
     QCustomPlot *customPlot;
     QCPItemLine *vertLineHigh;
     QCPItemLine *vertLineLow;
+
+    QCustomPlot *toneMappingPlot;
+    QCPGraph *toneMappingGraph;
+
     QString checkExistingDir();
 
     void tileView();
@@ -168,10 +177,12 @@ private:
     float sliderScale, sliderRange, sliderScaleWB, sliderToScaleMinimum;
 
     float gammaScale, alpha, beta, gammaMin, gamma;
+    double iMax, lambda, mu;
 
     int doubleSpinBoxDecimals;
     int sliderValueHigh, sliderValueLow, sliderValueGamma;
     int scrollBarHeight;
+    int lastFrameIndex;
 
     bool stopButtonStatus;
 

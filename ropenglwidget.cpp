@@ -114,10 +114,16 @@ void ROpenGLWidget::initialize()
     alpha = 1.0f/dataRange;
     beta = (float) (-dataMin / dataRange);
     gamma = 1.0;
+
     // White balance default
     wbRed = 1.0f;
     wbGreen = 1.0f;
     wbBlue = 1.0f;
+
+    iMax = 5000.0;
+    lambda = 100.0;
+    mu = 100.0;
+    applyToneMapping = false;
 
     imageCoordX = naxis1/2;
     imageCoordY = naxis2/2;
@@ -400,16 +406,27 @@ void ROpenGLWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT);
 
     m_shader.bind();
-    // When I just move that window around, I'm also using those shaders...
+    /// When I just move that window around, I'm also using those shaders...
     int alphaLocation = m_shader.uniformLocation("alpha");
     int betaLocation = m_shader.uniformLocation("beta");
     int gammaLocation = m_shader.uniformLocation("gamma");
+    int iMaxLocation = m_shader.uniformLocation("iMax");
+    int lambdaLocation = m_shader.uniformLocation("lambda");
+    int muLocation = m_shader.uniformLocation("mu");
+    int applyToneMappingLocation = m_shader.uniformLocation("applyToneMapping");
 
     int wbRGBLocation = m_shader.uniformLocation("wbRGB");
 
     m_shader.setUniformValue(alphaLocation, alpha);
     m_shader.setUniformValue(betaLocation, beta);
     m_shader.setUniformValue(gammaLocation, gamma);
+    /// Set ToneMapping parameters
+    m_shader.setUniformValue(iMaxLocation, iMax);
+    m_shader.setUniformValue(lambdaLocation, lambda);
+    m_shader.setUniformValue(muLocation, mu);
+    m_shader.setUniformValue(applyToneMappingLocation, applyToneMapping);
+
+
 
     QVector3D wbRGB(wbRed, wbGreen, wbBlue);
     m_shader.setUniformValue(wbRGBLocation, wbRGB);
@@ -943,6 +960,26 @@ void ROpenGLWidget::setBeta(float newBeta)
 void ROpenGLWidget::setGamma(float newGamma)
 {
     gamma = newGamma;
+}
+
+void ROpenGLWidget::setImax(float iMax)
+{
+    this->iMax = iMax;
+}
+
+void ROpenGLWidget::setLambda(float lambda)
+{
+    this->lambda = lambda;
+}
+
+void ROpenGLWidget::setMu(float mu)
+{
+    this->mu = mu;
+}
+
+void ROpenGLWidget::setApplyToneMapping(bool state)
+{
+    applyToneMapping = state;
 }
 
 void ROpenGLWidget::setImageCoordX(quint32 x)

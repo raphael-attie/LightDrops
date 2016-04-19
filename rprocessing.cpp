@@ -863,14 +863,14 @@ void RProcessing::cannyEdgeDetection(int thresh)
 
     for (int i = 0 ; i < rMatLightList.size() ; ++i)
     {
-        qDebug("RProcessing:: cannyEdgeDetection() on image #%i", i);
+        qDebug("RProcessing:: cannyEdgeDetection() on image # %i", i+1);
         setupCannyDetection(i);
         cannyDetect(thresh);
         limbFit(i);
 
         /// Get results showing contours of all the edges
         contoursRMat = new RMat(contoursMat.clone(), false);
-        contoursRMat->setImageTitle(QString("Canny edges: Image # %1").arg(i));
+        contoursRMat->setImageTitle(QString("Canny edges: Image # %1").arg(i+1));
         contoursRMatList << contoursRMat;
 
 //        qDebug("RProcessing::cannyEdgeDetection():: [centers.at(i).x ; centers.at(i).y] = [%f ; %f]", centers.at(i).x, centers.at(i).y);
@@ -894,17 +894,18 @@ void RProcessing::cannyEdgeDetection(int thresh)
 void RProcessing::setupCannyDetection(int i)
 {
 
+
     // Normalize the data to have equivalent statistics / histograms
     //normalizeByStats(rMatLightList.at(i));
 
     cv::Mat normalizedMat = normalizeClipByThresh(rMatLightList.at(i), rMatLightList.at(i)->getIntensityLow(), rMatLightList.at(i)->getIntensityHigh());
 
     normalizedMat.convertTo(sampleMat8, CV_8U, 256.0f / rMatLightList.at(i)->getDataRange());
-    normalizedMat.convertTo(sampleMatN, CV_8U, 256.0f / rMatLightList.at(i)->getDataRange());
+    normalizedMat.convertTo(sampleMatN, CV_32F, 256.0f / rMatLightList.at(i)->getDataRange());
 
     // Setting for contrast stretching to boost contrast between limb and off-limb
-    float newMin = 0;
-    float newMax = 100;
+    float newMin = 70;
+    float newMax = 120;
     float newDataRange = newMax - newMin;
     float alpha = 256.0f / newDataRange;
     float beta = -newMin * 256.0f /newDataRange;
@@ -912,6 +913,16 @@ void RProcessing::setupCannyDetection(int i)
     // Convert to 8 bit with contrast stretching to boost contrast between limb and off-limb
     sampleMatN.convertTo(sampleMatN, CV_8U, alpha, beta);
 
+    cv::threshold(sampleMatN, sampleMatN, newMax, newMax, cv::THRESH_TRUNC);
+    sampleMatN = newMax - sampleMatN;
+    cv::threshold(sampleMatN, sampleMatN, newMax - newMin, newMax - newMin, cv::THRESH_TRUNC);
+    sampleMatN = newMax - sampleMatN;
+
+//    if (i == 2)
+//    {
+//        showMinMax(sampleMatN);
+//        emit resultSignal(sampleMatN, false, instruments::generic);
+//    }
 
 }
 

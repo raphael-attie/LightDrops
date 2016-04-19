@@ -161,12 +161,12 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
        </property>
-       <widget class="QWidget" name="tabWidgetPage1">
+       <widget class="QWidget" name="linearScalingTab">
         <attribute name="title">
          <string>Linear scaling</string>
         </attribute>
@@ -401,6 +401,176 @@
             <widget class="QPushButton" name="normalizeButton">
              <property name="text">
               <string>Normalize series</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="toneMappingTab">
+        <attribute name="title">
+         <string>Tone mapping</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_12">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QGridLayout" name="gridLayout_8">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>Imax</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSlider" name="toneMappingSlider1">
+             <property name="minimumSize">
+              <size>
+               <width>600</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <number>1000</number>
+             </property>
+             <property name="maximum">
+              <number>10000</number>
+             </property>
+             <property name="singleStep">
+              <number>100</number>
+             </property>
+             <property name="pageStep">
+              <number>10</number>
+             </property>
+             <property name="value">
+              <number>5000</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QSpinBox" name="spinBox_3">
+             <property name="minimum">
+              <number>1000</number>
+             </property>
+             <property name="maximum">
+              <number>10000</number>
+             </property>
+             <property name="singleStep">
+              <number>100</number>
+             </property>
+             <property name="value">
+              <number>5000</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_11">
+             <property name="text">
+              <string>lambda</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QSlider" name="toneMappingSlider2">
+             <property name="minimumSize">
+              <size>
+               <width>600</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>500</number>
+             </property>
+             <property name="value">
+              <number>100</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QSpinBox" name="spinBox_4">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>500</number>
+             </property>
+             <property name="value">
+              <number>100</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>mu</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSlider" name="toneMappingSlider3">
+             <property name="minimumSize">
+              <size>
+               <width>600</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>200</number>
+             </property>
+             <property name="value">
+              <number>80</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QSpinBox" name="spinBox_5">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>200</number>
+             </property>
+             <property name="value">
+              <number>100</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_11">
+           <item>
+            <widget class="QCheckBox" name="applyToneMappingCheckBox">
+             <property name="text">
+              <string>Apply</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="toneMappingButton">
+             <property name="text">
+              <string>Show curve</string>
              </property>
             </widget>
            </item>
@@ -2040,7 +2210,7 @@
    <slot>decreaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1440</x>
+     <x>1473</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -2056,7 +2226,7 @@
    <slot>increaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1473</x>
+     <x>1506</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -2104,8 +2274,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1023</x>
-     <y>835</y>
+     <x>1131</x>
+     <y>839</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -2152,8 +2322,8 @@
    <slot>cannyEdgeDetection()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1527</x>
-     <y>584</y>
+     <x>1560</x>
+     <y>560</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -2268,8 +2438,56 @@
      <y>829</y>
     </hint>
     <hint type="destinationlabel">
-     <x>281</x>
-     <y>830</y>
+     <x>423</x>
+     <y>834</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toneMappingSlider1</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>spinBox_3</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>608</x>
+     <y>795</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>749</x>
+     <y>795</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toneMappingSlider2</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>spinBox_4</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>668</x>
+     <y>816</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>710</x>
+     <y>821</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>toneMappingSlider3</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>spinBox_5</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>660</x>
+     <y>849</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>711</x>
+     <y>849</y>
     </hint>
    </hints>
   </connection>

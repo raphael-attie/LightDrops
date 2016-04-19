@@ -10,6 +10,8 @@
 #include <qcustomplot/qcustomplot.h>
 
 
+using namespace std;
+
 RMainWindow::RMainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::RMainWindow),
@@ -19,7 +21,8 @@ RMainWindow::RMainWindow(QWidget *parent) :
     limbFittingROpenGLWidget(NULL),
     graphicsView(NULL),
     cannySubWindow(NULL), limbRegisterSubWindow(NULL),
-    currentSubWindow(NULL), plotSubWindow(NULL), tempSubWindow(NULL)
+    currentSubWindow(NULL), plotSubWindow(NULL), tempSubWindow(NULL),
+    toneMappingGraph(NULL)
 {
     ui->setupUi(this);
 
@@ -37,7 +40,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
     gammaScale = 0.1;
     gammaMin = ui->doubleSpinBoxGamma->minimum();
     gamma = 1.0f;
+
     sliderScaleWB = 0.01;
+    lastFrameIndex = 0;
 
     setupSubImage();
 
@@ -98,7 +103,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(this, SIGNAL(radioFlatImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromFlatRButton(QList<RMat*>)));
 
     // Connect Canny detection
-    connect(ui->cannySlider, SIGNAL(sliderReleased()), this, SLOT(updateCannyDetection()));
+    connect(ui->cannySlider, SIGNAL(sliderReleased()), this, SLOT(cannyEdgeDetection()));
     connect(ui->cannyRegisterButton, SIGNAL(released()), this, SLOT(cannyRegisterSeries()));
 
     // Connect QImage scenes
@@ -109,8 +114,13 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
     // Connect Fit stats button
     connect(ui->plotFitStatsButton, SIGNAL(released()), this, SLOT(showLimbFitStats()));
+    // Connect Tone mapping button
+    connect(ui->toneMappingButton, SIGNAL(released()), this, SLOT(setupToneMappingCurve()));
+    connect(ui->toneMappingSlider1, SIGNAL(valueChanged(int)), this, SLOT(toneMappingSlot()));
+    connect(ui->toneMappingSlider2, SIGNAL(valueChanged(int)), this, SLOT(toneMappingSlot()));
+    connect(ui->toneMappingSlider3, SIGNAL(valueChanged(int)), this, SLOT(toneMappingSlot()));
+    connect(ui->applyToneMappingCheckBox, SIGNAL(toggled(bool)), this, SLOT(applyToneMappingCurve()));
 
-    qDebug() << "mdiArea->size =" << ui->mdiArea->size();
     qDebug() << "mdiArea->size =" << ui->mdiArea->size();
 }
 
@@ -421,6 +431,8 @@ void RMainWindow::dispatchRMatImages(QList<RMat*> rMatList)
 void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 {
 
+    ui->sliderFrame->blockSignals(true);
+
     ui->sliderFrame->setRange(0, rOpenGLWidget->getRMatImageList().size()-1);
     ui->sliderFrame->setValue(0);
     ui->imageLabel->setText(QString("1") + QString("/") + QString::number(rOpenGLWidget->getRMatImageList().size()));
@@ -438,8 +450,11 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 
     processing->setCurrentROpenGLWidget(rOpenGLWidget);
 
+    ui->sliderFrame->blockSignals(false);
+
     connect(rOpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(changeROpenGLWidget(ROpenGLWidget*)));
     connect(rOpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
+
 
 }
 
@@ -515,6 +530,7 @@ void RMainWindow::loadSubWindow(QScrollArea *scrollArea)
     currentSubWindow->setWidget(scrollArea);
     ui->mdiArea->addSubWindow(currentSubWindow);
     currentSubWindow->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getImageTitle());
+
     /// ROpenGLWidget can only be resized once it has been assigned to the QMdiSubWindow.
     /// Otherwise the shaders will not be bound.
     currentROpenGLWidget->resize(oglSize);
@@ -572,6 +588,30 @@ void RMainWindow::scaleImageSlot(int value)
     updateCurrentROpenGLWidget();
 }
 
+
+void RMainWindow::gammaScaleImageSlot(int value)
+{
+    if (currentROpenGLWidget == NULL)
+        return;
+
+    if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
+        return;
+
+    gamma = convertSliderToGamma(value);
+    qDebug("RMainWindow::gammaScaleImageSlot() value =%i, gamma = %f", value, gamma);
+    currentROpenGLWidget->setGamma(gamma);
+    currentROpenGLWidget->update();
+}
+
+void RMainWindow::toneMappingSlot()
+{
+
+    iMax = (double) ui->toneMappingSlider1->value();
+    lambda = (double) ui->toneMappingSlider2->value();
+    mu = (double) ui->toneMappingSlider3->value();
+
+    updateToneMappingCurve();
+}
 
 
 void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
@@ -652,7 +692,15 @@ void RMainWindow::cannyEdgeDetection()
         return;
     }
 
-    QPoint currentPos = ui->mdiArea->subWindowList().last()->pos();
+    QPoint lastPos;
+    bool restoreCannyView = false;
+    if (cannyContoursROpenGLWidget != 0)
+    {
+        lastPos = cannySubWindow->pos();
+        cannySubWindow->close();
+        restoreCannyView = true;
+    }
+
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
 
@@ -661,79 +709,38 @@ void RMainWindow::cannyEdgeDetection()
         processing->cannyEdgeDetection(ui->cannySlider->value());
         /// Results need to be displayed as ROpenGLWidget as we will, de facto,
         /// deal with time series
-        createNewImage(processing->getContoursRMatList());
-        cannyScrollArea = currentScrollArea;
-        cannySubWindow = ui->mdiArea->currentSubWindow();
-        if (ui->mdiArea->subWindowList().size() > 2)
-        {
-            cannySubWindow->move(currentPos);
-        }
+        //createNewImage(processing->getContoursRMatList());
+
+        currentROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
+        addImage(currentROpenGLWidget);
+        setupSliders(currentROpenGLWidget);
+
+        cannySubWindow = currentSubWindow;
         cannyContoursROpenGLWidget = currentROpenGLWidget;
     }
     else if (!ui->treeWidget->getLightUrls().empty())
     {
         processing->cannyEdgeDetectionOffScreen(ui->cannySlider->value());
     }
-    cannySubWindow->show();
-    autoScale(currentROpenGLWidget);
-
-}
 
 
-void RMainWindow::updateCannyDetection()
-{
-    if (processing->getContoursRMatList().isEmpty())
+    if (!restoreCannyView)
     {
-        return;
+        cannySubWindow->show();
+    }
+    else
+    {
+        cannySubWindow->move(lastPos);
+        cannySubWindow->show();
+        ui->sliderFrame->setValue(lastFrameIndex);
     }
 
-    processing->setShowContours(ui->contoursCheckBox->isChecked());
-    processing->setShowLimb(ui->limbCheckBox->isChecked());
-
-    processing->cannyEdgeDetection(ui->cannySlider->value());
-
-    quint32 imageCoordX = currentROpenGLWidget->getImageCoordX();
-    quint32 imageCoordY = currentROpenGLWidget->getImageCoordY();
-
-    delete cannyContoursROpenGLWidget;
-    //ROpenGLWidget *ptr = cannyContoursROpenGLWidget;
-    cannyContoursROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
-    //delete ptr;
-
-
-    currentROpenGLWidget = cannyContoursROpenGLWidget;
-
-    cannyScrollArea->setWidget(cannyContoursROpenGLWidget);
-    resizeScrollArea(cannyContoursROpenGLWidget, currentScrollArea);
-    cannyContoursROpenGLWidget->resize(oglSize);
-
-    cannyContoursROpenGLWidget->update();
-
-    displayPlotWidget(cannyContoursROpenGLWidget);
-    setupSliders(cannyContoursROpenGLWidget);
-    autoScale(cannyContoursROpenGLWidget);
-
-    connect(cannyContoursROpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(changeROpenGLWidget(ROpenGLWidget*)));
-    connect(cannyContoursROpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
-
-    currentScrollArea->update();
-    cannySubWindow->update();
-
-    currentROpenGLWidget->setImageCoordX(imageCoordX);
-    currentROpenGLWidget->setImageCoordY(imageCoordY);
-    currentROpenGLWidget->updateSubQImage();
-
-    updateFrameInSeries(ui->sliderFrame->value());
-
-
     autoScale(currentROpenGLWidget);
-
-
+    displayPlotWidget(currentROpenGLWidget);
 }
 
 void RMainWindow::cannyRegisterSeries()
 {
-    QPoint lastWindowPos = ui->mdiArea->currentSubWindow()->pos();
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
     processing->setUseXCorr(ui->useXCorrCheckBox->isChecked());
@@ -742,7 +749,6 @@ void RMainWindow::cannyRegisterSeries()
     //cannySubWindow->hide();
     createNewImage(processing->getLimbFitPreviewList());
     limbRegisterSubWindow = ui->mdiArea->currentSubWindow();
-    ui->mdiArea->subWindowList().last()->move(lastWindowPos);
 
     rangeScale();
 
@@ -778,6 +784,7 @@ void RMainWindow::showLimbFitStats()
     QPoint windowPos(1,1);
 
     bool addWindow = false;
+
     if (plotSubWindow == NULL)
     {
         plotSubWindow = new QMdiSubWindow();
@@ -831,6 +838,114 @@ void RMainWindow::showLimbFitStats()
 
 }
 
+void RMainWindow::setupToneMappingCurve()
+{
+    plotSubWindow = new QMdiSubWindow();
+    ui->mdiArea->addSubWindow(plotSubWindow);
+
+
+    int nBins = 256;
+    QVector<double> x(nBins);
+    QVector<double> yRef(nBins);
+    QVector<double> y(nBins);
+    for (int i = 0 ; i < nBins ; ++i)
+    {
+        x[i] = i;
+        yRef[i] = (double) x.at(i);
+        y[i] = (double) x.at(i);
+
+    }
+
+
+    toneMappingPlot = new QCustomPlot();
+    QCPGraph *toneMappingGraphRef = new QCPGraph(toneMappingPlot->xAxis, toneMappingPlot->yAxis);
+    toneMappingGraphRef->setData(x, yRef);
+
+    toneMappingGraph = new QCPGraph(toneMappingPlot->xAxis, toneMappingPlot->yAxis);
+    toneMappingGraph->setData(x, y);
+
+
+    toneMappingPlot->addPlottable(toneMappingGraphRef);
+    toneMappingPlot->graph(0)->setPen(QPen(QColor(0, 0, 255, 100)));
+
+    toneMappingPlot->addPlottable(toneMappingGraph);
+    toneMappingPlot->graph(1)->setPen(QPen(QColor(255, 0, 0, 100)));
+
+    toneMappingPlot->rescaleAxes();
+
+    /// X axis
+    toneMappingPlot->xAxis->setRange(0, 255);
+    toneMappingPlot->xAxis->setAutoTickStep(false);
+    toneMappingPlot->xAxis->setTickStep(25);
+    toneMappingPlot->xAxis->setLabel(QString("Intensity"));
+
+    /// Y axis
+    toneMappingPlot->yAxis->setRange(0, 255);
+    toneMappingPlot->xAxis->setScaleRatio(toneMappingPlot->xAxis, 1.0);
+    toneMappingPlot->yAxis->setAutoTickStep(false);
+    toneMappingPlot->yAxis->setTickStep(25);
+    toneMappingPlot->yAxis->setLabel(QString("Re-scaled intensity"));
+    plotSubWindow->resize(defaultWindowSize);
+
+//    else
+//    {
+//        qDebug("Updating plot");
+//        toneMappingPlot->graph(0)->setData(x, y);
+//        toneMappingPlot->replot();
+//        //toneMappingPlot->update();
+//    }
+
+    plotSubWindow->setWidget(toneMappingPlot);
+    plotSubWindow->show();
+
+    iMax = (double) ui->toneMappingSlider1->value();
+    lambda = (double) ui->toneMappingSlider2->value();
+    mu = (double) ui->toneMappingSlider3->value();
+
+    updateToneMappingCurve();
+
+    /// Apply on ROpenGLWidget
+    applyToneMappingCurve();
+}
+
+void RMainWindow::updateToneMappingCurve()
+{
+    if (toneMappingGraph == NULL)
+    {
+        return;
+    }
+
+    int nBins = 256;
+    double mu2 = pow(mu, 2.0);
+
+    QVector<double> x(nBins);
+    QVector<double> y(nBins);
+    for (int i = 0 ; i < nBins ; ++i)
+    {
+        x[i] = (double) i;
+        y[i] = iMax * sqrt(lambda / (2.0 * 3.1415 * pow(x[i], 3.0))) * exp(-lambda * pow( (x[i] -  mu), 2.0) / (2.0 * mu2 * x[i]) ) + x[i];
+    }
+
+    toneMappingPlot->graph(1)->setData(x, y);
+    toneMappingPlot->replot();
+
+    applyToneMappingCurve();
+
+}
+
+void RMainWindow::applyToneMappingCurve()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    currentROpenGLWidget->setApplyToneMapping(ui->applyToneMappingCheckBox->isChecked());
+    currentROpenGLWidget->setImax(iMax);
+    currentROpenGLWidget->setLambda(lambda);
+    currentROpenGLWidget->setMu(mu);
+    currentROpenGLWidget->update();
+}
 
 void RMainWindow::displayPlotWidget(ROpenGLWidget* rOpenGLWidget)
 {
@@ -1057,6 +1172,7 @@ void RMainWindow::rangeScale()
 void RMainWindow::updateCurrentROpenGLWidget()
 {
     float dataRange = (float) (currentROpenGLWidget->getNewMax() - currentROpenGLWidget->getNewMin()) ;
+    qDebug() << "dataRange =" << dataRange;
     alpha = 1.0f / dataRange;
     beta = (float) (- currentROpenGLWidget->getNewMin() / dataRange);
 
@@ -1065,20 +1181,6 @@ void RMainWindow::updateCurrentROpenGLWidget()
     currentROpenGLWidget->updateSubQImage();
     currentROpenGLWidget->update();
     currentROpenGLWidget->updateCustomPlotLineItems();
-}
-
-void RMainWindow::gammaScaleImageSlot(int value)
-{
-    if (currentROpenGLWidget == NULL)
-        return;
-
-    if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
-        return;
-
-    gamma = convertSliderToGamma(value);
-    qDebug("RMainWindow::gammaScaleImageSlot() value =%i, gamma = %f", value, gamma);
-    currentROpenGLWidget->setGamma(gamma);
-    currentROpenGLWidget->update();
 }
 
 void RMainWindow::updateSliderValueSlot()
@@ -1255,6 +1357,9 @@ void RMainWindow::updateFrameInSeries(int frameIndex)
     currentROpenGLWidget->changeFrame(frameIndex);
     ui->mdiArea->currentSubWindow()->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getImageTitle());
     displayPlotWidget(currentROpenGLWidget);
+
+    lastFrameIndex = frameIndex;
+
 }
 
 

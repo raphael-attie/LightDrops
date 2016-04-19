@@ -90,6 +90,10 @@ public:
     void setAlpha(float newAlpha);
     void setBeta(float newBeta);
     void setGamma(float newGamma);
+    void setImax(float iMax);
+    void setLambda(float lambda);
+    void setMu(float mu);
+    void setApplyToneMapping(bool state);
     void setImageCoordX(quint32 x);
     void setImageCoordY(quint32 y);
 
@@ -150,12 +154,16 @@ private:
 
     float newMin, newMax;
     float alpha, beta, gamma;
+    /// ToneMapping
+    float iMax, lambda, mu;
+    bool applyToneMapping;
 
     float wbRed;
     float wbGreen;
     float wbBlue;
 
     float resizeFac;
+
 
     RListImageManager *rListImageManager;
     cv::Mat matImageRGB;

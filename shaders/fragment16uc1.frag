@@ -17,6 +17,7 @@ void main()
     vec3 textureColor = vec3(texture(ourTexture, TexCoord).r);
     textureColor = textureColor * wbRGB;
     mediump vec3 scaledRGB = alpha * textureColor.rgb + beta;
+
     if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
     {
         scaledRGB.rgb = vec3(0);
