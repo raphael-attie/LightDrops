@@ -116,9 +116,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(ui->plotFitStatsButton, SIGNAL(released()), this, SLOT(showLimbFitStats()));
     // Connect Tone mapping button
     connect(ui->toneMappingButton, SIGNAL(released()), this, SLOT(setupToneMappingCurve()));
-    connect(ui->toneMappingSlider1, SIGNAL(valueChanged(int)), this, SLOT(toneMappingSlot()));
-    connect(ui->toneMappingSlider2, SIGNAL(valueChanged(int)), this, SLOT(toneMappingSlot()));
-    connect(ui->toneMappingSlider3, SIGNAL(valueChanged(int)), this, SLOT(toneMappingSlot()));
+    connect(ui->toneMappingSlider1, SIGNAL(valueChanged(int)), this, SLOT(updateToneMappingSlot()));
+    connect(ui->toneMappingSlider2, SIGNAL(valueChanged(int)), this, SLOT(updateToneMappingSlot()));
+    connect(ui->toneMappingSlider3, SIGNAL(valueChanged(int)), this, SLOT(updateToneMappingSlot()));
     connect(ui->applyToneMappingCheckBox, SIGNAL(toggled(bool)), this, SLOT(applyToneMappingCurve()));
 
     qDebug() << "mdiArea->size =" << ui->mdiArea->size();
@@ -603,17 +603,6 @@ void RMainWindow::gammaScaleImageSlot(int value)
     currentROpenGLWidget->update();
 }
 
-void RMainWindow::toneMappingSlot()
-{
-
-    iMax = (double) ui->toneMappingSlider1->value();
-    lambda = (double) ui->toneMappingSlider2->value();
-    mu = (double) ui->toneMappingSlider3->value();
-
-    updateToneMappingCurve();
-}
-
-
 void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
 {
     // The slider range of integer values must be consistent with the maximum data range.
@@ -767,6 +756,7 @@ void RMainWindow::normalizeCurrentSeries()
     QList<RMat*> normalizedRMatList = processing->normalizeSeriesByStats(currentROpenGLWidget->getRMatImageList());
 
     createNewImage(normalizedRMatList);
+    autoScale();
 }
 
 void RMainWindow::showLimbFitStats()
@@ -898,18 +888,15 @@ void RMainWindow::setupToneMappingCurve()
     plotSubWindow->setWidget(toneMappingPlot);
     plotSubWindow->show();
 
+    updateToneMappingSlot();
+}
+
+void RMainWindow::updateToneMappingSlot()
+{
     iMax = (double) ui->toneMappingSlider1->value();
     lambda = (double) ui->toneMappingSlider2->value();
     mu = (double) ui->toneMappingSlider3->value();
 
-    updateToneMappingCurve();
-
-    /// Apply on ROpenGLWidget
-    applyToneMappingCurve();
-}
-
-void RMainWindow::updateToneMappingCurve()
-{
     if (toneMappingGraph == NULL)
     {
         return;
@@ -920,16 +907,20 @@ void RMainWindow::updateToneMappingCurve()
 
     QVector<double> x(nBins);
     QVector<double> y(nBins);
-    for (int i = 0 ; i < nBins ; ++i)
+
+    if (ui->InverseGaussianRButton->isChecked())
     {
-        x[i] = (double) i;
-        y[i] = iMax * sqrt(lambda / (2.0 * 3.1415 * pow(x[i], 3.0))) * exp(-lambda * pow( (x[i] -  mu), 2.0) / (2.0 * mu2 * x[i]) ) + x[i];
+        for (int i = 0 ; i < nBins ; ++i)
+        {
+            x[i] = (double) i;
+            y[i] = iMax * sqrt(lambda / (2.0 * 3.1415 * pow(x[i], 3.0))) * exp(-lambda * pow( (x[i] -  mu), 2.0) / (2.0 * mu2 * x[i]) ) + x[i];
+        }
+        toneMappingPlot->graph(1)->setData(x, y);
+        toneMappingPlot->replot();
+
+        applyToneMappingCurve();
+
     }
-
-    toneMappingPlot->graph(1)->setData(x, y);
-    toneMappingPlot->replot();
-
-    applyToneMappingCurve();
 
 }
 
@@ -941,6 +932,7 @@ void RMainWindow::applyToneMappingCurve()
     }
 
     currentROpenGLWidget->setApplyToneMapping(ui->applyToneMappingCheckBox->isChecked());
+    currentROpenGLWidget->setUseInverseGausssian(ui->InverseGaussianRButton->isChecked());
     currentROpenGLWidget->setImax(iMax);
     currentROpenGLWidget->setLambda(lambda);
     currentROpenGLWidget->setMu(mu);
@@ -1023,22 +1015,36 @@ QString RMainWindow::checkExistingDir()
 
 void RMainWindow::autoScale()
 {
+    /// This sends new Minimum and Maximum values to the ROpenGLWidget, depending on the instrument.
+    /// Then it moves the slider according to these values.
+    /// Finally, by moving the sliders, who are connected to updateCurrentROpenGLwidget(), the display
+    /// gets updated.
+
     if (currentROpenGLWidget == NULL)
         return;
 
     if (currentROpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::MAG)
     {
+        currentROpenGLWidget->setNewMax(100.0f);
+        currentROpenGLWidget->setNewMin(-100.0f);
+
         sliderValueHigh = convertScaleToSlider(100.0f);
         sliderValueLow = convertScaleToSlider(-100.0f);
     }
     else if (currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
              currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
     {
+        currentROpenGLWidget->setNewMax(255);
+        currentROpenGLWidget->setNewMin(0);
+
         sliderValueHigh = convertScaleToSlider(255);
         sliderValueLow = convertScaleToSlider(0);
     }
     else
     {
+        currentROpenGLWidget->setNewMax(currentROpenGLWidget->getRMatImageList().at(0)->getIntensityHigh());
+        currentROpenGLWidget->setNewMin(currentROpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
+
         /// Make the slider use the histogram autoscaling values.
         sliderValueHigh = convertScaleToSlider(currentROpenGLWidget->getRMatImageList().at(0)->getIntensityHigh());
         sliderValueLow = convertScaleToSlider(currentROpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
@@ -1172,7 +1178,7 @@ void RMainWindow::rangeScale()
 void RMainWindow::updateCurrentROpenGLWidget()
 {
     float dataRange = (float) (currentROpenGLWidget->getNewMax() - currentROpenGLWidget->getNewMin()) ;
-    qDebug() << "dataRange =" << dataRange;
+    qDebug() << "RMainWindow::updateCurrentROpenGLWidget()   dataRange =" << dataRange;
     alpha = 1.0f / dataRange;
     beta = (float) (- currentROpenGLWidget->getNewMin() / dataRange);
 

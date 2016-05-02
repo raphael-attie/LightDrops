@@ -14,6 +14,7 @@ uniform mediump float iMax;
 uniform mediump float lambda;
 uniform mediump float mu;
 uniform bool applyToneMapping;
+uniform bool useInverseGaussian;
 
 void main()
 {
@@ -32,14 +33,17 @@ void main()
     {
         if (applyToneMapping)
         {
-            /// Inverse Gaussian
             vec3 mu3 = vec3(mu);
+
+            /// Inverse Gaussian
             textureColor = iMax * sqrt(lambda / (2.0*3.1415 * pow(textureColor, vec3(3.0)))) * exp(-lambda * pow(textureColor - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * textureColor)) + textureColor;
-            /// Sigmoid-like function
+
+           /// Sigmoid-like function
             //textureColor = 255.0 * textureColor / (vec3(sigmoid) + textureColor);
         }
 
-        scaledRGB = alpha * (textureColor * wbRGB).rgb + beta;
+        scaledRGB = alpha * textureColor.rgb + beta;
+        scaledRGB = scaledRGB * wbRGB;
 
         if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
         {

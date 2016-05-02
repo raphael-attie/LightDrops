@@ -982,6 +982,12 @@ void ROpenGLWidget::setApplyToneMapping(bool state)
     applyToneMapping = state;
 }
 
+void ROpenGLWidget::setUseInverseGausssian(bool state)
+{
+    useInverseGaussian = state;
+}
+
+
 void ROpenGLWidget::setImageCoordX(quint32 x)
 {
     imageCoordX = x;

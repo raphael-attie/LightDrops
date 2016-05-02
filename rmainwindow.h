@@ -66,7 +66,6 @@ private slots:
     void updateDoubleSpinBox(int);
     void scaleImageSlot(int value);
     void gammaScaleImageSlot(int value);
-    void toneMappingSlot();
     void updateSliderValueSlot();
     void updateWB(int value);
     void autoScale();
@@ -96,7 +95,7 @@ private slots:
 
     // ToneMapping
     void setupToneMappingCurve();
-    void updateToneMappingCurve();
+    void updateToneMappingSlot();
     void applyToneMappingCurve();
 
     //sliderFrame playback buttons

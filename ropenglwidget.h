@@ -94,6 +94,7 @@ public:
     void setLambda(float lambda);
     void setMu(float mu);
     void setApplyToneMapping(bool state);
+    void setUseInverseGausssian(bool state);
     void setImageCoordX(quint32 x);
     void setImageCoordY(quint32 y);
 
@@ -157,6 +158,8 @@ private:
     /// ToneMapping
     float iMax, lambda, mu;
     bool applyToneMapping;
+    bool useInverseGaussian;
+
 
     float wbRed;
     float wbGreen;

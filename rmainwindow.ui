@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1600</width>
+    <width>1648</width>
     <height>904</height>
    </rect>
   </property>
@@ -77,7 +77,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1600</width>
+     <width>1648</width>
      <height>22</height>
     </rect>
    </property>
@@ -92,7 +92,7 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>1341</width>
+     <width>1457</width>
      <height>180</height>
     </size>
    </property>
@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -413,7 +413,13 @@
          <string>Tone mapping</string>
         </attribute>
         <layout class="QHBoxLayout" name="horizontalLayout_12">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
          <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
           <number>0</number>
          </property>
          <property name="bottomMargin">
@@ -421,13 +427,6 @@
          </property>
          <item>
           <layout class="QGridLayout" name="gridLayout_8">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>Imax</string>
-             </property>
-            </widget>
-           </item>
            <item row="0" column="1">
             <widget class="QSlider" name="toneMappingSlider1">
              <property name="minimumSize">
@@ -437,7 +436,7 @@
               </size>
              </property>
              <property name="minimum">
-              <number>1000</number>
+              <number>1</number>
              </property>
              <property name="maximum">
               <number>10000</number>
@@ -456,10 +455,17 @@
              </property>
             </widget>
            </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>Imax</string>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="2">
             <widget class="QSpinBox" name="spinBox_3">
              <property name="minimum">
-              <number>1000</number>
+              <number>1</number>
              </property>
              <property name="maximum">
               <number>10000</number>
@@ -469,13 +475,6 @@
              </property>
              <property name="value">
               <number>5000</number>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_11">
-             <property name="text">
-              <string>lambda</string>
              </property>
             </widget>
            </item>
@@ -491,7 +490,7 @@
               <number>1</number>
              </property>
              <property name="maximum">
-              <number>500</number>
+              <number>1000</number>
              </property>
              <property name="value">
               <number>100</number>
@@ -501,13 +500,20 @@
              </property>
             </widget>
            </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_11">
+             <property name="text">
+              <string>lambda</string>
+             </property>
+            </widget>
+           </item>
            <item row="1" column="2">
             <widget class="QSpinBox" name="spinBox_4">
              <property name="minimum">
               <number>1</number>
              </property>
              <property name="maximum">
-              <number>500</number>
+              <number>1000</number>
              </property>
              <property name="value">
               <number>100</number>
@@ -533,10 +539,10 @@
               <number>1</number>
              </property>
              <property name="maximum">
-              <number>200</number>
+              <number>255</number>
              </property>
              <property name="value">
-              <number>80</number>
+              <number>100</number>
              </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -549,7 +555,7 @@
               <number>1</number>
              </property>
              <property name="maximum">
-              <number>200</number>
+              <number>255</number>
              </property>
              <property name="value">
               <number>100</number>
@@ -559,18 +565,67 @@
           </layout>
          </item>
          <item>
-          <layout class="QVBoxLayout" name="verticalLayout_11">
-           <item>
-            <widget class="QCheckBox" name="applyToneMappingCheckBox">
-             <property name="text">
-              <string>Apply</string>
-             </property>
-            </widget>
-           </item>
+          <widget class="QGroupBox" name="groupBox_5">
+           <property name="title">
+            <string>Curve shape</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_11">
+            <item>
+             <widget class="QRadioButton" name="InverseGaussianRButton">
+              <property name="text">
+               <string>Inverse Gaussian</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="lorentzianRButton">
+              <property name="text">
+               <string>Lorentzian</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_6">
+           <property name="title">
+            <string>Solar presets</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_13">
+            <item>
+             <widget class="QPushButton" name="pushButton_4">
+              <property name="text">
+               <string>H-alpha</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_7">
+              <property name="text">
+               <string>CaII</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_12">
            <item>
             <widget class="QPushButton" name="toneMappingButton">
              <property name="text">
               <string>Show curve</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="applyToneMappingCheckBox">
+             <property name="text">
+              <string>Apply</string>
              </property>
             </widget>
            </item>
@@ -2210,7 +2265,7 @@
    <slot>decreaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1473</x>
+     <x>1521</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -2226,7 +2281,7 @@
    <slot>increaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1506</x>
+     <x>1554</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -2242,8 +2297,8 @@
    <slot>exportMastersToFits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1546</x>
-     <y>531</y>
+     <x>1579</x>
+     <y>529</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2258,8 +2313,8 @@
    <slot>minMaxScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1012</x>
-     <y>831</y>
+     <x>1127</x>
+     <y>835</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -2274,7 +2329,7 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1131</x>
+     <x>1213</x>
      <y>839</y>
     </hint>
     <hint type="destinationlabel">
@@ -2290,8 +2345,8 @@
    <slot>calibrateOffScreenSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1516</x>
-     <y>565</y>
+     <x>1549</x>
+     <y>563</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -2306,7 +2361,7 @@
    <slot>registerSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1464</x>
+     <x>1545</x>
      <y>424</y>
     </hint>
     <hint type="destinationlabel">
@@ -2342,7 +2397,7 @@
      <y>457</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1520</x>
+     <x>1601</x>
      <y>434</y>
     </hint>
    </hints>
@@ -2354,7 +2409,7 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1520</x>
+     <x>1601</x>
      <y>434</y>
     </hint>
     <hint type="destinationlabel">
@@ -2370,8 +2425,8 @@
    <slot>convertTo8Bit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1104</x>
-     <y>797</y>
+     <x>1219</x>
+     <y>801</y>
     </hint>
     <hint type="destinationlabel">
      <x>962</x>
@@ -2386,8 +2441,8 @@
    <slot>convertToNeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1062</x>
-     <y>831</y>
+     <x>1219</x>
+     <y>835</y>
     </hint>
     <hint type="destinationlabel">
      <x>1253</x>
@@ -2402,8 +2457,8 @@
    <slot>autoScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1012</x>
-     <y>797</y>
+     <x>1127</x>
+     <y>801</y>
     </hint>
     <hint type="destinationlabel">
      <x>840</x>
@@ -2418,8 +2473,8 @@
    <slot>normalizeCurrentSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>973</x>
-     <y>865</y>
+     <x>1219</x>
+     <y>869</y>
     </hint>
     <hint type="destinationlabel">
      <x>723</x>
@@ -2434,8 +2489,8 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>226</x>
-     <y>829</y>
+     <x>138</x>
+     <y>833</y>
     </hint>
     <hint type="destinationlabel">
      <x>423</x>
@@ -2450,12 +2505,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>608</x>
-     <y>795</y>
+     <x>663</x>
+     <y>793</y>
     </hint>
     <hint type="destinationlabel">
-     <x>749</x>
-     <y>795</y>
+     <x>784</x>
+     <y>805</y>
     </hint>
    </hints>
   </connection>
@@ -2466,12 +2521,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>668</x>
-     <y>816</y>
+     <x>706</x>
+     <y>837</y>
     </hint>
     <hint type="destinationlabel">
-     <x>710</x>
-     <y>821</y>
+     <x>784</x>
+     <y>837</y>
     </hint>
    </hints>
   </connection>
@@ -2482,12 +2537,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>660</x>
-     <y>849</y>
+     <x>703</x>
+     <y>868</y>
     </hint>
     <hint type="destinationlabel">
-     <x>711</x>
-     <y>849</y>
+     <x>784</x>
+     <y>868</y>
     </hint>
    </hints>
   </connection>

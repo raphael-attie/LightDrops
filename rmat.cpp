@@ -177,13 +177,12 @@ void RMat::calcStats()
 
     histWidth = (maxHistRange - minHistRange)/(double) (nBins -1);
 
-//    percentileLow = calcPercentile(0.05, histWidth, minRange);
-//    percentileHigh = calcPercentile( 0.9985, histWidth, minRange);
-    // The percentileLow and percentileHigh are the intensities calculated
-    // with the percentiles set such that the CDF of the histogram is 1000 pixels less than
-    // the total pixel count (for the High) and 1 pixel above 0.
+    /// Define percentiles for the low and high thresholds
+    /// i.e, pertcentage of pixels below the lowest intensity
+    /// and above the highest intensity
     float cutOffLow;
     float cutOffHigh;
+
 
     if (instrument == instruments::USET)
     {
@@ -247,12 +246,21 @@ float RMat::calcThreshold(float cutOff, double histWidth, float minRange)
     int nBins = matHist.rows;
 
     int index = 0;
-    int i =0;
+    int i = 0;
     while (i < nBins && checkThreshold == false){
         cdf += matHist.at<float>(i);
         checkThreshold = (100.0f * cdf/nPixels > cutOff);
         if (checkThreshold) { index = i;}
         i++;
+    }
+
+
+    /// Sometimes the percentile isn't reach (for example after normalizing)
+    /// This makes sure that when the maximum percentile is not reached even
+    /// when the last bin has been taken into the cdf, the index is set to the last bin.
+    if (!checkThreshold)
+    {
+        index = nBins - 1;
     }
 
    float intensity = minRange + (float) histWidth * (float) index;
