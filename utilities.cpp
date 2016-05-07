@@ -31,7 +31,9 @@ reals Sigma (Data& data, Circle& circle)
 reals SigmaReduced (Data& data, Circle& circle)
 {
     int i,n=data.n;
-    reals sum=0.,dx,dy,r,D[n];
+    reals sum=0.,dx,dy,r;
+    //http://stackoverflow.com/questions/15013077/arrayn-vs-array10-initializing-array-with-variable-vs-real-number
+    reals *D = new reals[n];
 
     for (i=0; i<n; i++)
     {
@@ -43,6 +45,8 @@ reals SigmaReduced (Data& data, Circle& circle)
     r = sum/n;
 
     for (sum=0., i=0; i<n; i++)  sum += pow(D[i] - r, 2.0f);
+
+    delete D;
 
     return sqrt(sum/n);
 }

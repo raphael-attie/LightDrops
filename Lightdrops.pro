@@ -14,14 +14,14 @@ TEMPLATE = app
 win32 {
     DEFINES += WIN32
     INCLUDEPATH += C:/dev/cfitsio_64
-    INCLUDEPATH += C:/dev/libraw/libraw
-    INCLUDEPATH += C:/dev/opencv/build/include
+    INCLUDEPATH += C:/dev/libraw
+    INCLUDEPATH += C:/dev/opencv/include
     INCLUDEPATH += C:\dev\ArrayFire\v3\include
 
     LIBS += -LC:\dev\cfitsio_64 -lcfitsio
-    LIBS += -LC:\dev\libraw\x64\Debug -llibraw
-    LIBS += -LC:\dev\opencv\build\x64\vc14\lib -lopencv_world310
+    LIBS += -LC:/dev/libraw/lib -llibraw
     LIBS += -LC:/dev/ArrayFire/v3/lib -lafopencl
+    LIBS += -LC:/dev/opencv/lib -lopencv_world310
 }
 
 macx {
