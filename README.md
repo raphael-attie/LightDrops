@@ -21,7 +21,7 @@ Aterlnatively to building the dependencies. You can follow these steps to get st
 
 - Install Visual Studio 2015
 - Install QT 5.6 for VS 2015 x64
-- Unzip the file Windows/ in c:/dev
+- Unzip the file Windows/windown-x64-dependenceis-except ArrayFire.7z in c:/dev
 - Install ArrayFire OpenCL in c:/dev
 - Build the project file using QtCreator
 - Copy the dlls in c:/dev/dlls and paste them in the same folder as the LightDrops binary
