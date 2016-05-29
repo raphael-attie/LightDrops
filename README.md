@@ -3,7 +3,7 @@ Raw image calibration and processing for astrophotography, astrophysics, and sol
 
 ![alt tag](screenshots/screenshot_Solar_M74.jpg?raw=true)
 
-## Installation instructions
+## Installation instructions 
 
 This project uses Qt as the base framework with Qt Creator and Qt designer. 
 The main development language is C++, with a little bit of C. 
@@ -14,6 +14,22 @@ To compile the code, you will need to install CFITSIO, Libraw, openCV 3.x, and A
 At the moment Lightdrops is tested with raw images from Canon DSLRs, but other DSLR models will be supported in the future. Use DLLs for Windows or follow compilation instructions for Mac/Linux/Unix. 
 - [OpenCV 3](http://opencv.org): Image processing library. Make sure TBB is enabled in your CMake compilation options. 
 - [ArrayFire](http://arrayfire.com): A general purpose parallel processing library. Used here for the openCL functions that enables highly parallel and fast image processing with the hundreds of cores of the Graphics Processing Unit (GPU). If you are developping from a Mac, I recommend the [alternate installation with CMake](https://github.com/arrayfire/arrayfire/wiki/Build-Instructions-for-OSX#building-arrayfire). You only need the openCL backend. No need for GLEW of GLFW. 
+
+### Quick installation for windows
+
+Aterlnatively to building the dependencies. You can follow these steps to get started quickly on Windows:
+
+- Install Visual Studio 2015
+- Install QT 5.6 for VS 2015 x64
+- Unzip the file Windows/windown-x64-dependenceis-except ArrayFire.7z in c:/dev
+- Install ArrayFire OpenCL in c:/dev
+- Build the project file using QtCreator
+- Copy the dlls in c:/dev/dlls and paste them in the same folder as the LightDrops binary
+- Run the program
+
+Thses steps have been tested on Windows 10
+
+![](screenshots/windows-screen1.png?raw=true)
 
 ## Hardware requirements
 

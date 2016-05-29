@@ -1,1 +1,6 @@
 *.pro.user
+debug/
+ui_rmainwindow.h
+Makefile
+Makefile.Debug
+Makefile.Release
