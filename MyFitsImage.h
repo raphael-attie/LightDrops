@@ -52,9 +52,9 @@ private:
 	//array_2D_double *myImage;
 	int hduType;
     // dimensions
-    qint32 naxis1;
-    qint32 naxis2;
-    long nPixels;
+    int naxis1;
+    int naxis2;
+    int nPixels;
     int nKeys;
     float bscale, expTime;
     int bzero;
@@ -64,6 +64,7 @@ private:
     ushort* image1D_ushort;
     float* image1D_float;
     short int* image1D_shortint;
+
 
     cv::Mat matFits;
 

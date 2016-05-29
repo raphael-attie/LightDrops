@@ -64,7 +64,8 @@ SOURCES += main.cpp\
     data.cpp \
     circle.cpp \
     utilities.cpp \
-    rgraphicsscene.cpp
+    rgraphicsscene.cpp \
+    werner/limb.cpp
 
 HEADERS  += winsockwrapper.h \
     rmainwindow.h \
@@ -86,7 +87,8 @@ HEADERS  += winsockwrapper.h \
     data.h \
     typedefs.h \
     circle.h \
-    rgraphicsscene.h
+    rgraphicsscene.h \
+    werner/limb.h
 
 
 FORMS    += rmainwindow.ui

@@ -18,39 +18,49 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 {
 
     fitsfile *fptr;
-    int status = 0, morekeys=0, nfound, anynul;
+    int morekeys=0, nfound, anynul;
     long naxes[2], firstPixel, ii;
     double nullval;
     char comment[FLEN_COMMENT], keyString[FLEN_VALUE], card[FLEN_CARD];
     char keyword[FLEN_KEYWORD], keyValue[FLEN_VALUE];
-
+    int status = 0;
 
 	std::string filePathStr(filePath.toStdString());
 
     //qDebug() << "fits_is_reentrant =" << fits_is_reentrant();
 
-	if (fits_open_data(&fptr, filePathStr.c_str(), READONLY, &status))
-	{
-        std::cout << "MyFitsImage:: Error opening FITS file" << std::endl;
-		printerror(status);
-	}
-		
+//	if (fits_open_data(&fptr, filePathStr.c_str(), READONLY, status))
+//	{
+//        std::cout << "MyFitsImage:: Error opening FITS file" << std::endl;
+//		printerror(*status);
+//	}
 
-	if (fits_get_hdu_type(fptr, &hduType, &status))
-		printerror(status);
+    if (fits_open_file(&fptr, filePathStr.c_str(), READONLY, &status))
+    {
+        std::cout << "MyFitsImage:: Error opening FITS file" << std::endl;
+        printerror(status);
+    }
+		
+    status = 0;
+    if (fits_get_hdu_type(fptr, &hduType, &status))
+        printerror(status);
 	
     //printHDUType(hduType);
 
 	// If ZCMPTYPE does not exist, data are uncompressed -> Read NAXIS
 	// else, data are compressed, read ZNAXIS. 
+    status = 0;
     if (fits_read_key(fptr, TSTRING, "ZCMPTYPE", keyString, NULL, &status))
 	{   
         status = 0;
 		/* read the NAXIS1 and NAXIS2 keyword to get image size */
-		if (fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
+        if (fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
 		{
             printerror(status);
 		}
+
+        fits_read_key(fptr, TINT, "NAXIS1", &naxis1, NULL, &status);
+        fits_read_key(fptr, TINT, "NAXIS2", &naxis2, NULL, &status);
 
         if (fits_read_key(fptr, TINT, "BITPIX", &bitpix, NULL, &status))
         {
@@ -61,7 +71,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 	else
 	{
         /* read the NAXIS1 and NAXIS2 keyword to get image size */
-		if (fits_read_keys_lng(fptr, "ZNAXIS", 1, 2, naxes, &nfound, &status))
+        if (fits_read_keys_lng(fptr, "ZNAXIS", 1, 2, naxes, &nfound, &status))
 		{
             printerror(status);
 		}
@@ -93,8 +103,8 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
     }
 
 
-	naxis1 = naxes[0];
-	naxis2 = naxes[1];
+//    naxis1 = naxes[0];
+//    naxis2 = naxes[1];
 	nPixels = naxis1 * naxis2; // Total number of pixels in the image
 
     fits_get_hdrspace(fptr, &nKeys, &morekeys, &status);
@@ -118,7 +128,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
     // undefined (e.g., blank) pixels are set to NaN.
     nullval = NAN;
 
-	firstPixel	= 1;
+    firstPixel	= 1;
 
     if (bitpix == USHORT_IMG)
     {
@@ -133,10 +143,32 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
     else if (bitpix == SHORT_IMG && bzero == 0)
     {
         image1D_shortint = new short int[nPixels]();
+
         if (fits_read_img(fptr, TSHORT, firstPixel, nPixels, &nullval, image1D_shortint, &anynul, &status))
             printerror(status);
 
         matFits = Mat(naxis2, naxis1, CV_16S, image1D_shortint);
+//        qDebug() << "matFits.at<short int>.at(0,0) = " << matFits.at<short int>(0,0);
+//        qDebug() << "matFits.at<short int>.at(1,1) = " << matFits.at<short int>(1,1);
+
+//        qDebug() << "matFits.at<short int>.at(2046,1000) = " << matFits.at<short int>(0,1000);
+//        qDebug() << "matFits.at<short int>.at(2047,1000) = " << matFits.at<short int>(1,1000);
+
+//        long startpix[2];
+//        startpix[0] = 1;
+//        startpix[1] = 1;
+//        int* image1D_int; // Declare a pointer to an int pointer. In the header.
+//        image1D_int = (int *) malloc(sizeof(int) * naxis1 * naxis2); // Use *data to derefence, to store the value (an adress) where this allocation to
+
+//        if (fits_read_pix(fptr, TINT, firstPixels, naxis1 * naxis2, 0, *data, NULL, &status))
+//            printerror(status);
+
+//        status = 0;
+//        if(fits_read_pix(fptr, TINT, startpix, naxis1 * naxis2, 0, image1D_int, NULL, &status))
+//            printerror(status);
+
+        //matFits = Mat(naxis2, naxis1, CV_16S, image1D_shortint);
+        //matFits = Mat(naxis2, naxis1, CV_32S, *image1D_int);
 
         //delete[] image1D;
     }
@@ -248,7 +280,7 @@ void MyFitsImage::printerror(int status)
 {
 	if (status)
 	{
-		fits_report_error(stderr, status); /* print error report */
+        fits_report_error(stderr, status); /* print error report */
 
 		exit(status);    /* terminate the program, returning error status */
 	}

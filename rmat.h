@@ -35,6 +35,7 @@ public:
     void calcStats();
     void calcMinMax();
 
+
     // getters
     bool isBayer() const;
     float getBscale() const;
@@ -58,6 +59,7 @@ public:
     float getMinHistRange() const;
     float getMaxHistRange() const;
     float getDataRange() const;
+    float getNormalizeRange() const;
     QTreeWidgetItem* getItem() const;
     QFileInfo getFileInfo() const;
     QString getDate_obs() const;
@@ -118,6 +120,9 @@ private:
    float maxHistRange;
    uint nPixels;
    float dataRange;
+
+   // Normalization range
+   float normalizeRange;
 
    // for QTreeWidget
    QTreeWidgetItem* item;

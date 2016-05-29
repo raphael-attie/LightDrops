@@ -31,7 +31,7 @@ public:
     ~RMainWindow();
 
 signals:
-    void messageSignal(QString message);
+    void tempMessageSignal(QString message, int = 3000);
     void plotSignal(QCustomPlot *customPlot);
 
     void radioLightImages(QList<RMat*> rMatImageList);
@@ -50,19 +50,20 @@ private slots:
     void createNewImage(RListImageManager *newRListImageManager);
     void createNewImage(QList<RMat*> newRMatImageList);
     void createNewImage(RMat *rMatImage);
-    void createNewImage(cv::Mat cvImage, bool bayer, instruments instrument);
+    void createNewImage(cv::Mat cvImage, bool bayer = false, instruments instrument = instruments::generic, QString imageTitle = QString("Result"));
     void createNewImage(QImage &image);
 
-    void processQImage(QImage &image, QString windowTitle = QString("Processing Window"));
+    void displayQImage(QImage &image, RGraphicsScene *scene, QMdiSubWindow *subWindow, QString windowTitle = QString("Processing Window"));
+
     void selectROI();
     void setRect(QRect rect);
     void extractNewImageROI();
+    void disableROIaction();
 
     //void addEllipseToScene(cv::RotatedRect rect);
 
     //void createNewImage(QImage *image);
     void addImage(ROpenGLWidget *rOpenGLWidget);
-    void addImageView(ROpenGLWidget *rOpenGLWidget);
     void updateDoubleSpinBox(int);
     void scaleImageSlot(int value);
     void gammaScaleImageSlot(int value);
@@ -80,15 +81,18 @@ private slots:
     void setupExportCalibrateDir();
     void exportMastersToFits();
     void exportFrames();
+    void exportFramesToJpeg();
+    void exportFramesToFits();
     void convertTo8Bit();
     void convertToNeg();
 
     // Processing
     void calibrateOffScreenSlot();
-    void registerSeries();
+    void registerSlot();
     void cannyEdgeDetection();
-    void cannyRegisterSeries();
+    void cannyRegisterSlot();
     void normalizeCurrentSeries();
+    void previewMatImageHPFSlot();
 
     // Plots
     void showLimbFitStats();
@@ -188,6 +192,8 @@ private:
     QRect rect;
     //QCustomPlot *limbFitPlot;
 
+    /// Preview mat Images
+    cv::Mat matImageHPFPreview;
 
 
 };

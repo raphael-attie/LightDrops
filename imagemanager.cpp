@@ -86,6 +86,7 @@ void ImageManager::loadFits()
     if (newFitsImage->getKeyValues().contains(QString("USET")))
     {
         instrument = instruments::USET;
+        //fixUset();
     }
     else if (rMatImage->getDataMin() < -100.0)
     {
@@ -177,6 +178,21 @@ void ImageManager::createTableWidget()
     }
     tableWidget->setMinimumHeight((newFitsImage->getNKeys() + 3) * rowHeight);
     tableWidget->adjustSize();
+}
+
+void ImageManager::fixUset()
+{
+
+    for (int x = 0; x < 2048; x++)
+    {
+        rMatImage->matImage.at<short>(0, x) = 4095;
+//        rMatImage->matImage.at<short>(1, x) = 4095;
+//        rMatImage->matImage.at<short>(2, x) = 4095;
+//        rMatImage->matImage.at<short>(3, x) = 4095;
+//        rMatImage->matImage.at<short>(4, x) = 4095;
+//        rMatImage->matImage.at<short>(5, x) = 4095;
+    }
+
 }
 
 MyFitsImage* ImageManager::getNewFitsImage()

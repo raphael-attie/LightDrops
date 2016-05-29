@@ -200,7 +200,12 @@ void ROpenGLWidget::initializeGL()
 
     glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
-    if (matImageRGB.type() == CV_32F || matImageRGB.type() == CV_32FC3)
+    if (matImageRGB.type() == CV_32F)
+    {
+        if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment32c1.frag") )
+         return;
+    }
+    else if (matImageRGB.type() == CV_32FC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment32.frag") )
          return;
@@ -335,7 +340,14 @@ void ROpenGLWidget::loadGLTexture()
         oglt->setMinificationFilter(QOpenGLTexture::NearestMipMapNearest);
 
 
-        if (tempImageRGB.type() == CV_32FC3)
+        if (tempImageRGB.type() == CV_32F)
+        {
+            qDebug("ROpenGLWidget::loadGLTexture():: image is 32 bits float, 3 channels");
+            oglt->setFormat(QOpenGLTexture::R32F);
+            oglt->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::Float32);
+            oglt->setData(QOpenGLTexture::Red, QOpenGLTexture::Float32, tempImageRGB.data);
+        }
+        else if (tempImageRGB.type() == CV_32FC3)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 32 bits float, 3 channels");
             oglt->setFormat(QOpenGLTexture::RGB32F);
@@ -652,7 +664,12 @@ void ROpenGLWidget::updateSubQImage()
      x = std::max(std::min(x, naxis1-1), 0);
      y = std::max(std::min(y, naxis2-1), 0);
 
-     if (matImageRGB.type() == CV_32FC3)
+     if (matImageRGB.type() == CV_32F)
+     {
+         cv::Scalar color = matImageRGB.at<float>(y, x);
+         this->intensity = (float) color.val[0];
+     }
+     else if (matImageRGB.type() == CV_32FC3)
      {
          cv::Vec3f color = matImageRGB.at<cv::Vec3f>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);

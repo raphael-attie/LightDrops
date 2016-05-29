@@ -6,6 +6,7 @@
         <file>shaders/fragment888.frag</file>
         <file>shaders/fragment16uc1.frag</file>
         <file>shaders/fragment8.frag</file>
+        <file>shaders/fragment32c1.frag</file>
     </qresource>
     <qresource prefix="/icons">
         <file>Icons/icons1/ALIGN LEFT.svg</file>

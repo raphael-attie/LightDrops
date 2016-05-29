@@ -15,6 +15,7 @@
 #include "data.h"
 #include "circle.h"
 #include "utilities.h"
+#include "werner/limb.h"
 
 
 class RProcessing: public QObject
@@ -37,6 +38,13 @@ public:
 
     RMat *average(QList<RMat*> rMatList);
 
+    // Fourier filtering
+    double pixelDistance(double u, double v);
+    cv::Mat make2DGaussian(int matSize, double sigma);
+    cv::Mat fftshift(cv::Mat matFourier);
+    cv::Mat makePowerSpectrumFFT(cv::Mat matImage);
+    cv::Mat makeImageHPF(cv::Mat matImage, double sigma);
+
     // export methods
     void exportMastersToFits();
     void exportToFits(RMat *rMatImage, QString QStrFilename);
@@ -53,6 +61,9 @@ public:
     void setUseXCorr(bool useXCorr);
     void setCvRectROI(cv::Rect cvRect);
     void setUseROI(bool status);
+    void setBlurSigma(double sigma);
+    void setUseHPF(bool status);
+    void setHPFSigma(double sigma);
 
     // getters
     QString getExportMastersDir();
@@ -68,7 +79,9 @@ public:
     QList<RMat*> getContoursRMatList();
     QList<RMat*> getResultList();
     QList<RMat*> getResultList2();
-    QList<RMat*> getLimbFitPreviewList();
+    QList<RMat*> getLimbFitResultList1();
+    QList<RMat*> getLimbFitResultList2();
+
     QVector<Circle> getCircleOutList();
 
     // public properties (for "easier" referencing)
@@ -83,6 +96,7 @@ signals:
 
    void resultSignal(RMat* rMatResult);
    void resultSignal(cv::Mat matImage, bool bayer, instruments instrument);
+   void resultSignal(cv::Mat matImage, bool bayer, instruments instrument, QString imageTitle);
    void listResultSignal(QList<RMat*> rMatListResult);
    void ellipseSignal(cv::RotatedRect ellRect);
    void resultQImageSignal(QImage &image);
@@ -107,18 +121,24 @@ public slots:
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
    void registerSeries();
-   void registerSeries(QList<RMat*> rMatList);
+   void registerSeriesOnLimbFit();
+   void registerSeriesByPhaseCorrelation();
    void cannyEdgeDetectionOffScreen(int thresh);
-   void cannyEdgeDetection(int thresh);
+   bool cannyEdgeDetection(int thresh);
    void setupCannyDetection(int i);
    void cannyDetect(int thresh);
-   void limbFit(int i);
+   bool limbFit(int i);
    void cannyRegisterSeries();
+   bool wernerLimbFit();
+
+
    void blurRMat(RMat* rMat);
    QList<RMat*> normalizeSeriesByStats(QList<RMat*> rMatImageList);
    RMat* normalizeByStats(RMat* rMat);
    void normalizeByStatsInPlace(RMat* rMat);
-   cv::Mat normalizeClipByThresh(RMat* rMat, float newMin, float newMax);
+   cv::Mat normalizeByThresh(cv::Mat matImage, float oldMin, float oldMax, float newRange);
+   cv::Mat normalizeClipByThresh(cv::Mat matImage, float newMin, float newMax, float dataRange);
+   void fixUset(cv::Mat matImage);
 
 private:
 
@@ -133,6 +153,10 @@ private:
     RMat *masterFlatN;
     QList<RMat*> resultList;
     QList<RMat*> resultList2;
+    QList<RMat*> limbFitResultList1;
+    QList<RMat*> limbFitResultList2;
+
+    cv::Mat limbFitWarpMat;
     cv::Mat sampleMat8, sampleMatN, contoursMat;
     QImage *cannyQImage;
 
@@ -142,10 +166,9 @@ private:
 
     QList<ImageManager*> imageManagerList;
     QList<RMat*> contoursRMatList;
-    QList<RMat*> limbFitPreviewList;
     QVector<cv::RotatedRect> ellRectList;
     QVector<cv::Point2f> centers;
-    QVector< std::vector< std::vector<cv::Point> > > biggestContoursList;
+    QVector< std::vector< std::vector<cv::Point> > > selectedContoursList;
 
     RTreeWidget *treeWidget;
     ROpenGLWidget *currentROpenGLWidget;
@@ -167,6 +190,14 @@ private:
 
     // plots
     QCustomPlot *limbFitPlot;
+
+    /// Canny parameters
+    /// Blur
+    double blurSigma;
+
+    // Fourier Filters
+    bool useHPF;
+    double hpfSigma;
 
 };
 

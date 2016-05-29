@@ -40,6 +40,7 @@ private:
     void loadFits();
     void loadRaw();
     void createTableWidget();
+    void fixUset();
 
     RMat* rMatImage;
     QList<QString> fitsExtList;

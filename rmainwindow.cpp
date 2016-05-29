@@ -51,6 +51,8 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
     //this->setTabShape(QTabWidget::Triangular);
 
+    connect(this, SIGNAL(tempMessageSignal(QString,int)), this->statusBar(), SLOT(showMessage(QString,int)));
+
     /// Connect the change of slider value to the number displayed in the spinBox
     connect(ui->sliderHigh, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->sliderLow, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
@@ -88,6 +90,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(processing, SIGNAL(tempMessageSignal(QString,int)), this->statusBar(), SLOT(showMessage(QString,int)));
     connect(processing, SIGNAL(resultSignal(RMat*)), this, SLOT(createNewImage(RMat*)));
     connect(processing, SIGNAL(resultSignal(cv::Mat, bool, instruments)), this, SLOT(createNewImage(cv::Mat, bool, instruments)));
+    connect(processing, SIGNAL(resultSignal(cv::Mat, bool, instruments, QString)), this, SLOT(createNewImage(cv::Mat, bool, instruments, QString)));
     connect(processing, SIGNAL(listResultSignal(QList<RMat*>)), this, SLOT(createNewImage(QList<RMat*>)));
 
     /// Connect ui radio button to tree widget to send out window titles.
@@ -104,11 +107,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
     // Connect Canny detection
     connect(ui->cannySlider, SIGNAL(sliderReleased()), this, SLOT(cannyEdgeDetection()));
-    connect(ui->cannyRegisterButton, SIGNAL(released()), this, SLOT(cannyRegisterSeries()));
 
     // Connect QImage scenes
     connect(processing, SIGNAL(resultQImageSignal(QImage&)), this, SLOT(createNewImage(QImage&)));
-    //connect(processing, SIGNAL(processingQImageSignal(QImage&)), this, SLOT(processQImage(QImage&));
 
     //connect(processing, SIGNAL(ellipseSignal(cv::RotatedRect)), this, SLOT(addEllipseToScene(cv::RotatedRect)));
 
@@ -121,7 +122,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(ui->toneMappingSlider3, SIGNAL(valueChanged(int)), this, SLOT(updateToneMappingSlot()));
     connect(ui->applyToneMappingCheckBox, SIGNAL(toggled(bool)), this, SLOT(applyToneMappingCurve()));
 
-    qDebug() << "mdiArea->size =" << ui->mdiArea->size();
+    // Fourier Filters
+   qDebug() << "mdiArea->size =" << ui->mdiArea->size();
+
 }
 
 RMainWindow::~RMainWindow()
@@ -176,8 +179,16 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
     setupSliders(currentROpenGLWidget);
     autoScale(currentROpenGLWidget);
 
-    //addImageView(currentROpenGLWidget);
-    dispatchRMatImages(currentROpenGLWidget->getRMatImageList());
+    //dispatchRMatImages(currentROpenGLWidget->getRMatImageList());
+    ui->treeWidget->rMatLightList = newRListImageManager->getRMatImageList();
+    processing->rMatLightList = newRListImageManager->getRMatImageList();
+
+    ui->treeWidget->rMatFromLightRButton(newRListImageManager->getRMatImageList());
+
+    ///--- Test of Fourier Filtering ---///
+//    cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(0)->matImage.clone();
+//    cv::Mat matImageHPF = processing->makeImageHPF(matImage, 30);
+//    createNewImage(matImageHPF, false, instruments::generic, QString("Filtered"));
 }
 
 
@@ -199,11 +210,14 @@ void RMainWindow::createNewImage(RMat *rMatImage)
     displayPlotWidget(currentROpenGLWidget);
     currentSubWindow->show();
     setupSliders(currentROpenGLWidget);
+    autoScale(currentROpenGLWidget);
 }
 
-void RMainWindow::createNewImage(cv::Mat cvImage, bool bayer, instruments instrument)
+
+void RMainWindow::createNewImage(cv::Mat cvImage, bool bayer, instruments instrument, QString imageTitle)
 {
     RMat *rMatImage = new RMat(cvImage, bayer, instrument);
+    rMatImage->setImageTitle(imageTitle);
     createNewImage(rMatImage);
 }
 
@@ -218,6 +232,7 @@ void RMainWindow::createNewImage(QImage &image)
     graphicsView= new QGraphicsView(newScene);
 
     QMdiSubWindow *newSubWindow = new QMdiSubWindow;
+    newSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
     newSubWindow->setWidget(graphicsView);
     newSubWindow->setWindowTitle(QString("QImage"));
     ui->mdiArea->addSubWindow(newSubWindow);
@@ -227,46 +242,52 @@ void RMainWindow::createNewImage(QImage &image)
 
 }
 
-void RMainWindow::processQImage(QImage &image, QString windowTitle)
+void RMainWindow::displayQImage(QImage &image, RGraphicsScene *scene, QMdiSubWindow *subWindow, QString windowTitle)
 {
     QPixmap pixMap = QPixmap::fromImage(image);
 
     qDebug("RMainWindow::createNewImage(QImage &image):: pixMap.size() = [%i ; %i]", pixMap.size().width(), pixMap.size().height());
     //QPainter *painter = new QPainter(&image);
 
-    if (graphicsView == NULL)
-    {
+    //if (graphicsView == NULL)
+    //{
         QSize lastSize = ui->mdiArea->currentSubWindow()->size();
         QPoint lastPos = ui->mdiArea->currentSubWindow()->pos();
 
-        scene = new RGraphicsScene();
         pixMapItem = scene->addPixmap(pixMap);
         // QPointF QGraphicsSceneMouseEvent::lastScenePos()
         //scene->mouseGrabberItem()
 
-        graphicsView= new QGraphicsView(scene);
+        QGraphicsView *newGraphicsView= new QGraphicsView(scene);
         //graphicsView->scale(1, -1);
-        graphicsView->setDragMode(QGraphicsView::NoDrag);
-        graphicsView->scale(currentROpenGLWidget->getResizeFac(), currentROpenGLWidget->getResizeFac());
-        graphicsView->setCursor(Qt::CrossCursor);
+        newGraphicsView->setDragMode(QGraphicsView::NoDrag);
+        newGraphicsView->scale(currentROpenGLWidget->getResizeFac(), currentROpenGLWidget->getResizeFac());
+        newGraphicsView->setCursor(Qt::CrossCursor);
 
-        QMdiSubWindow *newSubWindow = new QMdiSubWindow;
-        newSubWindow->setWidget(graphicsView);
+        subWindow->setWidget(newGraphicsView);
+        ui->mdiArea->addSubWindow(subWindow);
+        subWindow->show();
+        subWindow->resize(lastSize);
+        subWindow->move(lastPos);
+        subWindow->setWindowTitle(windowTitle);
+        currentSubWindow = subWindow;
 
-        ui->mdiArea->addSubWindow(newSubWindow);
+    //}
+//    else
+//    {
+//        QSize lastSize = ui->mdiArea->currentSubWindow()->size();
+//        QPoint lastPos = ui->mdiArea->currentSubWindow()->pos();
 
-        newSubWindow->show();
+//        pixMapItem->setPixmap(pixMap);
 
-        newSubWindow->resize(lastSize);
-        newSubWindow->move(lastPos);
-        newSubWindow->setWindowTitle(windowTitle);
-
-        connect(scene, SIGNAL(ROIsignal(QRect)), this, SLOT(setRect(QRect)));
-    }
-    else
-    {
-        pixMapItem->setPixmap(pixMap);
-    }
+//        QMdiSubWindow *sceneSubWindow = new QMdiSubWindow;
+//        sceneSubWindow->setWidget(graphicsView);
+//        ui->mdiArea->addSubWindow(sceneSubWindow);
+//        sceneSubWindow->show();
+//        sceneSubWindow->resize(lastSize);
+//        sceneSubWindow->move(lastPos);
+//        sceneSubWindow->setWindowTitle(windowTitle);
+//    }
 
 
 }
@@ -283,7 +304,7 @@ void RMainWindow::selectROI()
     lastROpenGLWidget = currentROpenGLWidget;
     /// Use copy constructor of the RMat to copy the current RMat image.
     RMat tempRMat(*currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()));
-    cv::Mat matImage = processing->normalizeClipByThresh(&tempRMat, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh());
+    cv::Mat matImage = processing->normalizeByThresh(tempRMat.matImage, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh(), tempRMat.getDataRange());
 //    int width = 1000;
 //    int height = 1000;
 //    cv::Rect ROI(0, matImage.rows - 1 - height, width, height);
@@ -298,15 +319,26 @@ void RMainWindow::selectROI()
 //    painter.scale(currentROpenGLWidget->getResizeFac(), -currentROpenGLWidget->getResizeFac());
 //    painter.drawImage(0, -matImage.cols, imageROI);
 
-    processQImage(targetImage, QString("Select ROI"));
+    RGraphicsScene *roiScene = new RGraphicsScene();
+    QMdiSubWindow *roiSubWindow = new QMdiSubWindow();
+    roiSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
+    displayQImage(targetImage, roiScene, roiSubWindow, QString("Select ROI"));
+
+    connect(roiScene, SIGNAL(ROIsignal(QRect)), this, SLOT(setRect(QRect)));
+    connect(roiSubWindow, SIGNAL(destroyed(QObject*)), this, SLOT(disableROIaction()));
+
 }
 
 void RMainWindow::setRect(QRect rect)
 {
-    qDebug("rect.x(), rect.y(), rect.width(), rect.height() = [%i, %i, %i, %i]", rect.x(), rect.y(), rect.width(), rect.height());
+    qDebug("RMainWindow::setRect() rect.x(), rect.y(), rect.width(), rect.height() = [%i, %i, %i, %i]", rect.x(), rect.y(), rect.width(), rect.height());
     this->rect = rect;
     cv::Rect cvRectROI(rect.x(), rect.y(), rect.width(), rect.height());
     processing->setCvRectROI(cvRectROI);
+    ui->xROIBox->setValue(rect.x());
+    ui->yROIBox->setValue(rect.y());
+    ui->widthROIBox->setValue(rect.width());
+    ui->heightROIBox->setValue(rect.height());
 
 }
 
@@ -335,7 +367,7 @@ void RMainWindow::extractNewImageROI()
     float minThresh =  currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityLow();
     float maxThresh = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityHigh();
     cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->matImage;
-    //cv::Mat matImage = processing->normalizeClipByThresh(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()), minThresh, maxThresh);
+    //cv::Mat matImage = processing->normalizeByThresh(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()), minThresh, maxThresh);
     cv::Mat matImageROI = matImage(cvRectROI);
 
     RMat *tempRMat = new RMat(matImageROI, false, currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getInstrument());
@@ -348,7 +380,7 @@ void RMainWindow::extractNewImageROI()
 //    float minThresh =  currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityLow();
 //    float maxThresh = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityHigh();
 
-//    cv::Mat matImage = processing->normalizeClipByThresh(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()), minThresh, maxThresh);
+//    cv::Mat matImage = processing->normalizeByThresh(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()), minThresh, maxThresh);
 //    matImage.convertTo(matImage, CV_8U, 256.0f/ currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getDataRange());
 
 //    int x = 614;
@@ -375,6 +407,11 @@ void RMainWindow::extractNewImageROI()
 
 }
 
+void RMainWindow::disableROIaction()
+{
+    ui->actionROISelect->setChecked(false);
+}
+
 //void RMainWindow::addEllipseToScene(cv::RotatedRect rect)
 //{
 ////    QGraphicsEllipseItem * QGraphicsScene::addEllipse(qreal x, qreal y, qreal w, qreal h, const QPen & pen = QPen(), const QBrush & brush = QBrush())
@@ -389,43 +426,45 @@ void RMainWindow::extractNewImageROI()
 
 void RMainWindow::dispatchRMatImages(QList<RMat*> rMatList)
 {
-    // Try to guess the calibration type (Light, Bias, Dark, or Flat)
-    // with the file names, or directory name, etc... and "radio" it out as if we were pressing the corresponding radio button
-    // to assign it to the corresponding QTreeWidgetItem in the treeWidget.
+    //emit radioLightImages(rMatList);
+    ui->treeWidget->rMatLightList = rMatList;
+    processing->rMatLightList = rMatList;
 
-    bool noBias = !(rMatList.at(0)->getImageTitle().contains(QString("bias"), Qt::CaseInsensitive) |
-                   rMatList.at(0)->getImageTitle().contains(QString("offset"), Qt::CaseInsensitive) |
-                   rMatList.at(0)->getFileInfo().absolutePath().contains(QString("bias"), Qt::CaseInsensitive));
+    ui->treeWidget->rMatFromLightRButton(rMatList);
+//    // Try to guess the calibration type (Light, Bias, Dark, or Flat)
+//    // with the file names, or directory name, etc... and "radio" it out as if we were pressing the corresponding radio button
+//    // to assign it to the corresponding QTreeWidgetItem in the treeWidget.
 
-    bool noDark = !(rMatList.at(0)->getImageTitle().contains(QString("dark"), Qt::CaseInsensitive) |
-                   rMatList.at(0)->getFileInfo().absolutePath().contains(QString("dark"), Qt::CaseInsensitive));
+//    bool noBias = !(rMatList.at(0)->getImageTitle().contains(QString("bias"), Qt::CaseInsensitive) |
+//                   rMatList.at(0)->getImageTitle().contains(QString("offset"), Qt::CaseInsensitive) |
+//                   rMatList.at(0)->getFileInfo().absolutePath().contains(QString("bias"), Qt::CaseInsensitive));
 
-    bool noFlat = !(rMatList.at(0)->getImageTitle().contains(QString("flat"), Qt::CaseInsensitive) |
-                   rMatList.at(0)->getFileInfo().absolutePath().contains(QString("flat"), Qt::CaseInsensitive));
+//    bool noDark = !(rMatList.at(0)->getImageTitle().contains(QString("dark"), Qt::CaseInsensitive) |
+//                   rMatList.at(0)->getFileInfo().absolutePath().contains(QString("dark"), Qt::CaseInsensitive));
 
-    bool isAmbiguous = rMatList.at(0)->getFileInfo().absolutePath().contains(QString("light"), Qt::CaseInsensitive);
+//    bool noFlat = !(rMatList.at(0)->getImageTitle().contains(QString("flat"), Qt::CaseInsensitive) |
+//                   rMatList.at(0)->getFileInfo().absolutePath().contains(QString("flat"), Qt::CaseInsensitive));
 
-    bool isBias = (!noBias & noDark & noFlat & !isAmbiguous) | rMatList.at(0)->getImageTitle().contains(QString("bias"), Qt::CaseInsensitive) |  rMatList.at(0)->getImageTitle().contains(QString("offset"), Qt::CaseInsensitive);
-    bool isDark = (!noDark & noBias & noFlat & !isAmbiguous) | rMatList.at(0)->getImageTitle().contains(QString("dark"), Qt::CaseInsensitive) ;
-    bool isFlat = (!noFlat & noDark & noBias & !isAmbiguous) | rMatList.at(0)->getImageTitle().contains(QString("flat"), Qt::CaseInsensitive) ;
+//    bool isAmbiguous = rMatList.at(0)->getFileInfo().absolutePath().contains(QString("light"), Qt::CaseInsensitive);
+
+//    bool isBias = (!noBias & noDark & noFlat & !isAmbiguous) | rMatList.at(0)->getImageTitle().contains(QString("bias"), Qt::CaseInsensitive) |  rMatList.at(0)->getImageTitle().contains(QString("offset"), Qt::CaseInsensitive);
+//    bool isDark = (!noDark & noBias & noFlat & !isAmbiguous) | rMatList.at(0)->getImageTitle().contains(QString("dark"), Qt::CaseInsensitive) ;
+//    bool isFlat = (!noFlat & noDark & noBias & !isAmbiguous) | rMatList.at(0)->getImageTitle().contains(QString("flat"), Qt::CaseInsensitive) ;
 
 
-    if (isBias)
-    {
-        ui->biasRButton->click();
-    }
-    else if (isDark)
-    {
-        ui->darkRButton->click();
-    }
-    else if (isFlat)
-    {
-        ui->flatRButton->click();
-    }
-    else
-    {
-        emit radioLightImages(currentROpenGLWidget->getRMatImageList());
-    }
+//    if (isBias)
+//    {
+//        ui->biasRButton->click();
+//    }
+//    else if (isDark)
+//    {
+//        ui->darkRButton->click();
+//    }
+//    else if (isFlat)
+//    {
+//        ui->flatRButton->click();
+//    }
+
 }
 
 void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
@@ -458,36 +497,6 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 
 }
 
-void RMainWindow::addImageView(ROpenGLWidget *rOpenGLWidget)
-{
-    /// Currently buggy when sub-classing QOpenGLWidget with ROpenGLWidget
-    /// Some error when linking the shaders.
-    ui->sliderFrame->setRange(0, rOpenGLWidget->getRMatImageList().size()-1);
-    ui->sliderFrame->setValue(0);
-    ui->imageLabel->setText(QString("1") + QString("/") + QString::number(rOpenGLWidget->getRMatImageList().size()));
-
-    graphicsView= new QGraphicsView();
-
-    graphicsView->setViewport(rOpenGLWidget);
-    //graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-
-
-    QMdiSubWindow *newSubWindow = new QMdiSubWindow;
-    newSubWindow->setWidget(graphicsView);
-    ui->mdiArea->addSubWindow(newSubWindow);
-    newSubWindow->setWindowTitle(QString("graphicsView"));
-
-    rOpenGLWidget->resize(QSize(512, 512));
-
-    newSubWindow->resize(QSize(400, 400));
-    newSubWindow->show();
-
-    displayPlotWidget(rOpenGLWidget);
-    setupSliders(rOpenGLWidget);
-    autoScale(rOpenGLWidget);
-
-
-}
 
 void RMainWindow::resizeScrollArea(ROpenGLWidget *rOpenGLWidget, QScrollArea *scrollArea)
 {
@@ -527,6 +536,7 @@ void RMainWindow::resizeScrollArea(ROpenGLWidget *rOpenGLWidget, QScrollArea *sc
 void RMainWindow::loadSubWindow(QScrollArea *scrollArea)
 {
     currentSubWindow = new QMdiSubWindow;
+    //currentSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
     currentSubWindow->setWidget(scrollArea);
     ui->mdiArea->addSubWindow(currentSubWindow);
     currentSubWindow->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getImageTitle());
@@ -612,25 +622,28 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     ui->sliderHigh->blockSignals(true);
     ui->sliderLow->blockSignals(true);
 
-    ui->sliderHigh->setRange(1, (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange());
-    ui->sliderLow->setRange(1, (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange());
 
-    ui->sliderHigh->blockSignals(false);
-    ui->sliderLow->blockSignals(false);
-
-    sliderRange = (float) ui->sliderHigh->maximum() - ui->sliderHigh->minimum() + 1;
-
-    if (rOpenGLWidget->getRMatImageList().at(0)->getBscale() == 1
-            && rOpenGLWidget->getRMatImageList().at(0)->getInstrument() != instruments::MAG)
+    if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32F && rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32FC3)
     {
+        sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange();
+        ui->sliderHigh->setRange(1, sliderRange);
+        ui->sliderLow->setRange(1, sliderRange);
+
         sliderScale = 1.0;
         sliderToScaleMinimum = 0;
+
     }
     else
     {
+
          /// Here the image is assumed to be seen as scientific data
          /// for which scaling needs to be tightly set around the min and max
          /// so we can scan through with maximum dynamic range.
+
+        sliderRange = 65536;
+        ui->sliderHigh->setRange(1, sliderRange);
+        ui->sliderLow->setRange(1, sliderRange);
+
         float dataMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
         float dataMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
         float dataRange = dataMax - dataMin;
@@ -642,6 +655,10 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
         // update the number of decimals in the spinBox High and Low
         decimals = 2;
     }
+
+
+    ui->sliderHigh->blockSignals(false);
+    ui->sliderLow->blockSignals(false);
 
     ui->doubleSpinBoxHigh->blockSignals(true);
     ui->doubleSpinBoxLow->blockSignals(true);
@@ -677,13 +694,13 @@ void RMainWindow::cannyEdgeDetection()
 {
     if (ui->treeWidget->rMatLightList.isEmpty() && ui->treeWidget->getLightUrls().empty())
     {
-        ui->statusBar->showMessage(QString("No lights for Canny edge detection"), 3000);
+        ui->statusBar->showMessage(QString("No lights for limb detection"), 3000);
         return;
     }
 
     QPoint lastPos;
     bool restoreCannyView = false;
-    if (cannyContoursROpenGLWidget != 0)
+    if (cannySubWindow != NULL)
     {
         lastPos = cannySubWindow->pos();
         cannySubWindow->close();
@@ -692,10 +709,28 @@ void RMainWindow::cannyEdgeDetection()
 
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
+    processing->setBlurSigma(ui->blurSpinBox->value());
+    processing->setUseHPF(ui->hpfCheckBox->isChecked());
+    processing->setHPFSigma(ui->hpfSpinBox->value());
+
 
     if (!ui->treeWidget->rMatLightList.isEmpty())
     {
-        processing->cannyEdgeDetection(ui->cannySlider->value());
+        bool success;
+        if (!ui->wernerCheckBox->isChecked())
+        {
+            success = processing->cannyEdgeDetection(ui->cannySlider->value());
+        }
+        else
+        {
+            success = processing->wernerLimbFit();
+        }
+
+
+        if (!success)
+        {
+            return;
+        }
         /// Results need to be displayed as ROpenGLWidget as we will, de facto,
         /// deal with time series
         //createNewImage(processing->getContoursRMatList());
@@ -709,7 +744,15 @@ void RMainWindow::cannyEdgeDetection()
     }
     else if (!ui->treeWidget->getLightUrls().empty())
     {
-        processing->cannyEdgeDetectionOffScreen(ui->cannySlider->value());
+        if (!ui->wernerCheckBox->isChecked())
+        {
+            processing->cannyEdgeDetectionOffScreen(ui->cannySlider->value());
+        }
+        else
+        {
+            return;
+        }
+
     }
 
 
@@ -728,25 +771,16 @@ void RMainWindow::cannyEdgeDetection()
     displayPlotWidget(currentROpenGLWidget);
 }
 
-void RMainWindow::cannyRegisterSeries()
+void RMainWindow::cannyRegisterSlot()
 {
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
-    processing->setUseXCorr(ui->useXCorrCheckBox->isChecked());
+
     processing->cannyRegisterSeries();
 
-    //cannySubWindow->hide();
-    createNewImage(processing->getLimbFitPreviewList());
-    limbRegisterSubWindow = ui->mdiArea->currentSubWindow();
-
-    rangeScale();
-
-
-    if (ui->useXCorrCheckBox->isChecked())
-    {
-        createNewImage(processing->getResultList2());
-
-    }
+    createNewImage(processing->getLimbFitResultList1());
+    //rangeScale();
+    autoScale();
 }
 
 
@@ -757,6 +791,22 @@ void RMainWindow::normalizeCurrentSeries()
 
     createNewImage(normalizedRMatList);
     autoScale();
+}
+
+
+void RMainWindow::previewMatImageHPFSlot()
+{
+    if (ui->treeWidget->rMatLightList.empty())
+    {
+        emit tempMessageSignal(QString("No image"));
+        return;
+    }
+
+    double sigma = (double) ui->hpfSpinBox->value();
+    cv::Mat matImage = ui->treeWidget->rMatLightList.at(ui->sliderFrame->value())->matImage;
+    matImageHPFPreview = processing->makeImageHPF(matImage, (double) sigma);
+
+    createNewImage(matImageHPFPreview, false, instruments::generic, QString("High-pass filtered image, sigma = %1").arg(ui->hpfSpinBox->value()));
 }
 
 void RMainWindow::showLimbFitStats()
@@ -1378,7 +1428,7 @@ void RMainWindow::setupExportCalibrateDir()
 
     ui->calibrateDirLineEdit->setText(dir);
 
-    emit messageSignal(QString(" Exporting calibrated files to: ") + dir);
+    emit tempMessageSignal(QString(" Exporting calibrated files to: ") + dir, 0);
 }
 
 void RMainWindow::exportMastersToFits()
@@ -1388,7 +1438,21 @@ void RMainWindow::exportMastersToFits()
 
 void RMainWindow::exportFrames()
 {
+    if (ui->jpegExportCheckBox->isChecked())
+    {
+        exportFramesToJpeg();
+    }
+
+    if (ui->fitsExportCheckBox->isChecked())
+    {
+        exportFramesToFits();
+    }
+}
+
+void RMainWindow::exportFramesToJpeg()
+{
     QDir exportDir(ui->exportDirEdit->text());
+
     QString format("jpg");
 
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
@@ -1399,10 +1463,10 @@ void RMainWindow::exportFrames()
         qDebug() << "RMainWindow::exportFrames():: filePath =" << filePath;
         QImage newQImage = currentROpenGLWidget->grabFramebuffer();
 
-        QPainter painter( &newQImage );
+        QPainter painter( &newQImage);
         painter.setPen(QColor(255, 255, 255, 255));
         painter.setFont( QFont("Arial", 16) );
-        painter.drawText( QPoint(10, 20), currentROpenGLWidget->getRMatImageList().at(i)->getDate_time());
+        painter.drawText( QPoint(10, 20), QString("USET / ROB ") + currentROpenGLWidget->getRMatImageList().at(i)->getDate_time() + QString(" UT"));
 //        painter.drawRect(QRect(QPoint(1,1), QPoint(200, 200)));
 
 //        createNewImage(newQImage);
@@ -1410,7 +1474,20 @@ void RMainWindow::exportFrames()
         ui->sliderFrame->setValue(ui->sliderFrame->value() + 1);
 
     }
+}
 
+void RMainWindow::exportFramesToFits()
+{
+    QDir exportDir(ui->exportDirEdit->text());
+    QString format("fits");
+
+    for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
+    {
+        QString fileName(QString("image_") + QString::number(i) + QString(".") + format);
+        QFileInfo fileInfo(exportDir.filePath(fileName));
+        QString filePath = processing->setupFileName(fileInfo, format);
+        processing->exportToFits(currentROpenGLWidget->getRMatImageList().at(i), filePath);
+    }
 }
 
 void RMainWindow::convertTo8Bit()
@@ -1430,6 +1507,7 @@ void RMainWindow::convertTo8Bit()
 
         RMat *rMat8bit = new RMat(mat8bit.clone(), false);
         rMat8bit->setImageTitle(QString("8-bit image # %1").arg(i));
+        rMat8bit->setDate_time(currentROpenGLWidget->getRMatImageList().at(i)->getDate_time());
         rMat8bitList << rMat8bit;
     }
 
@@ -1454,9 +1532,33 @@ void RMainWindow::calibrateOffScreenSlot()
     processing->calibrateOffScreen();
 }
 
-void RMainWindow::registerSeries()
+void RMainWindow::registerSlot()
 {
-    processing->registerSeries();
+    if (this->sender() != ui->phaseCorrPushB)
+    {
+        processing->setUseROI(ui->roiRadioButton->isChecked());
+
+        if (ui->limbFitCheckBox->isChecked())
+        {
+            processing->registerSeriesOnLimbFit();
+            createNewImage(processing->getLimbFitResultList2());
+            autoScale();
+        }
+        else
+        {
+            processing->registerSeries();
+            createNewImage(processing->getResultList());
+            autoScale();
+        }
+    }
+    else
+    {
+        processing->registerSeriesByPhaseCorrelation();
+        createNewImage(processing->getResultList());
+        autoScale();
+    }
+
+
 }
 
 

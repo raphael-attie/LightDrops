@@ -18,7 +18,7 @@ int CircleFitByChernovLesort (Data& data, Circle& circleIni, reals LambdaIni, Ci
 Circle Perturb (Circle& New, Circle& Old, reals range);
 Circle CircleFitByPratt (Data& data);
 Circle CircleFitByHyper (Data& data);
-
+Circle CircleFitByTaubin(Data& data);
 
 #endif // UTILITIES_H
 

@@ -18,6 +18,7 @@ RMat::RMat(const RMat &rMat)
     rMat.matImage.copyTo(this->matImage);
     this->imageTitle = QString("Image #");
 
+
     if (matImage.channels() > 1)
     {
         cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
@@ -26,9 +27,8 @@ RMat::RMat(const RMat &rMat)
     {
         matImageGray = matImage;
     }
-    calcMinMax();
-    calcStats();
 
+    calcStats();
 }
 
 
@@ -49,9 +49,8 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
     {
         matImageGray = matImage;
     }
-    calcMinMax();
-    calcStats();
 
+    calcStats();
 }
 
 RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
@@ -93,7 +92,6 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
 
 
     calcStats();
-
 }
 
 
@@ -120,7 +118,7 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
     }
     else
     {
-        cv::calcHist( &matImageGray, 1, 0, cv::Mat(), matHist, 1, &nBins, &histRange, uniform, accumulate);
+        cv::calcHist( &matImageGray, 1, 0, cv::Mat(), matHist, 1, &nBins, &histRange, uniform, accumulate);   
     }
 
     float cdf = 0;
@@ -202,15 +200,25 @@ void RMat::calcStats()
     if (instrument == instruments::USET)
     {
         dataRange = 4096.0f;
+        normalizeRange = 4096.0f;
     }
-    else if (matType == CV_16U || matType == CV_16UC3 || matType == CV_32F || matType == CV_32FC3)
+    else if (matType == CV_16U || matType == CV_16UC3)
     {
         dataRange = 65536.0f;
+        normalizeRange = 65536.0f;
     }
-
+    else if (matType == CV_32F || matType == CV_32FC3)
+    {
+        dataRange = (float) (dataMax - dataMin) + 1.0f;
+        /// For normalization / contrast stretching
+        /// we assume that no CCD will go beyond 16 bits
+        /// thus keeping a maximum 16-bit data range
+        normalizeRange = 65536.0f;
+    }
     else if (matType == CV_8U || matType == CV_8UC3)
     {
         dataRange = 256.0f;
+        normalizeRange = 256.0f;
     }
     else
     {
@@ -223,6 +231,8 @@ void RMat::calcMinMax()
 {
     cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
 }
+
+
 
 float RMat::calcMedian()
 {
@@ -377,6 +387,11 @@ float RMat::getMaxHistRange() const
 float RMat::getDataRange() const
 {
     return dataRange;
+}
+
+float RMat::getNormalizeRange() const
+{
+    return normalizeRange;
 }
 
 QTreeWidgetItem* RMat::getItem() const
