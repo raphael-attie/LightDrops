@@ -331,6 +331,7 @@ void ROpenGLWidget::loadGLTexture()
     {
         cv::Mat tempImageRGB = matImageListRGB.at(ii);
 
+
         QOpenGLTexture *oglt = new QOpenGLTexture(QOpenGLTexture::Target2D);
         oglt->setSize(naxis1, naxis2);
 
@@ -339,6 +340,7 @@ void ROpenGLWidget::loadGLTexture()
         //oglt->setMagnificationFilter(QOpenGLTexture::NearestMipMapNearest);
         oglt->setMinificationFilter(QOpenGLTexture::NearestMipMapNearest);
 
+        qDebug() << "isAutoMipMapGenerationEnabled() =" << oglt->isAutoMipMapGenerationEnabled();
 
         if (tempImageRGB.type() == CV_32F)
         {
@@ -550,6 +552,9 @@ void ROpenGLWidget::changeFrame(int value)
 
 void ROpenGLWidget::wheelEvent(QWheelEvent *wheelEvent)
 {
+    /// Strangely, The wheelEvent needs to be accepted for magnification (zoom-in) to work proplerly,
+    /// whereas this is not needed for zoom-out.
+    wheelEvent->accept();
     if (wheelEvent->modifiers() & Qt::ShiftModifier)
     {
         qreal numDegrees = (qreal) (wheelEvent->angleDelta().y() / 8.0f);
