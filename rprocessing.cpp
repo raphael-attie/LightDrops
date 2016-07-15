@@ -1413,13 +1413,10 @@ void RProcessing::cannyRegisterSeries()
 
 bool RProcessing::wernerLimbFit()
 {
-    /// Uses Werner's routine to get limb points from a method that detect the steepest
-    /// slopes.
-
     // Check if data exist
     if (rMatLightList.isEmpty())
     {
-        emit tempMessageSignal(QString("No lights for limb detection"));
+        emit tempMessageSignal(QString("No images"));
         return false;
     }
 
@@ -1434,9 +1431,9 @@ bool RProcessing::wernerLimbFit()
         circleOutList.clear();
     }
 
-    int i = 0;
-//    for (int i = 0; i < rMatLightList.size(); i++)
-//    {
+//    int i = 0;
+    for (int i = 0; i < rMatLightList.size(); i++)
+    {
 
         cv::Mat matImage0 = rMatLightList.at(i)->matImage.clone(); //normalizeByThresh(rMatLightList.at(i)->matImage, rMatLightList.at(i)->getIntensityLow(), rMatLightList.at(i)->getIntensityHigh(), rMatLightList.at(i)->getNormalizeRange());
         cv::Mat matImage;
@@ -1446,8 +1443,8 @@ bool RProcessing::wernerLimbFit()
         if (useHPF)
         {
             matImageHPF = makeImageHPF(matImage0, hpfSigma);
-            matImageHPF.convertTo(matImage, CV_32S);
-            showMinMax(matImage);
+            qDebug("RPRocessing::wernerLimbFit  hpfSigma = %f", hpfSigma);
+            matImageHPF.convertTo(matImage, CV_32F);
         }
         else
         {
@@ -1455,37 +1452,9 @@ bool RProcessing::wernerLimbFit()
         }
 
         int numDots = 64;
-        int naxis1 = matImage.cols;
-        int naxis2 = matImage.rows;
+
         Data wernerPoints = Data(numDots*4);
-        //int *dataPtr = matImage.ptr<int>(0);
-        matImage = matImage.clone();
-        ushort *dataPtr = reinterpret_cast<ushort*>(matImage.data);
-
-        FindLimb2( (ushort*)matImage.data, &wernerPoints, naxis1, naxis2, numDots);
-
-
-//        for (int ii = 0; ii < numDots; ii++)
-//        {
-//            dataPtr[(naxis1/4+ii*naxis1/(2*numDots))*naxis1] = 4095;
-//        }
-
-        matImage.convertTo(matImage, CV_16U);
-        //emit resultSignal(matImage, false, instruments::USET, QString("HPF"));
-
-        contoursMat = cv::Mat::zeros(matImage.rows, matImage.cols, CV_8U);
-        matImage.convertTo(contoursMat, CV_8U, 256.0f /  rMatLightList.at(i)->getNormalizeRange());
-
-        cv::cvtColor(contoursMat, contoursMat, CV_GRAY2RGB);
-
-        /// Display points in contoursMat
-        for (int j = 0; j < wernerPoints.n; j++)
-        {
-            cv::Point point( wernerPoints.X[j], wernerPoints.Y[j]);
-            //std::cout << "Point = " << point << std::endl;
-            //cv::line(contoursMat, point, point, cv::Scalar(0, 255, 0), 8, 8, 0);
-
-        }
+        raphFindLimb2( matImage, &wernerPoints, numDots);
 
         circleOut = CircleFitByTaubin(wernerPoints);
 
@@ -1494,15 +1463,104 @@ bool RProcessing::wernerLimbFit()
         //    reals lambdaIni = 0.001;
         //    CircleFitByLevenbergMarquardtFull(wernerPoints, circleInit, lambdaIni, circleOut);
 
-        circleOutList << circleOut;
+        /// 2nd pass of fitting:
+        /// Here, the circle might still be off because of outliers (clouds, ...)
+        /// Try sigma-clipping on the set of detected points.
+
+        /// 2) Identify the outlyers
+        /// 3) Reject them to define a cleaner set of points.
+        /// 4) Fit this cleaner set of points (2nd pass)
+
+        cv::Point2f circleCenter(circleOut.a, circleOut.b);
+        std::vector<float> distances(wernerPoints.n);
+        for (int j = 0; j < wernerPoints.n; j++)
+        {
+            cv::Point2f point( (float) wernerPoints.X[j], (float) wernerPoints.Y[j]);
+            float distance = cv::norm(point-circleCenter);
+            distances[j] = distance;
+
+        }
+        /// documentation: void meanStdDev(InputArray src, OutputArray mean, OutputArray stddev, InputArray mask=noArray())
+        cv::Scalar mean, stddev;
+        cv::meanStdDev(distances, mean, stddev);
+
+        std::vector<cv::Point> newPoints;
+        for (int j = 0; j < wernerPoints.n; j++)
+        {
+            if ( abs(distances[j] - mean[0] ) <  stddev[0] )
+            {
+                cv::Point2f point( (float) wernerPoints.X[j], (float) wernerPoints.Y[j]);
+                newPoints.push_back(point);
+
+            }
+        }
+
+        Data cleanDataPoints(newPoints.size());
+        Circle circleOut2;
+        if (!newPoints.empty())
+        {
+            for (int j = 0; j < newPoints.size() ; j++)
+            {
+                cleanDataPoints.X[j] = newPoints.at(j).x;
+                cleanDataPoints.Y[j] = newPoints.at(j).y;
+            }
+
+            /// 2nd pass at fitting
+            circleOut2 = CircleFitByTaubin(cleanDataPoints);
+        }
+        /// End of 2nd pass
+        if (!newPoints.empty())
+        {   /// Store the 2nd pass
+            circleOutList << circleOut2;
+        }
+        else
+        {   /// if there were only 1 pass, store it.
+            circleOutList << circleOut;
+        }
+
+
+        /// Display results
+        matImage0.convertTo(matImage, CV_16U);
+        //emit resultSignal(matImage, false, instruments::USET, QString("HPF"));
+
+        contoursMat = cv::Mat::zeros(matImage.rows, matImage.cols, CV_8U);
+        matImage0.convertTo(contoursMat, CV_8U, 256.0f /  rMatLightList.at(i)->getNormalizeRange());
+
+        cv::cvtColor(contoursMat, contoursMat, CV_GRAY2RGB);
+
+        /// Display points in contoursMat
+        for (int j = 0; j < wernerPoints.n; j++)
+        {
+            /// 1st pass in green
+            cv::Point point( wernerPoints.X[j], wernerPoints.Y[j]);
+            cv::line(contoursMat, point, point, cv::Scalar(0, 255, 0), 8, 8, 0);
+        }
+        if (!newPoints.empty())
+        {
+            for (int j = 0; j < cleanDataPoints.n; j++)
+            {
+                /// 2nd pass in red
+                cv::Point point( cleanDataPoints.X[j], cleanDataPoints.Y[j]);
+                cv::line(contoursMat, point, point, cv::Scalar(255, 0, 0), 6, 6, 0);
+            }
+        }
+
 
         if (showLimb)
         {
 
+            // draw the 1st fitted circle in red
+            cv::Scalar green = cv::Scalar(0, 255, 0);
             cv::Scalar red = cv::Scalar(255, 0, 0);
-            // draw the fitted circle
-            cv::Point2f circleCenter(circleOut.a, circleOut.b);
-            cv::circle(contoursMat, circleCenter, circleOut.r, red, 2, 8);
+            cv::circle(contoursMat, circleCenter, circleOut.r, green, 2, 8);
+
+            if (!newPoints.empty())
+            {
+                // draw the 2nd fitted circle in green
+                cv::Point2f circleCenter2(circleOut2.a, circleOut2.b);
+                cv::circle(contoursMat, circleCenter2, circleOut2.r, red, 2, 8);
+            }
+
         }
 
         /// Pack the results showing contours of all the edges
@@ -1510,10 +1568,120 @@ bool RProcessing::wernerLimbFit()
         contoursRMat->setImageTitle(QString("werner Limb Detection: Image # %1").arg(i+1));
         contoursRMatList << contoursRMat;
 
-//    }
+    }
 
-    return true;
+        return true;
 }
+
+void RProcessing::raphFindLimb(cv::Mat matImage, Data *dat, int numDots)
+{
+    cv::Mat blurMat, matSlice1, matSlice2, matSlice3, matSlice4;
+    cv::blur(matImage, blurMat, cv::Size(7, 7));
+    cv::Mat gradXLeft, gradXRight, gradYBottom, gradYTop;
+    cv::Point minLoc, maxLoc;
+    double minVal, maxVal;
+
+    int naxis1 = matImage.cols;
+    int naxis2 = matImage.rows;
+
+    /// Kernels for image gradients.
+    /// Over x-axis, forward (from left edge) and backward (from right-edge) direction
+    cv::Mat kernelXLeft = (cv::Mat_<float>(1,3)<<-0.5, 0, 0.5);
+    cv::Mat kernelXRight = (cv::Mat_<float>(1,3)<<0.5, 0, -0.5);
+    /// Over y-axis, forward and backward direction
+    cv::Mat kernelYBottom = (cv::Mat_<float>(3,1)<<-0.5, 0, 0.5);
+    cv::Mat kernelYTop = (cv::Mat_<float>(3,1)<<0.5, 0, -0.5);
+
+    cv::filter2D(blurMat, gradXLeft, -1, kernelXLeft, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+    cv::filter2D(blurMat, gradXRight, -1, kernelXRight, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+    cv::filter2D(blurMat, gradYBottom, -1, kernelYBottom, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+    cv::filter2D(blurMat, gradYTop, -1, kernelYTop, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+
+    gradXLeft(cv::Range::all(), cv::Range(0,15)) = 0;
+    gradYBottom(cv::Range(0,15), cv::Range::all()) = 0;
+
+    for (int ii = 0; ii < numDots; ii++)
+    {
+        int X = naxis1/4 + ii*naxis1/(2*numDots);
+        int Y = naxis2/4 + ii*naxis2/(2*numDots);
+        /// Left-hand slices (no copy)
+        matSlice1 = gradXLeft(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
+        cv::minMaxLoc(matSlice1, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii] = maxLoc.x;
+        dat->Y[ii] = Y;
+        /// Right-hand slices (no copy)
+        matSlice2 = gradXRight(cv::Range(Y, Y+1), cv::Range(3*naxis1/4, naxis1));
+        cv::minMaxLoc(matSlice2, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii + numDots] = maxLoc.x + 3*naxis1/4;
+        dat->Y[ii + numDots] = Y;
+        ///Bottom slices (no copy)
+        matSlice3 = gradYBottom(cv::Range(0, naxis2/4), cv::Range(X, X+1));
+        cv::minMaxLoc(matSlice3, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii + 2*numDots] = X;
+        dat->Y[ii + 2*numDots] = maxLoc.y;
+        ///Top slices (no copy)
+        matSlice4 = gradYTop(cv::Range(3*naxis2/4, naxis2), cv::Range(X, X+1));
+        cv::minMaxLoc(matSlice4, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii + 3*numDots] = X;
+        dat->Y[ii + 3*numDots] = maxLoc.y + 3*naxis2/4;
+
+    }
+}
+
+void RProcessing::raphFindLimb2(cv::Mat matImage, Data *dat, int numDots)
+{
+    cv::Mat matSlice1, matSlice2;
+    cv::Mat gradXLeft, gradXRight, gradYBottom, gradYTop;
+    cv::Point minLoc, maxLoc;
+    double minVal, maxVal;
+    int naxis1 = matImage.cols;
+    int naxis2 = matImage.rows;
+    /// Kernels for image gradients.
+    /// Over x-axis, forward (from left edge) and backward (from right-edge) direction
+    cv::Mat kernelXLeft = (cv::Mat_<float>(1,3)<<-0.5, 0, 0.5);
+    cv::Mat kernelXRight = (cv::Mat_<float>(1,3)<<0.5, 0, -0.5);
+    /// Over y-axis, forward and backward direction
+    cv::Mat kernelYBottom = (cv::Mat_<float>(3,1)<<-0.5, 0, 0.5);
+    cv::Mat kernelYTop = (cv::Mat_<float>(3,1)<<0.5, 0, -0.5);
+
+
+    for (int ii = 0; ii < numDots; ii++)
+    {
+        int X = naxis1/4 + ii*naxis1/(2*numDots);
+        int Y = naxis2/4 + ii*naxis2/(2*numDots);
+        /// Left-hand slices (no copy)
+        //matSlice1 = matImage(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
+        matSlice1 = matImage(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
+        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
+        cv::filter2D(matSlice2, gradXLeft, -1, kernelXLeft, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        cv::minMaxLoc(gradXLeft, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii] = maxLoc.x;
+        dat->Y[ii] = Y;
+        /// Right-hand slices (no copy)
+        matSlice1 = matImage(cv::Range(Y, Y+1), cv::Range(3*naxis1/4, naxis1));
+        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
+        cv::filter2D(matSlice2, gradXRight, -1, kernelXRight, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        cv::minMaxLoc(gradXRight, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii + numDots] = maxLoc.x + 3*naxis1/4;
+        dat->Y[ii + numDots] = Y;
+        ///Bottom slices (no copy)
+        matSlice1 = matImage(cv::Range(0, naxis2/4), cv::Range(X, X+1));
+        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
+        cv::filter2D(matSlice2, gradYBottom, -1, kernelYBottom, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        cv::minMaxLoc(gradYBottom, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii + 2*numDots] = X;
+        dat->Y[ii + 2*numDots] = maxLoc.y;
+        ///Top slices (no copy)
+        matSlice1 = matImage(cv::Range(3*naxis2/4, naxis2), cv::Range(X, X+1));
+        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
+        cv::filter2D(matSlice2, gradYTop, -1, kernelYTop, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        cv::minMaxLoc(gradYTop, &minVal, &maxVal, &minLoc, &maxLoc);
+        dat->X[ii + 3*numDots] = X;
+        dat->Y[ii + 3*numDots] = maxLoc.y + 3*naxis2/4;
+
+    }
+}
+
 
 QList<RMat *> RProcessing::normalizeSeriesByStats(QList<RMat*> rMatImageList)
 {

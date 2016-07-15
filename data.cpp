@@ -8,8 +8,8 @@ Data::Data()
     Y = new reals[n];
     for (int i=0; i<n; i++)
     {
-        X[i]=0.;
-        Y[i]=0.;
+        X[i]=0.0f;
+        Y[i]=0.0f;
     }
 }
 
@@ -22,8 +22,8 @@ Data::Data(int N)
 
     for (int i=0; i<n; i++)
     {
-        X[i]=0.;
-        Y[i]=0.;
+        X[i]=0.0f;
+        Y[i]=0.0f;
     }
 }
 

@@ -103,31 +103,44 @@ void FindLimb(int *data, Data *dat, int naxis1, int naxis2, int numDots) {
 
     */
    int i, ii;
+
    int out[numDots*4];
    int outX[numDots*4];
    int outY[numDots*4];
-   int *line;                /* Array(1D) which contains part of a row or column*/
-   line = new int[naxis1/4]() ;//(int *) malloc(sizeof(int)*naxis1/4);
+   //Array(1D) which contains part of a row or column
+   int *line = new int[naxis1/4]() ;
 
-   for (ii=0;ii<numDots;ii++){
-      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1],naxis2/4*sizeof(int));
-      out[ii] = getMaxIncl(line,naxis2/4);
-      outY[ii] = naxis1/4+ii*naxis1/(2*numDots);
+   /// In (horizontal) rows from 1/4 to 3/4 of y-axis (naxis2),
+   /// process x-axis from 0 to 1/4 of naxis1
+   for (ii=0; ii<numDots; ii++){
+      memcpy(line, &data[naxis1*(naxis2/4+ii*naxis2/(2*numDots))], naxis1/4*sizeof(int));
+      out[ii] = getMaxIncl(line, naxis1/4);
+      outY[ii] = naxis2/4+ii*naxis2/(2*numDots);
       outX[ii] = out[ii];}
-   for (ii=0;ii<numDots;ii++){
-      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1+3*naxis2/4],naxis2/4*sizeof(int));
-      out[ii+numDots] = getMaxIncl(line,naxis2/4);
-      outY[ii+numDots] = naxis1/4+ii*naxis1/(2*numDots);
-      outX[ii+numDots] = out[ii+numDots]+3*naxis2/4;}
-   for (ii=0;ii<numDots;ii++){
-      for (i=0;i<naxis2/4;i++){
-         memcpy(&line[i], &data[i*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(int));}
+   /// In (horizontal) rows from 1/4 to 3/4 of y-axis (naxis2),
+   /// process x-axis from 3/4 to end of naxis1
+   for (ii=0; ii<numDots; ii++){
+      memcpy(line, &data[naxis1*(naxis2/4+ii*naxis2/(2*numDots)) + 3*naxis1/4], naxis1/4*sizeof(int));
+      out[ii+numDots] = getMaxIncl(line, naxis1/4);
+      outY[ii+numDots] = naxis2/4+ii*naxis2/(2*numDots);
+      outX[ii+numDots] = out[ii+numDots] + 3*naxis1/4;}
+   /// In (vertical) columns (ii) from 1/4 to 3/4 of x-axis (naxis1),
+   /// process y-axis (i) from 0 to 1/4 of naxis2
+   for (ii=0; ii<numDots; ii++){
+      for (i=0; i<naxis2/4; i++){
+         //memcpy(&line[i], &data[i*naxis1+ii*naxis1/(2*numDots)+naxis1/4], sizeof(int)); // Werner. memcpy on a single value (overkill?)
+          line[i] = data[i*naxis1+ii*naxis1/(2*numDots) + naxis1/4];
+       }
       out[ii+numDots*2] = getMaxIncl(line,naxis2/4);
       outY[ii+numDots*2] = out[ii+numDots*2];
       outX[ii+numDots*2] = naxis2/4+ii*naxis2/(2*numDots);}
-   for (ii=0;ii<numDots;ii++){
-      for (i=0;i<naxis2/4;i++){
-         memcpy(&line[i], &data[(i+3*naxis1/4)*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(int));}
+   /// In (vertical) columns (ii) from 1/4 to 3/4 of x-axis (naxis1),
+   /// process y-axis (i) from 3/4 to end of naxis2
+   for (ii=0; ii<numDots; ii++){
+      for (i=0; i<naxis2/4; i++){
+         //memcpy(&line[i], &data[naxis1*(i+3*naxis2/4)+ii*naxis1/(2*numDots) + naxis1/4], sizeof(int));
+         line[i] = data[naxis1*(i+3*naxis2/4)+ii*naxis1/(2*numDots) + naxis1/4];
+      }
       out[ii+numDots*3] = getMaxIncl(line,naxis2/4);
       outY[ii+numDots*3] = out[ii+numDots*3]+3*naxis1/4;
       outX[ii+numDots*3] = naxis2/4+ii*naxis2/(2*numDots);}
@@ -153,72 +166,109 @@ void FindLimb2(ushort *data, Data *dat, int naxis1, int naxis2, int numDots) {
    int* out = new int[numDots*4];
    int* outX = new int[numDots*4];
    int* outY = new int[numDots*4];
-   ushort *line = new ushort[naxis1/4]; /* Array(1D) which contains part of a row or column*/
+   // Array(1D) which contains part of a row or column
+   ushort *line = new ushort[naxis1/4];
 
-//   for (ii=0;ii<numDots;ii++){
-//       /// finding limb-x with y = from naxis1/4 to 3/4 naxis1 (shouldn't there be naxis2 instead?)
-//      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1],naxis2/4*sizeof(ushort));
-//      out[ii] = getMaxIncl2(line,naxis2/4);
-//      outY[ii] = naxis1/4+ii*naxis1/(2*numDots);
-//      outX[ii] = out[ii];}
-//   for (ii=0;ii<numDots;ii++){
-//       /// find limb-x with y = from naxis1/4 to 3/4 naxis1
-//      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1+3*naxis2/4],naxis2/4*sizeof(ushort));
-//      out[ii+numDots] = getMaxIncl2(line,naxis2/4);
-//      outY[ii+numDots] = naxis1/4+ii*naxis1/(2*numDots);
-//      outX[ii+numDots] = out[ii+numDots]+3*naxis2/4;}
-//   for (ii=0;ii<numDots;ii++){
-//      for (i=0;i<naxis2/4;i++){
-//         memcpy(&line[i], &data[i*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(ushort));}
-//      out[ii+numDots*2] = getMaxIncl2(line,naxis2/4);
-//      outY[ii+numDots*2] = out[ii+numDots*2];
-//      outX[ii+numDots*2] = naxis2/4+ii*naxis2/(2*numDots);}
-//   for (ii=0;ii<numDots;ii++){
-//      for (i=0;i<naxis2/4;i++){
-//         memcpy(&line[i], &data[(i+3*naxis1/4)*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(ushort));}
-//      out[ii+numDots*3] = getMaxIncl2(line,naxis2/4);
-//      outY[ii+numDots*3] = out[ii+numDots*3]+3*naxis1/4;
-//      outX[ii+numDots*3] = naxis2/4+ii*naxis2/(2*numDots);}
-   for (ii=0;ii<numDots;ii++){
+   for (ii=0;ii<numDots;ii++)
+   {
        /// finding limb-x with y = from naxis1/4 to 3/4 naxis1 (shouldn't there be naxis2 instead?)
-      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1],naxis2/4*sizeof(ushort));
-      data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1] = 4095;
+      memcpy(line, &data[naxis1*(naxis2/4+ii*naxis2/(2*numDots))], naxis1/4*sizeof(ushort));
+      //data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1] = 4095;
 
       out[ii] = getMaxIncl2(line, naxis2/4); // Scan through 1/4th of the axis.
-      outY[ii] = naxis1/4+ii*naxis1/(2*numDots);
-      outX[ii] = out[ii];}
-   for (ii=0;ii<numDots;ii++){
-       /// find limb-x with y = from naxis1/4 to 3/4 naxis1
-      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1+3*naxis2/4],naxis2/4*sizeof(ushort));
-      data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1+3*naxis2/4] = 4095;
+      outY[ii] = naxis2/4 + ii*naxis2/(2*numDots);
+      outX[ii] = out[ii];
+      std::cout << "Point 1 = [ " << outX[ii] << ", " << outY[ii] << "]" << std::endl;
+   }
+//   for (ii=0;ii<numDots;ii++)
+//   {
+//       /// find limb-x with y = from naxis1/4 to 3/4 naxis1
+//      memcpy(line, &data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1+3*naxis2/4],naxis2/4*sizeof(ushort));
+//      data[(naxis1/4+ii*naxis1/(2*numDots))*naxis1+3*naxis2/4] = 4095;
 
-      out[ii+numDots] = getMaxIncl2(line, naxis2/4);
-      outY[ii+numDots] = 0;
-      outX[ii+numDots] = 0;}
-   for (ii=0;ii<numDots;ii++){
-      for (i=0;i<naxis2/4;i++){
-         memcpy(&line[i], &data[i*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(ushort));}
-      out[ii+numDots*2] = getMaxIncl2(line, naxis2/4);
-      outY[ii+numDots*2] = 0;
-      outX[ii+numDots*2] = 0;}
-   for (ii=0;ii<numDots;ii++){
-      for (i=0;i<naxis2/4;i++){
-         memcpy(&line[i], &data[(i+3*naxis1/4)*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(ushort));}
-      out[ii+numDots*3] = getMaxIncl2(line, naxis2/4);
-      outY[ii+numDots*3] = 0;
-      outX[ii+numDots*3] = 0;}
-   for (i=0;i<numDots*4;i++)
+//      out[ii+numDots] = getMaxIncl2(line, naxis2/4);
+//      outY[ii+numDots] = 0;
+//      outX[ii+numDots] = 0;
+//   }
+//   for (ii=0;ii<numDots;ii++)
+//   {
+//      for (i=0;i<naxis2/4;i++)
+//      {
+//         memcpy(&line[i], &data[i*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(ushort));
+//      }
+//      out[ii+numDots*2] = getMaxIncl2(line, naxis2/4);
+//      outY[ii+numDots*2] = 0;
+//      outX[ii+numDots*2] = 0;
+//   }
+//   for (ii=0;ii<numDots;ii++)
+//   {
+//      for (i=0;i<naxis2/4;i++)
+//      {
+//         memcpy(&line[i], &data[(i+3*naxis1/4)*naxis1+ii*naxis2/(2*numDots)+naxis2/4],sizeof(ushort));
+//      }
+//      out[ii+numDots*3] = getMaxIncl2(line, naxis2/4);
+//      outY[ii+numDots*3] = 0;
+//      outX[ii+numDots*3] = 0;
+//   }
+
+   for (i=0;i<numDots;i++)
    {
-      dat->X[i] = outX[i];
-      dat->Y[i] = outY[i];
+      dat->X[i] = (reals) outX[i];
+      dat->Y[i] = (reals) outY[i];
       cv::Point point(dat->X[i], dat->Y[i]);
-      std::cout << "Point = " << point << std::endl;
+      std::cout << "Point 2 = " << point << std::endl;
    }
    //free(line);
    delete[] out;
    delete[] outX;
    delete[] outY;
    delete[] line;
+
+}
+
+
+void FindLimb3(cv::Mat matImage, Data *dat, int numDots)
+{
+
+    /// Need to find out what is the resampling needed based on numDots
+    /// We have to extract numDots points within half the original size
+    /// i.e, naxis1/2 or naxis2/2 pixels.
+    /// So the reduction factor = numDots / (naxis1/2)
+
+//    cv::Mat blurMat;
+//    cv::blur(matImage, blurMat, cv::Size(7, 7));
+//    cv::Mat gradX, gradY, absGradX, absGradY;
+
+//    //Gradient X
+//    int scale = 1;
+//    int delta = 0;
+//    cv::Sobel(blurMat, gradX, CV_16S, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
+
+//    int i, ii;
+//    int* out = new int[numDots];
+//    int* outX = new int[numDots];
+//    int* outY = new int[numDots];
+
+//    int naxis1 = matImage.cols;
+//    int naxis2 = matImage.rows;
+
+//    for (ii = 0; ii < numDots; ii++)
+//    {
+//        /// Extract the row at given Y
+//        int Y = naxis2/4 + ii*naxis2/(2*numDots);
+//        //cv::Mat matRow = blurMat.row(rowY);
+//        /// Extract the first part of the row, over naxis1/4 x-elements.
+//        //cv::Mat matRow2 = matRow.colRange(0, naxis1/4 -1);
+//        /// Although we can do this with cv::Rect in one line or with range or slice?
+//        //cv::Mat matSlice(blurMat, cv::Rect(0, Y, naxis1/4, 1));
+//        cv::Mat matSlice = blurMat(cv::Range(Y,Y), cv::Range(0, naxis1/4));
+//        // Now we only need to get the maximum
+
+//    }
+
+
+
+
 
 }
 
@@ -304,5 +354,6 @@ Circle getSun(int *data,int naxis1,int naxis2, int numDots){
    if (isnan(sun.s)){sun.s= 9.99;sun.a= 0;sun.b=0;sun.r=0;}
    return sun;
 }
+
 
 

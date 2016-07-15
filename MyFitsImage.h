@@ -65,8 +65,8 @@ private:
     float* image1D_float;
     short int* image1D_shortint;
 
-
     cv::Mat matFits;
+    cv::Mat matFitsMask;
 
     QVector<QString> keyNames;
     QVector<QString> keyValues;

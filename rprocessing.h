@@ -130,6 +130,8 @@ public slots:
    bool limbFit(int i);
    void cannyRegisterSeries();
    bool wernerLimbFit();
+   void raphFindLimb(cv::Mat matImage, Data *dat, int numDots);
+   void raphFindLimb2(cv::Mat matImage, Data *dat, int numDots);
 
 
    void blurRMat(RMat* rMat);

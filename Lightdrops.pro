@@ -22,6 +22,7 @@ win32 {
     LIBS += -LC:/dev/libraw/lib -llibraw
     LIBS += -LC:/dev/ArrayFire/v3/lib -lafopencl
     LIBS += -LC:/dev/opencv/lib -lopencv_world310
+
 }
 
 macx {
@@ -36,6 +37,16 @@ macx {
 
 # opencv "world" (it has all modules)
     LIBS += -L/usr/local/lib -lopencv_world
+
+# Caveats regarding linking options:
+# In Projects>run menu
+# Original DYLD_FRAMEWORK_PATH = ~/Qt/5.7/clang_64/lib:/usr/local/lib
+# must change to ~/Qt/5.7/clang_64/lib (remove e.g. /usr/local/lib if it's there)
+# DYLD_LIBRARY_PATH must be removed (click UNSET)
+# see here:
+# http://stackoverflow.com/questions/17643509/conflict-between-dynamic-linking-priority-in-osx
+# Although the answer at this link does not talk about DYLD_FRAMEWORK_PATH, it is necessary to
+# change it here as advised above.
 
 # arrayfire (not used at the moment)
     #LIBS += -L/usr/local/lib -lafopencl

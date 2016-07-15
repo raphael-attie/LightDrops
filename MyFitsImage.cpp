@@ -102,9 +102,6 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
         status = 0;
     }
 
-
-//    naxis1 = naxes[0];
-//    naxis2 = naxes[1];
 	nPixels = naxis1 * naxis2; // Total number of pixels in the image
 
     fits_get_hdrspace(fptr, &nKeys, &morekeys, &status);
@@ -137,52 +134,31 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
             printerror(status);
 
         matFits = Mat(naxis2, naxis1, CV_16U, image1D_ushort);
+        qDebug("MyFitsImage:: USHORT_IMG CV_16U");
 
-        //delete[] image1D;
     }
     else if (bitpix == SHORT_IMG && bzero == 0)
-    {
+    { /// e.g. USET's Retiga Cameras
         image1D_shortint = new short int[nPixels]();
+
 
         if (fits_read_img(fptr, TSHORT, firstPixel, nPixels, &nullval, image1D_shortint, &anynul, &status))
             printerror(status);
 
+
         matFits = Mat(naxis2, naxis1, CV_16S, image1D_shortint);
-//        qDebug() << "matFits.at<short int>.at(0,0) = " << matFits.at<short int>(0,0);
-//        qDebug() << "matFits.at<short int>.at(1,1) = " << matFits.at<short int>(1,1);
 
-//        qDebug() << "matFits.at<short int>.at(2046,1000) = " << matFits.at<short int>(0,1000);
-//        qDebug() << "matFits.at<short int>.at(2047,1000) = " << matFits.at<short int>(1,1000);
-
-//        long startpix[2];
-//        startpix[0] = 1;
-//        startpix[1] = 1;
-//        int* image1D_int; // Declare a pointer to an int pointer. In the header.
-//        image1D_int = (int *) malloc(sizeof(int) * naxis1 * naxis2); // Use *data to derefence, to store the value (an adress) where this allocation to
-
-//        if (fits_read_pix(fptr, TINT, firstPixels, naxis1 * naxis2, 0, *data, NULL, &status))
-//            printerror(status);
-
-//        status = 0;
-//        if(fits_read_pix(fptr, TINT, startpix, naxis1 * naxis2, 0, image1D_int, NULL, &status))
-//            printerror(status);
-
-        //matFits = Mat(naxis2, naxis1, CV_16S, image1D_shortint);
-        //matFits = Mat(naxis2, naxis1, CV_32S, *image1D_int);
-
-        //delete[] image1D;
     }
     else if (bitpix == SHORT_IMG && bzero == 32768)
     {
         image1D_ushort = new ushort[nPixels]();
-        //ushort image1D(nPixels);
 
         if (fits_read_img(fptr, TUSHORT, firstPixel, nPixels, &nullval, image1D_ushort, &anynul, &status))
             printerror(status);
 
         matFits = Mat(naxis2, naxis1, CV_16U, image1D_ushort);
+        qDebug("MyFitsImage:: SHORT_IMG CV_16U");
 
-        //delete[] image1D;
     }
     else if (bitpix == SHORT_IMG  || bitpix == FLOAT_IMG || bitpix == LONG_IMG)
     {
@@ -191,7 +167,8 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
             printerror(status);
         matFits = Mat(naxis2, naxis1, CV_32F, image1D_float);
 
-        //delete[] image1D;
+        qDebug("MyFitsImage:: 4 SHORT_IMG CV_32F");
+
     }
     else
     {
@@ -203,8 +180,6 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 
     if (fits_close_file(fptr, &status))
         printerror(status);
-
-    //matFits.convertTo(matFits, CV_32F);
 
     if (matFits.type() != CV_32F)
     {
@@ -218,6 +193,7 @@ MyFitsImage::~MyFitsImage()
     delete[] image1D_ushort;
     delete[] image1D_shortint;
     delete[] image1D_float;
+    //delete[] image1D_char;
 }
 
 // getters
