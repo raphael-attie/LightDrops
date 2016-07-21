@@ -43,7 +43,11 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 		
     status = 0;
     if (fits_get_hdu_type(fptr, &hduType, &status))
+    {
+        qDebug() << "Error at fits_get_hdu_type";
         printerror(status);
+    }
+
 	
     //printHDUType(hduType);
 
@@ -56,6 +60,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 		/* read the NAXIS1 and NAXIS2 keyword to get image size */
         if (fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
 		{
+            qDebug() << "Error reading NAXIS 1 , 2";
             printerror(status);
 		}
 
@@ -64,19 +69,22 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
 
         if (fits_read_key(fptr, TINT, "BITPIX", &bitpix, NULL, &status))
         {
+            qDebug() << "Error reading BITPIX";
             printerror(status);
         }
 
 	}
 	else
 	{
-        /* read the NAXIS1 and NAXIS2 keyword to get image size */
+        /* read the ZNAXIS1 and ZNAXIS2 keyword to get image size */
         if (fits_read_keys_lng(fptr, "ZNAXIS", 1, 2, naxes, &nfound, &status))
 		{
+            qDebug() << "Error reading ZNAXIS";
             printerror(status);
 		}
         if (fits_read_key(fptr, TINT, "ZBITPIX", &bitpix, NULL, &status))
         {
+            qDebug() << "Error reading ZBITPIX";
             printerror(status);
         }
 	}

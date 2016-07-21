@@ -37,6 +37,7 @@ RListImageManager::~RListImageManager()
 
     if (!imageManagerList.empty())
     {
+        qDebug("ListImageManager:: Cleaning up imageManagerList");
         qDeleteAll(imageManagerList);
         imageManagerList.clear();
     }

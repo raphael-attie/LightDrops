@@ -82,7 +82,6 @@ public:
 
 
 
-
     //setters
     void setRMatImageList(QList<RMat*> rMatImageList);
     void setNewMax(float newMax);

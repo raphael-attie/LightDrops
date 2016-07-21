@@ -98,7 +98,8 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
 
 RMat::~RMat()
 {
-
+    qDebug("RMat:: deleting item from QTreeWidget");
+    item->~QTreeWidgetItem();
 }
 
 void RMat::computeHist(int nBins, float minRange, float maxRange)

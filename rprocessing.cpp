@@ -163,9 +163,6 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
     int bayer = (int) rMatImage->isBayer();
     char keyname[] = "BAYER";
 
-    //char keyValueString = keyValueTelescopQString.toC
-
-
     // Create new file
     fits_create_file(&fptr, strFilename.c_str(), &status);
 
@@ -312,7 +309,8 @@ bool RProcessing::makeMasterBias()
 {
 
     if (!treeWidget->getBiasUrls().empty())
-    {
+    {   /// Images not yet in memory,
+        /// load the bias files from their urls found in the treeWidget
         loadRMatBiasList(treeWidget->getBiasUrls());
         qDebug() << "RProcessing::makeMasterBias() rMatBiasList.at(0)->isBayer() =" << rMatBiasList.at(0)->isBayer();
         masterBias = average(rMatBiasList);
@@ -321,7 +319,8 @@ bool RProcessing::makeMasterBias()
     }
 
     else if (treeWidget->getBiasUrls().empty() && !treeWidget->rMatBiasList.empty())
-    {
+    {   /// Images already in memory,
+        /// get the pointer to the biases (list of Mat) from the treeWidget
         rMatBiasList = treeWidget->rMatBiasList;
         masterBias = average(rMatBiasList);
         masterBias->setImageTitle(QString("master Bias"));
@@ -329,7 +328,7 @@ bool RProcessing::makeMasterBias()
     }
     else
     {
-        qDebug("RProcessing::rMatBiasList is empty");
+        emit messageSignal(QString("Bias images not found"));
         return false;
     }
 
@@ -339,14 +338,16 @@ bool RProcessing::makeMasterDark()
 {
 
     if (!treeWidget->getDarkUrls().empty())
-    {
+    {   /// Images not yet in memory,
+        /// load the dark files from their urls found in the treeWidget
         loadRMatDarkList(treeWidget->getDarkUrls());
         masterDark = average(rMatDarkList);
         masterDark->setImageTitle(QString("master Dark"));
         return true;
     }
     else if (treeWidget->getDarkUrls().empty() && !treeWidget->rMatDarkList.empty())
-    {
+    {   /// Images already in memory,
+        /// get the pointer to the darks (list of Mat) from the treeWidget
         rMatDarkList = treeWidget->rMatDarkList;
         masterDark = average(rMatDarkList);
         masterDark->setImageTitle(QString("master Dark"));
@@ -354,7 +355,7 @@ bool RProcessing::makeMasterDark()
     }
     else
     {
-        qDebug("RProcessing::rMatDarkList is empty");
+        emit messageSignal(QString("Dark images not found"));
         return false;
     }
 }
@@ -362,7 +363,8 @@ bool RProcessing::makeMasterDark()
 bool RProcessing::makeMasterFlat()
 {
     if (!treeWidget->getFlatUrls().empty())
-    {
+    {   /// Images not yet in memory,
+        /// load the flat files from their urls found in the treeWidget
         loadRMatFlatList(treeWidget->getFlatUrls());
         masterFlat = average(rMatFlatList);
         if (masterBias != NULL)
@@ -382,7 +384,8 @@ bool RProcessing::makeMasterFlat()
         return true;
     }
     else if (treeWidget->getFlatUrls().empty() && !treeWidget->rMatFlatList.empty())
-    {
+    {   /// Images already in memory,
+        /// get the pointer to the flats (list of Mat) from the treeWidget
         rMatFlatList = treeWidget->rMatFlatList;
         masterFlat = average(rMatFlatList);
         masterFlat->matImage.convertTo(masterFlat->matImage, rMatFlatList.at(0)->matImage.type());
@@ -392,7 +395,7 @@ bool RProcessing::makeMasterFlat()
     }
     else
     {
-        qDebug("RProcessing::rMatFlatList is empty");
+        emit messageSignal(QString("Flat images not found"));
         return false;
     }
 }
@@ -400,35 +403,26 @@ bool RProcessing::makeMasterFlat()
 
 RMat* RProcessing::average(QList<RMat*> rMatList)
 {
-    // Averages a series of cv::Mat images using arithmetic mean.
-
+    /// Averages a series of cv::Mat images using arithmetic mean.
     int naxis1 = rMatList.at(0)->matImage.cols;
     int naxis2 = rMatList.at(0)->matImage.rows;
 
-    // Need to create a Mat image that will host the result of the average.
-    // It needs to be the same type, and has the number of channels as the Mat images of the series.
-    cv::Mat avgImg = cv::Mat::zeros(naxis2, naxis1, rMatList.at(0)->matImage.type());
-    avgImg.convertTo(avgImg, CV_32F);
-
-     // The accumulate function in the for-loop below can only work with up to 3 color channels
+    /// Need to create a Mat image that will host the result of the average.
+    /// It needs to be the same type, and has the number of channels as the Mat images of the series.
+    cv::Mat avgImg = cv::Mat::zeros(naxis2, naxis1, CV_32F);
 
     for(int i = 0; i < rMatList.size(); i++)
     {
         cv::Mat tempImage;
-//        cv::Mat imageClone = rMatList->operator [](i).matImage.clone();
-
-//        imageClone.convertTo(tempImage, CV_32F);
-
         rMatList.at(i)->matImage.convertTo(tempImage, CV_32F);
-        //avgImg = avgImg + tempImage;
+        /// Sum the images with cv::accumulate
+        /// This function can only work with up to 3 color channels
         cv::accumulate(tempImage, avgImg);
     }
 
     avgImg = avgImg / (float) rMatList.size();
-
-    qDebug() << "RProcessing::average() rMatList.at(0)->isBayer() =" << rMatList.at(0)->isBayer();
+    avgImg.convertTo(avgImg, rMatList.at(0)->matImage.type());
     RMat *rMatAvg = new RMat(avgImg, rMatList.at(0)->isBayer(), rMatList.at(0)->getInstrument());
-
     return rMatAvg;
 }
 

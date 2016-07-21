@@ -55,9 +55,9 @@ ImageManager::ImageManager(QString filePathQStr) :
 
 ImageManager::~ImageManager()
 {
-//    qDebug("ImageManager::~ImageManager() calling ImageManager destructor");
+    qDebug("ImageManager::~ImageManager() calling ImageManager destructor");
 //    delete tableWidget;
-//    delete rMatImage;
+    delete rMatImage;
 //    delete newFitsImage;
 //    delete newRawImage;
 }
