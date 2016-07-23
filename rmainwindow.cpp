@@ -17,10 +17,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
     ui(new Ui::RMainWindow),
     currentROpenGLWidget(NULL),
     resultROpenGLWidget(NULL),
-    cannyContoursROpenGLWidget(NULL),
     limbFittingROpenGLWidget(NULL),
     graphicsView(NULL),
-    cannySubWindow(NULL), limbRegisterSubWindow(NULL),
+    limbRegisterSubWindow(NULL),
     currentSubWindow(NULL), plotSubWindow(NULL), tempSubWindow(NULL),
     toneMappingGraph(NULL)
 {
@@ -106,9 +105,6 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(this, SIGNAL(radioBiasImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromBiasRButton(QList<RMat*>)));
     connect(this, SIGNAL(radioDarkImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromDarkRButton(QList<RMat*>)));
     connect(this, SIGNAL(radioFlatImages(QList<RMat*>)), ui->treeWidget, SLOT(rMatFromFlatRButton(QList<RMat*>)));
-
-    // Connect Canny detection
-    connect(ui->cannySlider, SIGNAL(sliderReleased()), this, SLOT(cannyEdgeDetection()));
 
     // Connect QImage scenes
     connect(processing, SIGNAL(resultQImageSignal(QImage&)), this, SLOT(createNewImage(QImage&)));
@@ -703,21 +699,12 @@ void RMainWindow::setupSubImage()
 }
 
 
-void RMainWindow::cannyEdgeDetection()
+void RMainWindow::solarLimbFit()
 {
     if (ui->treeWidget->rMatLightList.isEmpty() && ui->treeWidget->getLightUrls().empty())
     {
         ui->statusBar->showMessage(QString("No lights for limb detection"), 3000);
         return;
-    }
-
-    QPoint lastPos;
-    bool restoreCannyView = false;
-    if (cannySubWindow != NULL)
-    {
-        lastPos = cannySubWindow->pos();
-        cannySubWindow->close();
-        restoreCannyView = true;
     }
 
     processing->setShowContours(ui->contoursCheckBox->isChecked());
@@ -729,16 +716,8 @@ void RMainWindow::cannyEdgeDetection()
 
     if (!ui->treeWidget->rMatLightList.isEmpty())
     {
-        bool success;
-        if (!ui->wernerCheckBox->isChecked())
-        {
-            success = processing->cannyEdgeDetection(ui->cannySlider->value());
-        }
-        else
-        {
-            success = processing->wernerLimbFit();
-        }
 
+       bool success = processing->wernerLimbFit();
 
         if (!success)
         {
@@ -751,40 +730,16 @@ void RMainWindow::cannyEdgeDetection()
         currentROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
         addImage(currentROpenGLWidget);
         setupSliders(currentROpenGLWidget);
-
-        cannySubWindow = currentSubWindow;
-        cannyContoursROpenGLWidget = currentROpenGLWidget;
-    }
-    else if (!ui->treeWidget->getLightUrls().empty())
-    {
-        if (!ui->wernerCheckBox->isChecked())
-        {
-            processing->cannyEdgeDetectionOffScreen(ui->cannySlider->value());
-        }
-        else
-        {
-            return;
-        }
-
-    }
-
-
-    if (!restoreCannyView)
-    {
-        cannySubWindow->show();
     }
     else
     {
-        cannySubWindow->move(lastPos);
-        cannySubWindow->show();
-        ui->sliderFrame->setValue(lastFrameIndex);
+            return;
     }
-
     autoScale(currentROpenGLWidget);
     displayPlotWidget(currentROpenGLWidget);
 }
 
-void RMainWindow::cannyRegisterSlot()
+void RMainWindow::solarLimbRegisterSlot()
 {
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());

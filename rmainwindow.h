@@ -90,8 +90,8 @@ private slots:
     // Processing
     void calibrateOffScreenSlot();
     void registerSlot();
-    void cannyEdgeDetection();
-    void cannyRegisterSlot();
+    void solarLimbFit();
+    void solarLimbRegisterSlot();
     void normalizeCurrentSeries();
     void previewMatImageHPFSlot();
 
@@ -167,7 +167,6 @@ private:
     ROpenGLWidget *cannyContoursROpenGLWidget;
     ROpenGLWidget *limbFittingROpenGLWidget;
 
-    QMdiSubWindow *cannySubWindow;
     QMdiSubWindow *limbRegisterSubWindow;
     QMdiSubWindow *currentSubWindow;
     QMdiSubWindow *plotSubWindow;

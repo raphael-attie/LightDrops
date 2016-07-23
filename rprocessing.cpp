@@ -909,7 +909,9 @@ void RProcessing::registerSeries()
 }
 
 void RProcessing::registerSeriesOnLimbFit()
-{
+{   /// X-correlate upon the results of the limb-based registration
+    /// Uses output variable "limbFitResultList1" from cannyRegisterSeries();
+
     if (limbFitWarpMat.empty())
     {
         emit messageSignal(QString("No results from limb fitting."));

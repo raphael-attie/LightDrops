@@ -1720,7 +1720,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -1833,7 +1833,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>195</height>
+          <height>210</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -1977,7 +1977,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>198</height>
+          <height>210</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2170,13 +2170,6 @@
               <widget class="QCheckBox" name="hpfCheckBox">
                <property name="text">
                 <string>High-Pass filter</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="wernerCheckBox">
-               <property name="text">
-                <string>Werner points</string>
                </property>
               </widget>
              </item>
@@ -2453,8 +2446,8 @@
    <slot>exportMastersToFits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1544</x>
-     <y>495</y>
+     <x>1662</x>
+     <y>531</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2469,8 +2462,8 @@
    <slot>minMaxScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>799</y>
+     <x>1128</x>
+     <y>835</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -2485,8 +2478,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>111</x>
-     <y>795</y>
+     <x>1140</x>
+     <y>839</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -2501,28 +2494,12 @@
    <slot>calibrateOffScreenSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1614</x>
-     <y>495</y>
+     <x>1632</x>
+     <y>550</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
      <y>544</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>limbFitPushB</sender>
-   <signal>released()</signal>
-   <receiver>RMainWindow</receiver>
-   <slot>cannyEdgeDetection()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>1643</x>
-     <y>555</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>1340</x>
-     <y>616</y>
     </hint>
    </hints>
   </connection>
@@ -2534,11 +2511,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>1641</x>
-     <y>457</y>
+     <y>452</y>
     </hint>
     <hint type="destinationlabel">
      <x>1636</x>
-     <y>434</y>
+     <y>429</y>
     </hint>
    </hints>
   </connection>
@@ -2550,11 +2527,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>1636</x>
-     <y>434</y>
+     <y>429</y>
     </hint>
     <hint type="destinationlabel">
      <x>1641</x>
-     <y>457</y>
+     <y>452</y>
     </hint>
    </hints>
   </connection>
@@ -2565,8 +2542,8 @@
    <slot>convertTo8Bit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>799</y>
+     <x>1220</x>
+     <y>801</y>
     </hint>
     <hint type="destinationlabel">
      <x>962</x>
@@ -2581,8 +2558,8 @@
    <slot>convertToNeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>169</x>
-     <y>799</y>
+     <x>1220</x>
+     <y>835</y>
     </hint>
     <hint type="destinationlabel">
      <x>1253</x>
@@ -2597,8 +2574,8 @@
    <slot>autoScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>799</y>
+     <x>1128</x>
+     <y>801</y>
     </hint>
     <hint type="destinationlabel">
      <x>840</x>
@@ -2613,8 +2590,8 @@
    <slot>normalizeCurrentSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>169</x>
-     <y>799</y>
+     <x>1141</x>
+     <y>869</y>
     </hint>
     <hint type="destinationlabel">
      <x>723</x>
@@ -2645,12 +2622,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>614</x>
-     <y>814</y>
+     <x>668</x>
+     <y>805</y>
     </hint>
     <hint type="destinationlabel">
-     <x>114</x>
-     <y>814</y>
+     <x>790</x>
+     <y>805</y>
     </hint>
    </hints>
   </connection>
@@ -2661,12 +2638,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>614</x>
-     <y>814</y>
+     <x>668</x>
+     <y>837</y>
     </hint>
     <hint type="destinationlabel">
-     <x>114</x>
-     <y>814</y>
+     <x>790</x>
+     <y>837</y>
     </hint>
    </hints>
   </connection>
@@ -2677,12 +2654,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>614</x>
-     <y>814</y>
+     <x>668</x>
+     <y>868</y>
     </hint>
     <hint type="destinationlabel">
-     <x>114</x>
-     <y>814</y>
+     <x>790</x>
+     <y>868</y>
     </hint>
    </hints>
   </connection>
@@ -2693,28 +2670,12 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1577</x>
-     <y>430</y>
+     <x>1624</x>
+     <y>583</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
      <y>573</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>cannyRegisterButton</sender>
-   <signal>released()</signal>
-   <receiver>RMainWindow</receiver>
-   <slot>cannyRegisterSlot()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>1643</x>
-     <y>579</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>1457</x>
-     <y>516</y>
     </hint>
    </hints>
   </connection>
@@ -2726,7 +2687,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1586</x>
-     <y>428</y>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -2798,6 +2759,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>limbFitPushB</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>solarLimbFit()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1540</x>
+     <y>528</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1459</x>
+     <y>666</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>limbFitPushB</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>solarLimbRegisterSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1514</x>
+     <y>541</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1459</x>
+     <y>561</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>addHeaderWidget()</slot>
@@ -2808,14 +2801,14 @@
   <slot>minMaxScale()</slot>
   <slot>exportFrames()</slot>
   <slot>calibrateOffScreenSlot()</slot>
-  <slot>cannyEdgeDetection()</slot>
   <slot>convertTo8Bit()</slot>
   <slot>convertToNeg()</slot>
   <slot>normalizeCurrentSeries()</slot>
   <slot>selectROI()</slot>
   <slot>createNewImageROI()</slot>
   <slot>registerSlot()</slot>
-  <slot>cannyRegisterSlot()</slot>
   <slot>previewMatImageHPFSlot()</slot>
+  <slot>solarLimbFit()</slot>
+  <slot>solarLimbRegisterSlot()</slot>
  </slots>
 </ui>
