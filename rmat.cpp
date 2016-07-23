@@ -13,7 +13,7 @@ RMat::RMat()
 
 RMat::RMat(const RMat &rMat)
     : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime),
-       instrument(rMat.instrument)
+       instrument(rMat.instrument), item(NULL)
 {
     rMat.matImage.copyTo(this->matImage);
     this->imageTitle = QString("Image #");
@@ -98,8 +98,11 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
 
 RMat::~RMat()
 {
-    qDebug("RMat:: deleting item from QTreeWidget");
-    item->~QTreeWidgetItem();
+    if (item != NULL)
+    {
+        qDebug("RMat:: deleting item from QTreeWidget");
+        item->~QTreeWidgetItem();
+    }
 }
 
 void RMat::computeHist(int nBins, float minRange, float maxRange)

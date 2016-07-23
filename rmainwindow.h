@@ -43,6 +43,7 @@ protected:
     void dropEvent(QDropEvent* event);
     void dragEnterEvent(QDragEnterEvent *event);
     void dragMoveEvent(QDragMoveEvent *event);
+    void closeEvent(QCloseEvent *event);
 
 
 private slots:

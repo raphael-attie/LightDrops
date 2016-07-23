@@ -1720,7 +1720,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -1728,7 +1728,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>195</height>
+          <height>210</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -1748,7 +1748,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QRadioButton" name="radioButton">
+          <widget class="QRadioButton" name="masterMeanRButton">
            <property name="text">
             <string>Mean</string>
            </property>
@@ -1758,7 +1758,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="radioButton_2">
+          <widget class="QRadioButton" name="MasterSigmaClipRButton">
            <property name="minimumSize">
             <size>
              <width>140</width>

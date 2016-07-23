@@ -49,7 +49,7 @@ macx {
 # change it here as advised above.
 
 # arrayfire (not used at the moment)
-    #LIBS += -L/usr/local/lib -lafopencl
+    LIBS += -L/usr/local/lib -lafopencl
 
 # Setup Qt so Clang works with C++11
     QMAKE_CXXFLAGS += -stdlib=libc++

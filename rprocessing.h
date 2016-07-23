@@ -37,6 +37,7 @@ public:
     bool makeMasterFlat();
 
     RMat *average(QList<RMat*> rMatList);
+    RMat *sigmaClipAverage(QList<RMat *> rMatImageList);
 
     // Fourier filtering
     double pixelDistance(double u, double v);
@@ -110,13 +111,12 @@ public slots:
    // The following are setters and slots as well.
    // They are used as slots by the RMainWindow for sending the
    // urls from the treeWidget and a drag and drop of files.
-
    void createMasters();
-
    // Preprocessing
    void calibrateOffScreen();
    //void calibrateOnScreen();
-
+   void setupMasterWithSigmaClip(bool enabled);
+   void setupMasterWithMean(bool enabled);
 
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
@@ -133,7 +133,6 @@ public slots:
    void raphFindLimb(cv::Mat matImage, Data *dat, int numDots);
    void raphFindLimb2(cv::Mat matImage, Data *dat, int numDots);
 
-
    void blurRMat(RMat* rMat);
    QList<RMat*> normalizeSeriesByStats(QList<RMat*> rMatImageList);
    RMat* normalizeByStats(RMat* rMat);
@@ -146,6 +145,7 @@ private:
 
     void normalizeFlat();
     void calibrate();
+
     //int circleFitLM(Data& data, Circle& circleIni, reals LambdaIni, Circle& circle);
 
     RListImageManager *listImageManager;
@@ -183,6 +183,8 @@ private:
     bool biasSuccess, darkSuccess, flatSuccess;
     bool showContours, showLimb;
     bool useXCorr;
+    bool masterWithSigmaClip;
+    bool masterWithMean;
 
     float radius, radius1, radius2, radius3;
     cv::Rect cvRectROI;

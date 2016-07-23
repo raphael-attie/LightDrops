@@ -7,10 +7,8 @@
 
 //opencv
 #include <opencv2/world.hpp>
-//#include <opencv2/highgui/highgui.hpp>
-//#include <opencv2/imgproc/imgproc.hpp>
-//#include <opencv2/video.hpp>
-//#include <opencv2/core/ocl.hpp>
+// Arrayfire
+#include <arrayfire.h>
 
 #include "imagemanager.h"
 #include "parallelcalibration.h"
@@ -19,7 +17,7 @@
 
 RProcessing::RProcessing(QObject *parent): QObject(parent),
     masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), useROI(false), useXCorr(false),
-    radius(0), radius1(0), radius2(0), radius3(0)
+    radius(0), radius1(0), radius2(0), radius3(0), masterWithMean(true), masterWithSigmaClip(false)
 {
     listImageManager = new RListImageManager();
 }
@@ -307,24 +305,41 @@ void RProcessing::createMasters()
 
 bool RProcessing::makeMasterBias()
 {
-
     if (!treeWidget->getBiasUrls().empty())
     {   /// Images not yet in memory,
         /// load the bias files from their urls found in the treeWidget
         loadRMatBiasList(treeWidget->getBiasUrls());
-        qDebug() << "RProcessing::makeMasterBias() rMatBiasList.at(0)->isBayer() =" << rMatBiasList.at(0)->isBayer();
-        masterBias = average(rMatBiasList);
-        masterBias->setImageTitle(QString("master Bias"));
-        return true;
+
+        if (masterWithMean)
+        {
+            masterBias = average(rMatBiasList);
+            masterBias->setImageTitle( QString("master Bias (arithmetic mean)") );
+        }
+        else if (masterWithSigmaClip)
+        {
+            masterBias = sigmaClipAverage(rMatBiasList);
+            masterBias->setImageTitle( QString("master Bias (sigma-clipped average)") );
+        }
+        return !masterBias->matImage.empty();
     }
 
     else if (treeWidget->getBiasUrls().empty() && !treeWidget->rMatBiasList.empty())
     {   /// Images already in memory,
         /// get the pointer to the biases (list of Mat) from the treeWidget
         rMatBiasList = treeWidget->rMatBiasList;
-        masterBias = average(rMatBiasList);
-        masterBias->setImageTitle(QString("master Bias"));
-        return true;
+
+        if (masterWithMean)
+        {
+            masterBias = average(rMatBiasList);
+            masterBias->setImageTitle( QString("master Bias (arithmetic mean)") );
+        }
+        else if (masterWithSigmaClip)
+        {
+            masterBias = sigmaClipAverage(rMatBiasList);
+            masterBias->setImageTitle( QString("master Bias (sigma-clipped average)") );
+        }
+
+        return !masterBias->matImage.empty();
     }
     else
     {
@@ -341,17 +356,35 @@ bool RProcessing::makeMasterDark()
     {   /// Images not yet in memory,
         /// load the dark files from their urls found in the treeWidget
         loadRMatDarkList(treeWidget->getDarkUrls());
-        masterDark = average(rMatDarkList);
+        if (masterWithMean)
+        {
+            masterDark = average(rMatDarkList);
+            masterDark->setImageTitle( QString("master Dark (arithmetic mean)") );
+        }
+        else if (masterWithSigmaClip)
+        {
+            masterDark = sigmaClipAverage(rMatDarkList);
+            masterDark->setImageTitle( QString("master Dark (sigma-clipped average)") );
+        }
         masterDark->setImageTitle(QString("master Dark"));
-        return true;
+        return !masterDark->matImage.empty();
     }
     else if (treeWidget->getDarkUrls().empty() && !treeWidget->rMatDarkList.empty())
     {   /// Images already in memory,
         /// get the pointer to the darks (list of Mat) from the treeWidget
         rMatDarkList = treeWidget->rMatDarkList;
-        masterDark = average(rMatDarkList);
-        masterDark->setImageTitle(QString("master Dark"));
-        return true;
+
+        if (masterWithMean)
+        {
+            masterDark = average(rMatDarkList);
+            masterDark->setImageTitle( QString("master Dark (arithmetic mean)") );
+        }
+        else if (masterWithSigmaClip)
+        {
+            masterDark = sigmaClipAverage(rMatDarkList);
+            masterDark->setImageTitle( QString("master Dark (sigma-clipped average)") );
+        }
+        return !masterDark->matImage.empty();
     }
     else
     {
@@ -366,38 +399,75 @@ bool RProcessing::makeMasterFlat()
     {   /// Images not yet in memory,
         /// load the flat files from their urls found in the treeWidget
         loadRMatFlatList(treeWidget->getFlatUrls());
-        masterFlat = average(rMatFlatList);
+
+        if (masterWithMean)
+        {
+            masterFlat = average(rMatFlatList);
+            masterFlat->setImageTitle( QString("master Flat (arithmetic mean)") );
+        }
+        else if (masterWithSigmaClip)
+        {
+            masterFlat = sigmaClipAverage(rMatFlatList);
+            masterFlat->setImageTitle( QString("master Flat (sigma-clipped average)") );
+        }
+
         if (masterBias != NULL)
         {
             cv::Mat tempMatFlat;
             cv::Mat tempMatBias;
-            masterBias->matImage.copyTo(tempMatBias);
-            masterFlat->matImage.copyTo(tempMatFlat);
 
-            tempMatFlat.convertTo(tempMatFlat, CV_32F);
-            tempMatBias.convertTo(tempMatBias, CV_32F);
+            masterBias->matImage.convertTo(tempMatFlat, CV_32F);
+            masterFlat->matImage.convertTo(tempMatBias, CV_32F);
 
             cv::subtract(tempMatFlat, tempMatBias, masterFlat->matImage);
         }
-        masterFlat->matImage.convertTo(masterFlat->matImage, rMatFlatList.at(0)->matImage.type());
-        masterFlat->setImageTitle(QString("master Flat"));
-        return true;
     }
     else if (treeWidget->getFlatUrls().empty() && !treeWidget->rMatFlatList.empty())
     {   /// Images already in memory,
         /// get the pointer to the flats (list of Mat) from the treeWidget
         rMatFlatList = treeWidget->rMatFlatList;
-        masterFlat = average(rMatFlatList);
-        masterFlat->matImage.convertTo(masterFlat->matImage, rMatFlatList.at(0)->matImage.type());
-        masterFlat->setImageTitle(QString("master Flat"));
-        masterFlat->setInstrument(rMatFlatList.at(0)->getInstrument());
-        return true;
+
+        if (masterWithMean)
+        {
+            masterFlat = average(rMatFlatList);
+            masterFlat->setImageTitle( QString("master Flat (arithmetic mean)") );
+        }
+        else if (masterWithSigmaClip)
+        {
+            masterFlat = sigmaClipAverage(rMatFlatList);
+            masterFlat->setImageTitle( QString("master Flat (sigma-clipped average)") );
+        }
     }
     else
     {
         emit messageSignal(QString("Flat images not found"));
         return false;
     }
+
+    if (masterFlat->matImage.empty())
+    {
+        return false;
+    }
+
+    /// At this stage, the masterFlat is available.
+    /// Need to subtract the Bias if there's one.
+    if (masterBias == NULL)
+    {
+        return true;
+    }
+
+    cv::Mat tempMatFlat;
+    cv::Mat tempMatBias;
+    masterBias->matImage.convertTo(tempMatFlat, CV_32F);
+    masterFlat->matImage.convertTo(tempMatBias, CV_32F);
+    cv::subtract(tempMatFlat, tempMatBias, masterFlat->matImage);
+    //masterFlat->matImage.convertTo(masterFlat->matImage, rMatFlatList.at(0)->matImage.type());
+    masterFlat->setInstrument(rMatFlatList.at(0)->getInstrument());
+    /// Update masterFlat statistics
+
+    masterFlat->calcStats();
+    /// Convert masterFlat to original type
+    return true;
 }
 
 
@@ -421,8 +491,56 @@ RMat* RProcessing::average(QList<RMat*> rMatList)
     }
 
     avgImg = avgImg / (float) rMatList.size();
-    avgImg.convertTo(avgImg, rMatList.at(0)->matImage.type());
     RMat *rMatAvg = new RMat(avgImg, rMatList.at(0)->isBayer(), rMatList.at(0)->getInstrument());
+    return rMatAvg;
+}
+
+RMat *RProcessing::sigmaClipAverage(QList<RMat*> rMatImageList)
+{
+    if (rMatImageList.size() == 1)
+    {
+        qDebug() << "Only 1 image. Returning input Mat Image.";
+        return rMatImageList.at(0);
+    }
+    /// Get sigma coefficient from sigmaEdit
+    float sigmaFactor = 1.0f;
+    int naxis2 = rMatImageList.at(0)->matImage.rows;
+    int naxis1 = rMatImageList.at(0)->matImage.cols;
+    int nFrames = rMatImageList.size();
+    emit messageSignal(QString("Stacking %1 frames with sigma-clipping").arg(nFrames));
+
+    /// Initialize the GPU array series
+    af::array arfSeries(naxis2, naxis1, nFrames);
+    /// Store the matImageList (converted to float) in the GPU array
+    cv::Mat tempMat(naxis2, naxis1, CV_32F);
+    for ( int k=0; k < nFrames; k++)
+    {
+        rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
+        //cv::cvtColor(rMatImageList.at(k).matImage, tempMat, CV_RGB2GRAY);
+        af::array tempArf(naxis2, naxis1, (float*) tempMat.data);
+        //arfSeries(af::span, af::span, k) = transpose(tempArf);
+        arfSeries(af::span, af::span, k) = tempArf;
+    }
+
+    af::timer start2 = af::timer::start();
+
+    af::array meanArf = af::median(arfSeries, 2);
+    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+    af::array meanArfTiled = af::tile(meanArf, 1, 1, nFrames);
+    //af::array stdevArf = af::moddims(af::stdev(arfSeries, 2), naxis2, naxis1);
+    af::array stdevArf = af::stdev(arfSeries, 2);
+    af::array stdevArfTiled = af::tile(stdevArf, 1, 1, nFrames);
+    af::array arfMaskReject = af::abs(arfSeries - meanArfTiled) > stdevArfTiled;
+    arfSeries(arfMaskReject) = meanArfTiled(arfMaskReject);
+    meanArf = af::mean(arfSeries, 2);
+    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+    /// Copy an array from the device to the host:
+    float *hostArf = meanArf.host<float>();
+    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+    /// Prepare output Mat image
+    cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
+    RMat *rMatAvg = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+
     return rMatAvg;
 }
 
@@ -650,6 +768,7 @@ void RProcessing::calibrate()
     /// and thus we do not overwrite anything.
 
 }
+
 
 
 
@@ -1811,6 +1930,8 @@ void RProcessing::normalizeFlat()
     masterFlatN->calcStats();
 }
 
+
+
 // setters
 void RProcessing::setTreeWidget(RTreeWidget *treeWidget)
 {
@@ -1862,6 +1983,21 @@ void RProcessing::setHPFSigma(double sigma)
     this->hpfSigma = sigma;
 }
 
+void RProcessing::setupMasterWithSigmaClip(bool enabled)
+{
+    this->masterWithSigmaClip = enabled;
+    this->masterWithMean = !masterWithSigmaClip;
+    qDebug() << "RProcessing:: masterWithSigmaClip = " << masterWithSigmaClip;
+    qDebug() << "RProcessing:: masterWithMean = " << masterWithMean;
+}
+
+void RProcessing::setupMasterWithMean(bool enabled)
+{
+    this->masterWithMean = enabled;
+    this->masterWithSigmaClip = !masterWithMean;
+    qDebug() << "RProcessing:: masterWithSigmaClip = " << masterWithSigmaClip;
+    qDebug() << "RProcessing:: masterWithMean = " << masterWithMean;
+}
 
 // getters
 

@@ -76,6 +76,8 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
     /// Connect the pushButton and lineEdit of the ui for creating the masters in the processing class
     connect(ui->makeMasterButton, SIGNAL(pressed()), processing, SLOT(createMasters()));
+    connect(ui->masterMeanRButton, SIGNAL(clicked(bool)), processing, SLOT(setupMasterWithMean(bool)));
+    connect(ui->MasterSigmaClipRButton, SIGNAL(clicked(bool)), processing, SLOT(setupMasterWithSigmaClip(bool)));
 
     connect(ui->calibrateDirLineEdit, SIGNAL(textChanged(QString)), processing, SLOT(setExportCalibrateDir(QString)));
 
@@ -129,8 +131,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
 RMainWindow::~RMainWindow()
 {
-    delete ui;
+
     delete processing;
+    delete ui;
 }
 
 void RMainWindow::dropEvent(QDropEvent *event)
@@ -167,6 +170,12 @@ void RMainWindow::dragMoveEvent(QDragMoveEvent *event)
     {
         event->acceptProposedAction();
     }
+}
+
+void RMainWindow::closeEvent(QCloseEvent *event)
+{
+    event->accept();
+    ui->mdiArea->closeAllSubWindows();
 }
 
 void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
