@@ -13,21 +13,30 @@ uniform mediump vec3 wbRGB;
 uniform mediump float iMax;
 uniform mediump float lambda;
 uniform mediump float mu;
+uniform mediump vec2 radiusXYnorm;
 uniform bool applyToneMapping;
 uniform bool useInverseGaussian;
 
 void main()
 {
     vec3 textureColor = vec3(texture(ourTexture, TexCoord).r);
-    mediump vec3 scaledRGB;
 
-    if (textureColor.r == 255 && textureColor.g != 255)
+    vec2 pixelXY = abs(TexCoord.xy - vec2(0.5, 0.5));
+    if (radiusXYnorm != vec2(0, 0))
     {
-        scaledRGB = vec3(255, 0, 0);
-    }
-    else if (textureColor.r != 255 && textureColor.g == 255)
-    {
-        scaledRGB = vec3(0, 255, 0);
+        float circleEllipseEquation = pow(pixelXY.x / radiusXYnorm.x, 2) + pow(pixelXY.y / radiusXYnorm.y, 2);
+        if (circleEllipseEquation > 1)
+        {
+            if (applyToneMapping)
+            {
+                vec3 mu3 = vec3(mu);
+
+                /// Inverse Gaussian
+                textureColor = iMax * sqrt(lambda / (2.0*3.1415 * pow(textureColor, vec3(3.0)))) * exp(-lambda * pow(textureColor - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * textureColor)) + textureColor;
+                /// Sigmoid-like function
+                //textureColor = 255.0 * textureColor / (vec3(sigmoid) + textureColor);
+            }
+        }
     }
     else
     {
@@ -37,24 +46,22 @@ void main()
 
             /// Inverse Gaussian
             textureColor = iMax * sqrt(lambda / (2.0*3.1415 * pow(textureColor, vec3(3.0)))) * exp(-lambda * pow(textureColor - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * textureColor)) + textureColor;
-
-           /// Sigmoid-like function
+            /// Sigmoid-like function
             //textureColor = 255.0 * textureColor / (vec3(sigmoid) + textureColor);
         }
-
-        scaledRGB = alpha * textureColor.rgb + beta;
-        scaledRGB = scaledRGB * wbRGB;
-
-        if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
-        {
-            scaledRGB.rgb = vec3(0);
-        }
-
-        mediump vec3 gammaVec = vec3(gamma);
-        scaledRGB = pow(scaledRGB, gammaVec);
-
-
     }
+
+    mediump vec3 scaledRGB;
+    scaledRGB = alpha * textureColor.rgb + beta;
+    scaledRGB = scaledRGB * wbRGB;
+
+    if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
+    {
+        scaledRGB.rgb = vec3(0);
+    }
+
+    mediump vec3 gammaVec = vec3(gamma);
+    scaledRGB = pow(scaledRGB, gammaVec);
 
     color = vec4(scaledRGB, 1.0);
 }

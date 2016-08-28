@@ -52,9 +52,10 @@ private slots:
     void createNewImage(QList<RMat*> newRMatImageList);
     void createNewImage(RMat *rMatImage);
     void createNewImage(cv::Mat cvImage, bool bayer = false, instruments instrument = instruments::generic, QString imageTitle = QString("Result"));
-    void createNewImage(QImage &image);
+    void createNewImage(QImage &image, ROpenGLWidget *rOpenGLWidget = NULL, bool inverted = true);
 
     void displayQImage(QImage &image, RGraphicsScene *scene, QMdiSubWindow *subWindow, QString windowTitle = QString("Processing Window"));
+    void initPreviewQImage(bool status);
 
     void selectROI();
     void setRect(QRect rect);
@@ -85,7 +86,16 @@ private slots:
     void exportFramesToJpeg();
     void exportFramesToFits();
     void convertTo8Bit();
+    cv::Mat convertTo8Bit(RMat *rMatImage);
     void convertToNeg();
+    void solarColorizeSeriesSlot();
+    void initSharpenImageSlot(bool status);
+    void sharpenImageSlot();
+    void sharpenSliderSlot();
+    void sharpenLiveSlot();
+
+    /// Stats graph
+    void changeZoomAxisSlot();
 
     // Processing
     void calibrateOffScreenSlot();
@@ -94,6 +104,7 @@ private slots:
     void solarLimbRegisterSlot();
     void normalizeCurrentSeries();
     void previewMatImageHPFSlot();
+    void stackSlot();
 
     // Plots
     void showLimbFitStats();
@@ -102,6 +113,8 @@ private slots:
     void setupToneMappingCurve();
     void updateToneMappingSlot();
     void applyToneMappingCurve();
+    void hAlphaToneMappingSlot();
+    void applyScaleLimbSlot();
 
     //sliderFrame playback buttons
     void stepForward();
@@ -124,6 +137,8 @@ private slots:
 
     void on_actionROIExtract_triggered();
 
+    void on_actionHeader_triggered();
+
 private:
 
     // functions
@@ -132,12 +147,15 @@ private:
     void loadSubWindow(QScrollArea *scrollArea);
     void dispatchRMatImages(QList<RMat*> rMatList);
     float convertSliderToScale(int value);
+    float convertLimbSliderToScale(int value);
     int convertScaleToSlider(float value);
     float convertSliderToGamma(int value);
     int convertGammaToSlider(float gamma);
     void setupSliders(ROpenGLWidget *rOpenGLWidget);
     void setupSubImage();
     void updateCustomPlotLineItems();
+    void updateInvGaussianParams();
+
 
     // properties
     //cv::Mat ellMat;
@@ -171,6 +189,7 @@ private:
     QMdiSubWindow *currentSubWindow;
     QMdiSubWindow *plotSubWindow;
     QMdiSubWindow *tempSubWindow;
+    QMdiSubWindow *previewSubWindow;
     QScrollArea *currentScrollArea;
     QScrollArea *cannyScrollArea;
     QScrollArea *processingScrollArea;
@@ -178,6 +197,7 @@ private:
     QSize oglSize;
     QSize defaultWindowSize;
     float sliderScale, sliderRange, sliderScaleWB, sliderToScaleMinimum;
+    float limbSliderScale, limbSliderRange, limbSliderToScaleMinimum;
 
     float gammaScale, alpha, beta, gammaMin, gamma;
     double iMax, lambda, mu;
@@ -185,16 +205,22 @@ private:
     int doubleSpinBoxDecimals;
     int sliderValueHigh, sliderValueLow, sliderValueGamma;
     int scrollBarHeight;
-    int lastFrameIndex;
+    int frameIndex;
 
     bool stopButtonStatus;
 
     QRect rect;
     //QCustomPlot *limbFitPlot;
 
-    /// Preview mat Images
+    /// image objects used for previews
     cv::Mat matImageHPFPreview;
+    QImage previewQImage;
 
+    /// Limb fitting temporary results
+    QVector<Circle> fittedLimbList;  // With smooth
+    QVector<Circle> fittedLimbList2; // Without smooth
+
+    QCustomPlot *limbFitPlot;
 
 };
 

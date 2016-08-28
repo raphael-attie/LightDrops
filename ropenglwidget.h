@@ -73,6 +73,8 @@ public:
     float getGamma();
     float getNewMax();
     float getNewMin();
+    float getLimbNewMax();
+    float getLimbNewMin();
     float getAlpha();
     float getBeta();
 
@@ -80,20 +82,26 @@ public:
     float getWbGreen();
     float getWbBlue();
 
-
+    float getRadius();
+    float getScaleLimb();
 
     //setters
     void setRMatImageList(QList<RMat*> rMatImageList);
     void setNewMax(float newMax);
     void setNewMin(float newMin);
+    void setLimbNewMax(float limbNewMax);
+    void setLimbNewMin(float limbNewMin);
     void setAlpha(float newAlpha);
     void setBeta(float newBeta);
+    void setAlphaLimb(float alphaLimb);
+    void setBetaLimb(float betaLimb);
     void setGamma(float newGamma);
     void setImax(float iMax);
     void setLambda(float lambda);
     void setMu(float mu);
     void setApplyToneMapping(bool state);
     void setUseInverseGausssian(bool state);
+    void setScaleLimb(bool state);
     void setImageCoordX(quint32 x);
     void setImageCoordY(quint32 y);
 
@@ -109,6 +117,7 @@ public:
     void setWbBlue(float wbBlue);
 
     void setTableSize(QSize size);
+    void setRadius(float radius);
 
 signals:
 
@@ -153,11 +162,15 @@ private:
     int sliderValueGamma;
 
     float newMin, newMax;
+    float limbNewMin, limbNewMax;
     float alpha, beta, gamma;
+    /// Limb
+    float alphaLimb, betaLimb;
     /// ToneMapping
-    float iMax, lambda, mu;
+    float iMax, lambda, mu, radius;
     bool applyToneMapping;
     bool useInverseGaussian;
+    bool scaleLimb;
 
 
     float wbRed;

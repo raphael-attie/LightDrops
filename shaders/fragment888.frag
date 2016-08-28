@@ -17,24 +17,16 @@ void main()
     vec3 textureColor = texture(ourTexture, TexCoord).rgb;
     mediump vec3 scaledRGB;
 
-    if (textureColor.r == 255 && textureColor.g != 255)
-    {
-        scaledRGB = vec3(255, 0, 0);
-    }
-    else if (textureColor.r != 255 && textureColor.g == 255)
-    {
-        scaledRGB = vec3(0, 255, 0);
-    }
-    else
-    {
-        scaledRGB = alpha * (textureColor * wbRGB).rgb + beta;
-        if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
-        {
-            scaledRGB.rgb = vec3(0);
-        }
-        mediump vec3 gammaVec = vec3(gamma);
-        scaledRGB = pow(scaledRGB, gammaVec);
-    }
+    scaledRGB = (alpha * textureColor.rgb + beta)*wbRGB;
+    //scaledRGB = alpha * (textureColor * wbRGB).rgb + beta;
+
+    /// Clip minimum values to 0. Is that even necessary?
+    if (scaledRGB.r < 0){ scaledRGB.r = 0; }
+    if (scaledRGB.g < 0){ scaledRGB.g = 0; }
+    if (scaledRGB.b < 0){ scaledRGB.b = 0; }
+
+    mediump vec3 gammaVec = vec3(gamma);
+    scaledRGB = pow(scaledRGB, gammaVec);
 
     color = vec4(scaledRGB, 1.0);
 }

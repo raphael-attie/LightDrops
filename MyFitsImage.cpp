@@ -13,7 +13,7 @@
 using namespace cv;
 
 MyFitsImage::MyFitsImage(QString filePath) :
-hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), bzero(0), bayer(false), bitpix(0)
+hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), expTime(0), bayer(false), bitpix(0)
 ,image1D_ushort(NULL), image1D_float(NULL), image1D_shortint(NULL)
 {
 
@@ -89,26 +89,10 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), expTime(0), b
         }
 	}
 
-    if (fits_read_key(fptr, TFLOAT, "BSCALE", &bscale, NULL, &status))
-    {
-        status = 0;
-    }
-
-    if (fits_read_key(fptr, TINT, "BZERO", &bzero, NULL, &status))
-    {
-        status = 0;
-    }
-
-
-    if (fits_read_key(fptr, TLOGICAL, "BAYER", &bayer, NULL, &status))
-    {
-        status = 0;
-    }
-
-    if (fits_read_key(fptr, TFLOAT, "EXPTIME", &expTime, NULL, &status))
-    {
-        status = 0;
-    }
+    if (fits_read_key(fptr, TFLOAT, "BSCALE", &bscale, NULL, &status)) { status = 0; }
+    if (fits_read_key(fptr, TINT, "BZERO", &bzero, NULL, &status)) { status = 0; }
+    if (fits_read_key(fptr, TLOGICAL, "BAYER", &bayer, NULL, &status)) { status = 0; }
+    if (fits_read_key(fptr, TFLOAT, "EXPTIME", &expTime, NULL, &status)) { status = 0; }
 
 	nPixels = naxis1 * naxis2; // Total number of pixels in the image
 

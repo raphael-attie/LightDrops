@@ -18,7 +18,7 @@ ImageManager::ImageManager(QString filePathQStr) :
     fitsExtList << "fits" << "fts" << "fit";
 
     rawExtList = QList<QString>();
-    rawExtList << "cr2";
+    rawExtList << "cr2" << "CR2";
 
 
     // Instantiate an object that hold information on the user's monitor.
@@ -35,7 +35,6 @@ ImageManager::ImageManager(QString filePathQStr) :
     if (fitsExtList.contains(fileExt))
     {
         loadFits();
-        createTableWidget();
     }
     else if (rawExtList.contains(fileExt))
     {
@@ -48,8 +47,14 @@ ImageManager::ImageManager(QString filePathQStr) :
         return;
     }
 
+
+    createTableWidget();
+
+    rMatImage->calcStats();
+
     rMatImage->setImageTitle(fileName);
     rMatImage->setFileInfo(fileInfo);
+
 
 }
 
@@ -96,8 +101,27 @@ void ImageManager::loadFits()
     {
         instrument = instruments::generic;
     }
-
     rMatImage->setInstrument(instrument);
+
+    if (newFitsImage->getKeyNames().contains(QString("SOLAR_R")))
+    {
+        int keyInd = newFitsImage->getKeyNames().indexOf("SOLAR_R");
+        rMatImage->setSOLAR_R(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
+    }
+
+    if (newFitsImage->getKeyNames().contains(QString("EXPTIME")))
+    {
+        int keyInd = newFitsImage->getKeyNames().indexOf("EXPTIME");
+        rMatImage->setXPOSURE(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
+        rMatImage->setExpTime(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
+    }
+
+
+    if (newFitsImage->getKeyNames().contains(QString("XPOSURE")))
+    {
+        int keyInd = newFitsImage->getKeyNames().indexOf("XPOSURE");
+        rMatImage->setXPOSURE(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
+    }
 
     if (newFitsImage->getKeyNames().contains(QString("DATE-OBS")))
     {
@@ -125,7 +149,6 @@ void ImageManager::loadFits()
     rMatImage->setTime_obs(time_obs);
     rMatImage->setDate_time(date_obs + QString(" ") + time_obs);
 
-    rMatImage->calcStats();
 
 }
 
@@ -135,6 +158,8 @@ void ImageManager::loadRaw()
 
     rMatImage = new RMat(newRawImage->matCFA, true, instruments::DSLR);
 
+
+
     rMatImage->setWbRed(newRawImage->getWbRed());
     rMatImage->setWbGreen(newRawImage->getWbGreen());
     rMatImage->setWbBlue(newRawImage->getWbBlue());
@@ -142,7 +167,17 @@ void ImageManager::loadRaw()
 
 void ImageManager::createTableWidget()
 {
-    tableWidget = new QTableWidget(newFitsImage->getNKeys(), 3);
+    int nKeys;
+    if (rMatImage->getInstrument() != instruments::DSLR)
+    {
+        nKeys = newFitsImage->getNKeys();
+    }
+    else
+    {
+        nKeys = newRawImage->getKeyNames().size();
+    }
+
+    tableWidget = new QTableWidget(nKeys, 3);
     tableWidget->verticalHeader()->setVisible(false);
     tableWidget->horizontalHeader()->setVisible(true);
     tableWidget->setMinimumWidth(400);
@@ -166,17 +201,35 @@ void ImageManager::createTableWidget()
     tFont.setPointSize(12);
     tFont.setFamily("Arial");
 
-    for (int ii=0; ii<newFitsImage->getNKeys(); ii++)
+    if (rMatImage->getInstrument() != instruments::DSLR)
     {
-       tableWidget->setItem(ii, 0,  new QTableWidgetItem(newFitsImage->getKeyNames().at(ii)));
-       tableWidget->setItem(ii, 1,  new QTableWidgetItem(newFitsImage->getKeyValues().at(ii)));
-       tableWidget->setItem(ii, 2,  new QTableWidgetItem(newFitsImage->getKeyComments().at(ii)));
-       tableWidget->item(ii, 0)->setFont(tFont);
-       tableWidget->item(ii, 1)->setFont(tFont);
-       tableWidget->item(ii, 2)->setFont(tFont);
-       tableWidget->setRowHeight(ii, rowHeight);
+        for (int ii=0; ii<newFitsImage->getNKeys(); ii++)
+        {
+           tableWidget->setItem(ii, 0,  new QTableWidgetItem(newFitsImage->getKeyNames().at(ii)));
+           tableWidget->setItem(ii, 1,  new QTableWidgetItem(newFitsImage->getKeyValues().at(ii)));
+           tableWidget->setItem(ii, 2,  new QTableWidgetItem(newFitsImage->getKeyComments().at(ii)));
+           tableWidget->item(ii, 0)->setFont(tFont);
+           tableWidget->item(ii, 1)->setFont(tFont);
+           tableWidget->item(ii, 2)->setFont(tFont);
+           tableWidget->setRowHeight(ii, rowHeight);
+        }
+        tableWidget->setMinimumHeight((newFitsImage->getNKeys() + 3) * rowHeight);
     }
-    tableWidget->setMinimumHeight((newFitsImage->getNKeys() + 3) * rowHeight);
+    else
+    {
+        for (int ii=0; ii < newRawImage->getKeyNames().size(); ii++)
+        {
+           tableWidget->setItem(ii, 0,  new QTableWidgetItem(newRawImage->getKeyNames().at(ii)));
+           tableWidget->setItem(ii, 1,  new QTableWidgetItem(newRawImage->getKeyValues().at(ii)));
+           tableWidget->setItem(ii, 2,  new QTableWidgetItem(newRawImage->getKeyComments().at(ii)));
+           tableWidget->item(ii, 0)->setFont(tFont);
+           tableWidget->item(ii, 1)->setFont(tFont);
+           tableWidget->item(ii, 2)->setFont(tFont);
+           tableWidget->setRowHeight(ii, rowHeight);
+        }
+        tableWidget->setMinimumHeight((nKeys + 3) * rowHeight);
+    }
+
     tableWidget->adjustSize();
 }
 

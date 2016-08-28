@@ -21,7 +21,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
     graphicsView(NULL),
     limbRegisterSubWindow(NULL),
     currentSubWindow(NULL), plotSubWindow(NULL), tempSubWindow(NULL),
-    toneMappingGraph(NULL)
+    toneMappingGraph(NULL), previewQImage(NULL)
 {
     ui->setupUi(this);
 
@@ -31,17 +31,21 @@ RMainWindow::RMainWindow(QWidget *parent) :
     setCentralWidget(ui->mdiArea);
     processing = new RProcessing(this);
     processing->setTreeWidget(ui->treeWidget);
-
     vertLineHigh = NULL;
-
     defaultWindowSize = QSize(512, 512);
+
     sliderScale = 1.0;
+    sliderToScaleMinimum = 0;
+
+    limbSliderScale = 1.0;
+    limbSliderToScaleMinimum = 0;
+
     gammaScale = 0.1;
     gammaMin = ui->doubleSpinBoxGamma->minimum();
     gamma = 1.0f;
 
     sliderScaleWB = 0.01;
-    lastFrameIndex = 0;
+    frameIndex = 0;
 
     setupSubImage();
 
@@ -57,6 +61,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(ui->sliderLow, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->sliderGamma, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
 
+    connect(ui->limbSliderHigh, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
+    connect(ui->limbSliderLow, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
+
     /// Connect the change of the number in the spinBox to the change of slider value
     ///Use editingFinished() instead of valueChanged(double()) to avoid unwanted feedback on the slider.
     connect(ui->doubleSpinBoxHigh, SIGNAL(editingFinished()), this, SLOT(updateSliderValueSlot()));
@@ -67,6 +74,9 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(ui->sliderHigh, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
     connect(ui->sliderLow, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
     connect(ui->sliderGamma, SIGNAL(valueChanged(int)), this, SLOT(gammaScaleImageSlot(int)));
+
+    connect(ui->limbSliderHigh, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
+    connect(ui->limbSliderLow, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
 
     /// Connect the white balance sliders
     connect(ui->redSlider, SIGNAL(valueChanged(int)), this, SLOT(updateWB(int)));
@@ -119,9 +129,19 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(ui->toneMappingSlider2, SIGNAL(valueChanged(int)), this, SLOT(updateToneMappingSlot()));
     connect(ui->toneMappingSlider3, SIGNAL(valueChanged(int)), this, SLOT(updateToneMappingSlot()));
     connect(ui->applyToneMappingCheckBox, SIGNAL(toggled(bool)), this, SLOT(applyToneMappingCurve()));
+    connect(ui->HAlphaPButton, SIGNAL(released()), this, SLOT(hAlphaToneMappingSlot()));
+    connect(ui->scaleLimbCheckBox, SIGNAL(toggled(bool)), this, SLOT(applyScaleLimbSlot()));
 
     // Fourier Filters
    qDebug() << "mdiArea->size =" << ui->mdiArea->size();
+
+   connect(ui->sharpenLiveCheckBox, SIGNAL(clicked(bool)), this, SLOT(initSharpenImageSlot(bool)));
+   connect(ui->sharpenSliderW1, SIGNAL(sliderMoved(int)), this, SLOT(sharpenSliderSlot()));
+   connect(ui->sharpenSliderW2, SIGNAL(sliderMoved(int)), this, SLOT(sharpenSliderSlot()));
+   connect(ui->sharpenSliderW1, SIGNAL(sliderReleased()), this, SLOT(sharpenLiveSlot()));
+   connect(ui->sharpenSliderW2, SIGNAL(sliderReleased()), this, SLOT(sharpenLiveSlot()));
+
+   connect(ui->sharpenPButton, SIGNAL(released()), this, SLOT(sharpenImageSlot()));
 
 }
 
@@ -178,7 +198,6 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 {
     currentROpenGLWidget = new ROpenGLWidget(newRListImageManager, this);
 
-
     addImage(currentROpenGLWidget);
     displayPlotWidget(currentROpenGLWidget);
     currentSubWindow->show();
@@ -186,9 +205,7 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
     autoScale(currentROpenGLWidget);
 
     //dispatchRMatImages(currentROpenGLWidget->getRMatImageList());
-    ui->treeWidget->rMatLightList = newRListImageManager->getRMatImageList();
     processing->rMatLightList = newRListImageManager->getRMatImageList();
-
     ui->treeWidget->rMatFromLightRButton(newRListImageManager->getRMatImageList());
 
     ///--- Test of Fourier Filtering ---///
@@ -202,6 +219,7 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 
 void RMainWindow::createNewImage(QList<RMat*> newRMatImageList)
 {
+
     currentROpenGLWidget = new ROpenGLWidget(newRMatImageList, this);
     addImage(currentROpenGLWidget);
     displayPlotWidget(currentROpenGLWidget);
@@ -228,26 +246,41 @@ void RMainWindow::createNewImage(cv::Mat cvImage, bool bayer, instruments instru
     createNewImage(rMatImage);
 }
 
-void RMainWindow::createNewImage(QImage &image)
+void RMainWindow::createNewImage(QImage &image, ROpenGLWidget *rOpenGLWidget, bool inverted)
 {
     //QSize currentSize = ui->mdiArea->currentSubWindow()->size();
     QPixmap pixMap = QPixmap::fromImage(image);
-
     QGraphicsScene *newScene = new QGraphicsScene;
     newScene->addPixmap(pixMap);
 
     graphicsView= new QGraphicsView(newScene);
 
+    if (rOpenGLWidget != NULL)
+    {
+        float scale = rOpenGLWidget->getResizeFac();
+        if (inverted)
+        {
+            graphicsView->scale(scale, -scale);
+        }
+        else
+        {
+            graphicsView->scale(scale, scale);
+        }
+
+    }
+
     QMdiSubWindow *newSubWindow = new QMdiSubWindow;
-    newSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
+    newSubWindow->setAttribute(Qt::WA_DeleteOnClose, false);
+    //newSubWindow->setAttribute(Qt::WA_AcceptTouchEvents, false);
     newSubWindow->setWidget(graphicsView);
     newSubWindow->setWindowTitle(QString("QImage"));
     ui->mdiArea->addSubWindow(newSubWindow);
 
     newSubWindow->show();
-    //newSubWindow->resize(currentSize);
 
 }
+
+
 
 void RMainWindow::displayQImage(QImage &image, RGraphicsScene *scene, QMdiSubWindow *subWindow, QString windowTitle)
 {
@@ -561,9 +594,13 @@ void RMainWindow::loadSubWindow(QScrollArea *scrollArea)
 
 void RMainWindow::updateDoubleSpinBox(int value)
 {
+    /// The value of sliders cannot be passed-through "as is"
+    /// to the SpinBox. The latter need to show numbers in
+    /// the "units" of the image intensity.
+
     if (this->sender() == ui->sliderHigh)
     {
-        float valueF = convertSliderToScale(value);
+        double valueF = (double) convertSliderToScale(value);
         ui->doubleSpinBoxHigh->setValue(valueF);
         qDebug("updateDoubleSpinBox:: (high) valueF = %f", valueF);
     }
@@ -576,6 +613,18 @@ void RMainWindow::updateDoubleSpinBox(int value)
     {
         float valueF = convertSliderToGamma(value);
         ui->doubleSpinBoxGamma->setValue(valueF);
+    }
+    /// Limb sliders
+    if (this->sender() == ui->limbSliderHigh)
+    {
+        float valueF = convertLimbSliderToScale(value);
+        ui->limbDoubleSpinBoxHigh->setValue(valueF);
+        qDebug("updateDoubleSpinBox:: (high) valueF = %f", valueF);
+    }
+    else if (this->sender() == ui->limbSliderLow)
+    {
+        float valueF = convertLimbSliderToScale(value);
+        ui->limbDoubleSpinBoxLow->setValue(valueF);
     }
 
 
@@ -594,12 +643,20 @@ void RMainWindow::scaleImageSlot(int value)
     {
         currentROpenGLWidget->setNewMin(convertSliderToScale(value));
     }
-    else
-    {
-        return;
+    else if (this->sender() == ui->limbSliderHigh)
+    {   /// Limb
+        currentROpenGLWidget->setLimbNewMax(convertSliderToScale(value));
+    }
+    else if (this->sender() == ui->limbSliderLow)
+    {   /// Limb
+        currentROpenGLWidget->setLimbNewMin(convertSliderToScale(value));
     }
 
     if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
+    {
+        return;
+    }
+    else if (currentROpenGLWidget->getLimbNewMin() == currentROpenGLWidget->getLimbNewMax())
     {
         return;
     }
@@ -630,24 +687,32 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     int decimals = 0;
     ui->sliderHigh->blockSignals(true);
     ui->sliderLow->blockSignals(true);
+    ui->limbSliderHigh->blockSignals(true);
+    ui->limbSliderLow->blockSignals(true);
 
 
-    if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32F && rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32FC3)
+    if ( rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::DSLR ||
+        (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32F && rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32FC3) )
     {
         sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange();
         ui->sliderHigh->setRange(1, sliderRange);
         ui->sliderLow->setRange(1, sliderRange);
 
+        ui->limbSliderHigh->setRange(1, sliderRange);
+        ui->limbSliderLow->setRange(1, sliderRange);
+
         sliderScale = 1.0;
         sliderToScaleMinimum = 0;
+
+        limbSliderScale = 1.0;
+        limbSliderToScaleMinimum = 0;
 
     }
     else
     {
-
-         /// Here the image is assumed to be seen as scientific data
-         /// for which scaling needs to be tightly set around the min and max
-         /// so we can scan through with maximum dynamic range.
+        /// Here the image is assumed to be seen as scientific data
+        /// for which scaling needs to be tightly set around the min and max
+        /// so we can scan through with maximum dynamic range.
 
         sliderRange = 65536;
         ui->sliderHigh->setRange(1, sliderRange);
@@ -658,9 +723,10 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
         float dataRange = dataMax - dataMin;
         sliderScale = (float) dataRange / sliderRange;
         sliderToScaleMinimum = dataMin;
-        qDebug() << "RMainWindow::setupSliders() dataMax =" << dataMax;
-        qDebug() << "RMainWindow::setupSliders() dataMin =" << dataMin;
-        qDebug() << "RMainWindow::setupSliders() sliderScale =" << sliderScale;
+
+        limbSliderScale = 1.0;
+        limbSliderToScaleMinimum = dataMin;
+
         // update the number of decimals in the spinBox High and Low
         decimals = 2;
     }
@@ -669,18 +735,37 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     ui->sliderHigh->blockSignals(false);
     ui->sliderLow->blockSignals(false);
 
+    ui->limbSliderHigh->blockSignals(false);
+    ui->limbSliderLow->blockSignals(false);
+
     ui->doubleSpinBoxHigh->blockSignals(true);
     ui->doubleSpinBoxLow->blockSignals(true);
 
-    ui->doubleSpinBoxHigh->setMaximum(convertSliderToScale(ui->sliderHigh->maximum()));
-    ui->doubleSpinBoxHigh->setMinimum(convertSliderToScale(ui->sliderHigh->minimum()));
+//    ui->doubleSpinBoxHigh->setMaximum(convertSliderToScale(ui->sliderHigh->maximum()));
+//    ui->doubleSpinBoxHigh->setMinimum(convertSliderToScale(ui->sliderHigh->minimum()));
     ui->doubleSpinBoxHigh->setDecimals(decimals);
-    ui->doubleSpinBoxLow->setMaximum(convertSliderToScale(ui->sliderLow->maximum()));
-    ui->doubleSpinBoxLow->setMinimum(convertSliderToScale(ui->sliderLow->minimum()));
+//    ui->doubleSpinBoxLow->setMaximum(convertSliderToScale(ui->sliderLow->maximum()));
+//    ui->doubleSpinBoxLow->setMinimum(convertSliderToScale(ui->sliderLow->minimum()));
     ui->doubleSpinBoxLow->setDecimals(decimals);
 
     ui->doubleSpinBoxHigh->blockSignals(false);
     ui->doubleSpinBoxLow->blockSignals(false);
+
+    /// setup limbSliderHigh and limbSliderLow
+
+    ui->limbDoubleSpinBoxHigh->blockSignals(true);
+    ui->limbDoubleSpinBoxLow->blockSignals(true);
+
+    ui->limbDoubleSpinBoxHigh->setMaximum(convertLimbSliderToScale(ui->limbSliderHigh->maximum()));
+    ui->limbDoubleSpinBoxHigh->setMinimum(convertLimbSliderToScale(ui->limbSliderHigh->minimum()));
+    ui->limbDoubleSpinBoxHigh->setDecimals(decimals);
+    ui->limbDoubleSpinBoxLow->setMaximum(convertLimbSliderToScale(ui->limbSliderLow->maximum()));
+    ui->limbDoubleSpinBoxLow->setMinimum(convertLimbSliderToScale(ui->limbSliderLow->minimum()));
+    ui->limbDoubleSpinBoxLow->setDecimals(decimals);
+
+    ui->limbDoubleSpinBoxHigh->blockSignals(false);
+    ui->limbDoubleSpinBoxLow->blockSignals(false);
+
 }
 
 void RMainWindow::setupSubImage()
@@ -698,10 +783,62 @@ void RMainWindow::setupSubImage()
 
 }
 
+void RMainWindow::updateInvGaussianParams()
+{
+    double fac1, fac2, fac3;
+    int matType = currentROpenGLWidget->getRMatImageList().at(0)->matImage.type();
+    if (matType == CV_32F || matType == CV_16U)
+    {
+        fac1 = 0.5 / (double) ui->toneMappingSlider1->maximum();
+        fac2 = 5.0 / (double) ui->toneMappingSlider2->maximum();
+        fac3 = 1.0 / (double) ui->toneMappingSlider3->maximum();
+    }
+    else if (matType == CV_8U)
+    {
+        fac1 = 10000.0 / (double) ui->toneMappingSlider1->maximum();
+        fac2 = 2000.0 / (double) ui->toneMappingSlider2->maximum();
+        fac3 = 255.0 / (double) ui->toneMappingSlider3->maximum();
+    }
+
+    iMax = (double) ui->toneMappingSlider1->value() * fac1;
+    lambda = (double) ui->toneMappingSlider2->value() * fac2;
+    mu = (double) ui->toneMappingSlider3->value() * fac3;
+}
+
+void RMainWindow::initPreviewQImage(bool status)
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    if (status)
+    {
+        cv::Mat matImage = convertTo8Bit(currentROpenGLWidget->getRMatImageList().at(frameIndex));
+        previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
+
+        createNewImage(previewQImage, currentROpenGLWidget, true);
+        previewSubWindow = ui->mdiArea->activeSubWindow();
+    }
+    else
+    {
+        previewSubWindow->close();
+        previewSubWindow == NULL;
+    }
+
+
+}
+
 
 void RMainWindow::solarLimbFit()
 {
-    if (ui->treeWidget->rMatLightList.isEmpty() && ui->treeWidget->getLightUrls().empty())
+//    if (ui->treeWidget->rMatLightList.isEmpty() && ui->treeWidget->getLightUrls().empty())
+//    {
+//        ui->statusBar->showMessage(QString("No lights for limb detection"), 3000);
+//        return;
+//    }
+
+    if (currentROpenGLWidget->getRMatImageList().isEmpty())
     {
         ui->statusBar->showMessage(QString("No lights for limb detection"), 3000);
         return;
@@ -716,8 +853,16 @@ void RMainWindow::solarLimbFit()
 
     if (!ui->treeWidget->rMatLightList.isEmpty())
     {
+       processing->setShowContours(ui->contoursCheckBox->isChecked());
 
-       bool success = processing->wernerLimbFit();
+       /// test limb fitting without smooth
+       bool success2 = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), false);
+       fittedLimbList2 = processing->getCircleOutList();
+
+       /// With smooth
+       int blurSize = ui->blurSizeSpinBox->value();      
+       bool success = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), true, blurSize);
+       fittedLimbList  = processing->getCircleOutList();
 
         if (!success)
         {
@@ -735,8 +880,12 @@ void RMainWindow::solarLimbFit()
     {
             return;
     }
+
     autoScale(currentROpenGLWidget);
+    currentSubWindow->show();
     displayPlotWidget(currentROpenGLWidget);
+
+
 }
 
 void RMainWindow::solarLimbRegisterSlot()
@@ -744,9 +893,16 @@ void RMainWindow::solarLimbRegisterSlot()
     processing->setShowContours(ui->contoursCheckBox->isChecked());
     processing->setShowLimb(ui->limbCheckBox->isChecked());
 
-    processing->cannyRegisterSeries();
+    bool success = processing->solarLimbRegisterSeries(currentROpenGLWidget->getRMatImageList());
+
+    if (!success)
+    {
+        return;
+    }
 
     createNewImage(processing->getLimbFitResultList1());
+
+    currentROpenGLWidget->setRadius(processing->getMeanRadius());
     //rangeScale();
     autoScale();
 }
@@ -755,8 +911,8 @@ void RMainWindow::solarLimbRegisterSlot()
 
 void RMainWindow::normalizeCurrentSeries()
 {
-    QList<RMat*> normalizedRMatList = processing->normalizeSeriesByStats(currentROpenGLWidget->getRMatImageList());
 
+    QList<RMat*> normalizedRMatList = processing->normalizeSeriesByStats(currentROpenGLWidget->getRMatImageList());
     createNewImage(normalizedRMatList);
     autoScale();
 }
@@ -775,6 +931,20 @@ void RMainWindow::previewMatImageHPFSlot()
     matImageHPFPreview = processing->makeImageHPF(matImage, (double) sigma);
 
     createNewImage(matImageHPFPreview, false, instruments::generic, QString("High-pass filtered image, sigma = %1").arg(ui->hpfSpinBox->value()));
+}
+
+void RMainWindow::stackSlot()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    processing->setStackWithMean(ui->stackMeanRButton->isChecked());
+    processing->setStackWithSigmaClip(ui->stackSigmaClipRButton->isChecked());
+
+    processing->stack(currentROpenGLWidget->getRMatImageList());
+
 }
 
 void RMainWindow::showLimbFitStats()
@@ -810,30 +980,76 @@ void RMainWindow::showLimbFitStats()
 
     QVector<double> x(nFrames);
     QVector<double> y(nFrames);
+    QVector<double> y2(nFrames);
     for (int i = 0 ; i < nFrames ; ++i)
     {
-        x[i] = i;
-        y[i] = processing->getCircleOutList().at(i).r;
+        x[i]  = i+1;
+        y[i]  = fittedLimbList.at(i).r;
+        y2[i] = y[i] - fittedLimbList2.at(i).r;
     }
+    cv::Scalar meanDiff, stdDiff, meanRadius, stdRadius;
+    cv::meanStdDev(y2.toStdVector(), meanDiff, stdDiff);
+    cv::meanStdDev(y.toStdVector(), meanRadius, stdRadius);
 
-    QCustomPlot *limbFitPlot = new QCustomPlot();
+    limbFitPlot = new QCustomPlot();
+    limbFitPlot->legend->setVisible(true);
+    // by default, the legend is in the inset layout of the main axis rect. So this is how we access it to change legend placement:
+    limbFitPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignBottom|Qt::AlignRight);
     limbFitPlot->addGraph();
-    limbFitPlot->plottable(0)->setPen(QPen(QColor(0, 0, 255, 100)));
-    limbFitPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle));
-
+    limbFitPlot->plottable(0)->setPen(QPen(Qt::red));
+    limbFitPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc));
+    limbFitPlot->graph(0)->setName(QString("Radius: ") + QString("mean = %1; std = %2").arg(meanRadius[0], 0, 'f', 2).arg(stdRadius[0], 0, 'f', 2));
+    limbFitPlot->yAxis->setLabel(QString("Fitted limb radius (px)"));
     limbFitPlot->graph(0)->setData(x, y);
-    limbFitPlot->rescaleAxes();
+    limbFitPlot->graph(0)->rescaleAxes();
 
-    limbFitPlot->xAxis->setAutoTickStep(false);
-    limbFitPlot->xAxis->setTickStep(1);
+    //limbFitPlot->xAxis->setAutoTickStep(false);
+    //limbFitPlot->xAxis->setTickStep(1);
     limbFitPlot->xAxis->setRange(limbFitPlot->xAxis->range().lower, limbFitPlot->xAxis->range().upper + 1);
     limbFitPlot->xAxis->setLabel(QString("Image #"));
 
-    limbFitPlot->yAxis->setRange(900, 930);
+    limbFitPlot->yAxis->setRange(890, 920);
     limbFitPlot->yAxis->setAutoTickStep(false);
     limbFitPlot->yAxis->setTickStep(5);
     limbFitPlot->yAxis->setSubTickCount(4);
-    limbFitPlot->yAxis->setLabel(QString("Fitted limb radius (px)"));
+    limbFitPlot->yAxis->grid()->setPen(Qt::DashDotDotLine);
+
+    // setup for graph 2: key axis top, value axis right
+    // will contain high frequency sine with low frequency beating:
+    limbFitPlot->addGraph(limbFitPlot->xAxis, limbFitPlot->yAxis2);
+    limbFitPlot->graph(1)->setPen(QPen(Qt::black));
+    limbFitPlot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc));
+    limbFitPlot->graph(1)->setName(QString("Difference with - without smooth: ") + QString("mean = %1; std = %2").arg(meanDiff[0], 0, 'f', 2).arg(stdDiff[0], 0, 'f', 2));
+    limbFitPlot->yAxis2->setLabel(QString("Radius difference (px)"));
+    limbFitPlot->graph(1)->setData(x, y2);
+    limbFitPlot->graph(1)->rescaleAxes();
+    // activate right axis, which is invisible by default
+    limbFitPlot->yAxis2->setVisible(true);
+    limbFitPlot->yAxis2->setRange(-4, 4);
+    limbFitPlot->yAxis2->grid()->setVisible(true);
+    limbFitPlot->yAxis2->grid()->setPen(Qt::DotLine);
+
+
+    limbFitPlot->setInteraction(QCP::iSelectPlottables, true);
+    limbFitPlot->setInteraction(QCP::iSelectAxes , true);
+    limbFitPlot->setInteraction(QCP::iSelectItems , true);
+    limbFitPlot->xAxis->setSelectableParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+    limbFitPlot->yAxis->setSelectableParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+    limbFitPlot->yAxis2->setSelectableParts(QCPAxis::spAxis | QCPAxis::spTickLabels);
+
+    // Allow the user to zoom in / zoom out and scroll horizontally
+    limbFitPlot->setInteraction(QCP::iRangeDrag, true);
+    limbFitPlot->setInteraction(QCP::iRangeZoom, true);
+//    limbFitPlot->axisRect(0)->setRangeDrag(Qt::Horizontal);
+//    limbFitPlot->axisRect(0)->setRangeZoom(Qt::Horizontal | Qt::Vertical);
+    limbFitPlot->axisRect(0)->setRangeDrag(Qt::Vertical);
+    limbFitPlot->axisRect(0)->setRangeZoom(Qt::Vertical);
+
+    connect(limbFitPlot->xAxis , SIGNAL(selectionChanged(QCPAxis::SelectableParts)), this, SLOT(changeZoomAxisSlot()));
+    connect(limbFitPlot->yAxis , SIGNAL(selectionChanged(QCPAxis::SelectableParts)), this, SLOT(changeZoomAxisSlot()));
+    connect(limbFitPlot->yAxis2 , SIGNAL(selectionChanged(QCPAxis::SelectableParts)), this, SLOT(changeZoomAxisSlot()));
+
+
 
     plotSubWindow->setWidget(limbFitPlot);
     if (addWindow)
@@ -851,19 +1067,18 @@ void RMainWindow::setupToneMappingCurve()
     plotSubWindow = new QMdiSubWindow();
     ui->mdiArea->addSubWindow(plotSubWindow);
 
+    int nBins = (int) currentROpenGLWidget->getRMatImageList().at(0)->getDataRange();
 
-    int nBins = 256;
     QVector<double> x(nBins);
     QVector<double> yRef(nBins);
     QVector<double> y(nBins);
     for (int i = 0 ; i < nBins ; ++i)
     {
-        x[i] = i;
+        x[i] = (double) i / (double) nBins;
         yRef[i] = (double) x.at(i);
         y[i] = (double) x.at(i);
 
     }
-
 
     toneMappingPlot = new QCustomPlot();
     QCPGraph *toneMappingGraphRef = new QCPGraph(toneMappingPlot->xAxis, toneMappingPlot->yAxis);
@@ -881,17 +1096,25 @@ void RMainWindow::setupToneMappingCurve()
 
     toneMappingPlot->rescaleAxes();
 
+    /// Setup axes according to image type
+    if (currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U)
+    {
+        toneMappingPlot->xAxis->setRange(0, 260);
+        toneMappingPlot->yAxis->setRange(0, 260);
+    }
+    else
+    {
+        toneMappingPlot->xAxis->setAutoTickStep(false);
+        toneMappingPlot->yAxis->setAutoTickStep(false);
+        toneMappingPlot->xAxis->setTickStep(0.2);
+        toneMappingPlot->yAxis->setTickStep(0.2);
+        toneMappingPlot->xAxis->setRange(0, 1.05);
+        toneMappingPlot->yAxis->setRange(0, 1.05);
+    }
     /// X axis
-    toneMappingPlot->xAxis->setRange(0, 255);
-    toneMappingPlot->xAxis->setAutoTickStep(false);
-    toneMappingPlot->xAxis->setTickStep(25);
     toneMappingPlot->xAxis->setLabel(QString("Intensity"));
-
-    /// Y axis
-    toneMappingPlot->yAxis->setRange(0, 255);
     toneMappingPlot->xAxis->setScaleRatio(toneMappingPlot->xAxis, 1.0);
-    toneMappingPlot->yAxis->setAutoTickStep(false);
-    toneMappingPlot->yAxis->setTickStep(25);
+    /// Y axis
     toneMappingPlot->yAxis->setLabel(QString("Re-scaled intensity"));
     plotSubWindow->resize(defaultWindowSize);
 
@@ -911,16 +1134,15 @@ void RMainWindow::setupToneMappingCurve()
 
 void RMainWindow::updateToneMappingSlot()
 {
-    iMax = (double) ui->toneMappingSlider1->value();
-    lambda = (double) ui->toneMappingSlider2->value();
-    mu = (double) ui->toneMappingSlider3->value();
+    updateInvGaussianParams();
 
     if (toneMappingGraph == NULL)
     {
         return;
     }
 
-    int nBins = 256;
+
+    int nBins = (int) currentROpenGLWidget->getRMatImageList().at(0)->getDataRange();
     double mu2 = pow(mu, 2.0);
 
     QVector<double> x(nBins);
@@ -930,14 +1152,13 @@ void RMainWindow::updateToneMappingSlot()
     {
         for (int i = 0 ; i < nBins ; ++i)
         {
-            x[i] = (double) i;
+            x[i] = (double) i / (double) nBins;
             y[i] = iMax * sqrt(lambda / (2.0 * 3.1415 * pow(x[i], 3.0))) * exp(-lambda * pow( (x[i] -  mu), 2.0) / (2.0 * mu2 * x[i]) ) + x[i];
         }
         toneMappingPlot->graph(1)->setData(x, y);
         toneMappingPlot->replot();
 
         applyToneMappingCurve();
-
     }
 
 }
@@ -949,6 +1170,8 @@ void RMainWindow::applyToneMappingCurve()
         return;
     }
 
+    updateInvGaussianParams();
+
     currentROpenGLWidget->setApplyToneMapping(ui->applyToneMappingCheckBox->isChecked());
     currentROpenGLWidget->setUseInverseGausssian(ui->InverseGaussianRButton->isChecked());
     currentROpenGLWidget->setImax(iMax);
@@ -957,10 +1180,37 @@ void RMainWindow::applyToneMappingCurve()
     currentROpenGLWidget->update();
 }
 
+void RMainWindow::hAlphaToneMappingSlot()
+{
+    if (currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U)
+    {
+//        ui->toneMappingSlider1->setValue(4500);
+//        ui->toneMappingSlider2->setValue(1200);
+//        ui->toneMappingSlider3->setValue(45);
+
+//        ui->spinBox_3->setValue(4500);
+//        ui->spinBox_4->setValue(1200);
+//        ui->spinBox_5->setValue(45);
+    }
+
+}
+
+void RMainWindow::applyScaleLimbSlot()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    currentROpenGLWidget->setScaleLimb(ui->scaleLimbCheckBox->isChecked());
+    currentROpenGLWidget->update();
+}
+
 void RMainWindow::displayPlotWidget(ROpenGLWidget* rOpenGLWidget)
 {
     ui->histoDock->setWidget(rOpenGLWidget->fetchCurrentCustomPlot());
     rOpenGLWidget->updateCustomPlotLineItems();
+    ui->scaleLimbCheckBox->setChecked(rOpenGLWidget->getScaleLimb());
 }
 
 void RMainWindow::addHeaderWidget()
@@ -976,11 +1226,6 @@ void RMainWindow::addHeaderWidget()
     {
       qDebug("RMainWindow::addHeaderWidget():: currentROpenGLWidget->getRListImageManager() empty");
       return;
-    }
-    else if (currentROpenGLWidget->getRMatImageList().at(frameIndex)->isBayer())
-    {
-        qDebug("RMainWindow::addHeaderWidget():: current image is Bayer type");
-        return;
     }
 
     qDebug("Showing headerWidget");
@@ -1041,22 +1286,17 @@ void RMainWindow::autoScale()
     if (currentROpenGLWidget == NULL)
         return;
 
-    if (currentROpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::MAG)
-    {
-        currentROpenGLWidget->setNewMax(100.0f);
-        currentROpenGLWidget->setNewMin(-100.0f);
 
-        sliderValueHigh = convertScaleToSlider(100.0f);
-        sliderValueLow = convertScaleToSlider(-100.0f);
-    }
-    else if (currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
+    if (currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
              currentROpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
     {
-        currentROpenGLWidget->setNewMax(255);
-        currentROpenGLWidget->setNewMin(0);
+        float tempMax = 255;
+        float tempMin = 0;
+        currentROpenGLWidget->setNewMax(tempMax);
+        currentROpenGLWidget->setNewMin(tempMin);
 
-        sliderValueHigh = convertScaleToSlider(255);
-        sliderValueLow = convertScaleToSlider(0);
+        sliderValueHigh = convertScaleToSlider(tempMax);
+        sliderValueLow = convertScaleToSlider(tempMin);
     }
     else
     {
@@ -1078,6 +1318,12 @@ void RMainWindow::autoScale()
     ui->sliderLow->setValue(sliderValueLow);
     ui->sliderGamma->setValue(sliderValueGamma);
 
+    /// Limb sliders
+    ui->limbSliderHigh->setValue(sliderValueHigh-1);
+    ui->limbSliderHigh->setValue(sliderValueHigh);
+    ui->limbSliderLow->setValue(sliderValueLow +1);
+    ui->limbSliderLow->setValue(sliderValueLow);
+
     qDebug("RMainWindow::autoScale() sliderValueHigh = %i , sliderValueLow = %i", sliderValueHigh, sliderValueLow);
 
 }
@@ -1087,16 +1333,8 @@ void RMainWindow::autoScale(ROpenGLWidget *rOpenGLWidget)
     if (rOpenGLWidget == NULL)
         return;
 
-    if (rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::MAG)
-    {
-        rOpenGLWidget->setNewMax(100.0f);
-        rOpenGLWidget->setNewMin(-100.0f);
-
-        sliderValueHigh = convertScaleToSlider(rOpenGLWidget->getNewMax());
-        sliderValueLow = convertScaleToSlider(rOpenGLWidget->getNewMin());
-    }
-    else if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
-             rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
+    if (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8U ||
+        rOpenGLWidget->getRMatImageList().at(0)->matImage.type() == CV_8UC3)
     {
         rOpenGLWidget->setNewMax(255);
         rOpenGLWidget->setNewMin(0);
@@ -1128,6 +1366,12 @@ void RMainWindow::autoScale(ROpenGLWidget *rOpenGLWidget)
 
     qDebug("RMainWindow::autoScale() sliderValueHigh = %i , sliderValueLow = %i", sliderValueHigh, sliderValueLow);
 
+    /// Limb sliders
+    ui->limbSliderHigh->setValue(sliderValueHigh-1);
+    ui->limbSliderHigh->setValue(sliderValueHigh);
+    ui->limbSliderLow->setValue(sliderValueLow +1);
+    ui->limbSliderLow->setValue(sliderValueLow);
+
 }
 
 void RMainWindow::minMaxScale()
@@ -1148,6 +1392,12 @@ void RMainWindow::minMaxScale()
     ui->sliderGamma->setValue(sliderValueGamma);
 
     qDebug("RMainWindow::autoScale() sliderValueHigh = %i , sliderValueLow = %i", sliderValueHigh, sliderValueLow);
+
+    /// Limb sliders
+    ui->limbSliderHigh->setValue(sliderValueHigh-1);
+    ui->limbSliderHigh->setValue(sliderValueHigh);
+    ui->limbSliderLow->setValue(sliderValueLow +1);
+    ui->limbSliderLow->setValue(sliderValueLow);
 
 }
 
@@ -1191,6 +1441,13 @@ void RMainWindow::rangeScale()
     ui->sliderHigh->setValue(sliderValueHigh);
     ui->sliderLow->setValue(sliderValueLow +1);
     ui->sliderLow->setValue(sliderValueLow);
+
+    /// Limb sliders
+    ui->limbSliderHigh->setValue(sliderValueHigh-1);
+    ui->limbSliderHigh->setValue(sliderValueHigh);
+    ui->limbSliderLow->setValue(sliderValueLow +1);
+    ui->limbSliderLow->setValue(sliderValueLow);
+
 }
 
 void RMainWindow::updateCurrentROpenGLWidget()
@@ -1200,11 +1457,23 @@ void RMainWindow::updateCurrentROpenGLWidget()
     alpha = 1.0f / dataRange;
     beta = (float) (- currentROpenGLWidget->getNewMin() / dataRange);
 
+    /// Limb scaling
+    float dataRangeLimb = (float) (currentROpenGLWidget->getLimbNewMax() - currentROpenGLWidget->getLimbNewMin()) ;
+    qDebug() << "RMainWindow::updateCurrentROpenGLWidget()   dataRange =" << dataRange;
+    float alphaLimb = 1.0f / dataRangeLimb;
+    float betaLimb = (float) (- currentROpenGLWidget->getLimbNewMin() / dataRangeLimb);
+
     currentROpenGLWidget->setAlpha(alpha);
     currentROpenGLWidget->setBeta(beta);
-    currentROpenGLWidget->updateSubQImage();
+    /// Limb
+    currentROpenGLWidget->setAlphaLimb(alphaLimb);
+    currentROpenGLWidget->setBetaLimb(betaLimb);
+
     currentROpenGLWidget->update();
+    currentROpenGLWidget->updateSubQImage();
     currentROpenGLWidget->updateCustomPlotLineItems();
+
+
 }
 
 void RMainWindow::updateSliderValueSlot()
@@ -1290,16 +1559,26 @@ int RMainWindow::convertGammaToSlider(float gamma)
 
 float RMainWindow::convertSliderToScale(int value)
 {
-
     float scaledValue = 0.0f;
-
-    if (currentROpenGLWidget->getRMatImageList().empty())
+    if (currentROpenGLWidget == NULL)
     {
-        qDebug("currentROpenGLWidget->getRMatImageList() is empty.");
+        qDebug("currentROpenGLWidget is NULL.");
         return (float) scaledValue;
     }
-
     scaledValue = sliderToScaleMinimum + sliderScale * ((float) (value-1)) ;
+    qDebug("RMainWindow::convertSliderToScale:: sliderToScaleMinimum = %f ; sliderScale = %f ; value = %i ; scaledValue = %f", sliderToScaleMinimum, sliderScale, value, scaledValue);
+    return scaledValue;
+}
+
+float RMainWindow::convertLimbSliderToScale(int value)
+{
+    float scaledValue = 0.0f;
+    if (currentROpenGLWidget == NULL)
+    {
+        qDebug("currentROpenGLWidget is NULL.");
+        return (float) scaledValue;
+    }
+    scaledValue = limbSliderToScaleMinimum + limbSliderScale * ((float) (value-1)) ;
     qDebug("RMainWindow::convertSliderToScale:: sliderToScaleMinimum = %f ; sliderScale = %f ; value = %i ; scaledValue = %f", sliderToScaleMinimum, sliderScale, value, scaledValue);
     return scaledValue;
 }
@@ -1338,26 +1617,29 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
     // Restore slider values
     qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
     setupSliders(rOpenGLWidget);
-    // Scaling
+    /// Scaling
     qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
     ui->sliderHigh->setValue(convertScaleToSlider(currentROpenGLWidget->getNewMax()));
     ui->sliderLow->setValue(convertScaleToSlider(currentROpenGLWidget->getNewMin()));
+
+    ui->limbSliderHigh->setValue(convertScaleToSlider(currentROpenGLWidget->getLimbNewMax()));
+    ui->limbSliderLow->setValue(convertScaleToSlider(currentROpenGLWidget->getLimbNewMin()));
+
 
     qDebug("RMainWindow::changeROpenGLWidget:: currentROpenGLWidget->getNewMin() = %f", currentROpenGLWidget->getNewMin());
     qDebug("RMainWindow::changeROpenGLWidget:: rOpenGLWidget->getNewMin() = %f", rOpenGLWidget->getNewMin());
 
     ui->sliderGamma->setValue(convertGammaToSlider(currentROpenGLWidget->getGamma()));
-    // White balance
+    /// White balance
     ui->redSlider->setValue((int) std::round(currentROpenGLWidget->getWbRed() / sliderScaleWB));
     ui->greenSlider->setValue((int) std::round(currentROpenGLWidget->getWbGreen() / sliderScaleWB));
     ui->blueSlider->setValue((int) std::round(currentROpenGLWidget->getWbBlue() / sliderScaleWB));
-    // Time series
+    /// Time series
     ui->sliderFrame->blockSignals(true);
     ui->sliderFrame->setRange(0, currentROpenGLWidget->getRMatImageList().size()-1);
     ui->sliderFrame->setValue(currentROpenGLWidget->getFrameIndex());
     ui->sliderFrame->blockSignals(false);
     ui->imageLabel->setText(QString::number(currentROpenGLWidget->getFrameIndex()+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
-
 
     displayPlotWidget(rOpenGLWidget);
 
@@ -1382,7 +1664,7 @@ void RMainWindow::updateFrameInSeries(int frameIndex)
     ui->mdiArea->currentSubWindow()->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getImageTitle());
     displayPlotWidget(currentROpenGLWidget);
 
-    lastFrameIndex = frameIndex;
+    this->frameIndex = frameIndex;
 
 }
 
@@ -1470,16 +1752,28 @@ void RMainWindow::convertTo8Bit()
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; ++i)
     {
         cv::Mat mat8bit = currentROpenGLWidget->getRMatImageList().at(i)->matImage.clone();
-
-        mat8bit.convertTo(mat8bit, CV_8U, 256.0f / currentROpenGLWidget->getRMatImageList().at(i)->getDataRange());
+        float dataMax = (float) currentROpenGLWidget->getRMatImageList().at(i)->getDataMax();
+        float fac = 255.0/ dataMax;
+//        mat8bit.convertTo(mat8bit, CV_8U, 256.0f / currentROpenGLWidget->getRMatImageList().at(i)->getDataRange());
+        mat8bit.convertTo(mat8bit, CV_8U, fac);
 
         RMat *rMat8bit = new RMat(mat8bit.clone(), false);
+
         rMat8bit->setImageTitle(QString("8-bit image # %1").arg(i));
         rMat8bit->setDate_time(currentROpenGLWidget->getRMatImageList().at(i)->getDate_time());
         rMat8bitList << rMat8bit;
     }
 
     createNewImage(rMat8bitList);
+}
+
+cv::Mat RMainWindow::convertTo8Bit(RMat *rMatImage)
+{
+    double fac = 255.0 / rMatImage->getDataMax();
+    cv::Mat matImage = rMatImage->matImage.clone();
+    matImage.convertTo(matImage, CV_8U, fac);
+
+    return matImage;
 }
 
 void RMainWindow::convertToNeg()
@@ -1492,6 +1786,114 @@ void RMainWindow::convertToNeg()
     negRMat->setImageTitle(QString("Negative"));
     negRMat->setInstrument(currentROpenGLWidget->getRMatImageList().at(idx)->getInstrument());
     createNewImage(negRMat);
+}
+
+void RMainWindow::solarColorizeSeriesSlot()
+{
+    QList<RMat*> coloredSeries;
+
+    if (this->sender() == ui->wHAlphaPButton)
+    {
+        coloredSeries = processing->wSolarColorizeSeries(currentROpenGLWidget->getRMatImageList(), 'H');
+    }
+
+    createNewImage(coloredSeries);
+}
+
+void RMainWindow::initSharpenImageSlot(bool status)
+{
+    initPreviewQImage(status);
+
+    if (status)
+    {
+        sharpenLiveSlot();
+    }
+}
+
+void RMainWindow::sharpenImageSlot()
+{
+    float weight1 = ui->doubleSpinBoxW1->value();
+    float weight2 = ui->doubleSpinBoxW2->value();
+    QList<RMat*> rMatSharpList = processing->sharpenSeries(currentROpenGLWidget->getRMatImageList(), weight1, weight2);
+
+    createNewImage(rMatSharpList);
+    autoScale();
+}
+
+void RMainWindow::sharpenSliderSlot()
+{
+
+    if (this->sender() == ui->sharpenSliderW1)
+    {
+        ui->doubleSpinBoxW1->setValue(ui->sharpenSliderW1->value()/10.0);
+    }
+    else if (this->sender() == ui->sharpenSliderW2)
+    {
+        ui->doubleSpinBoxW2->setValue(ui->sharpenSliderW2->value()/10.0);
+    }
+
+}
+
+void RMainWindow::sharpenLiveSlot()
+{
+    /// Set in whether we'll need live preview during processing.
+    //processing->setSharpenLiveStatus(ui->sharpenLiveCheckBox->isChecked());
+
+    if (!ui->sharpenLiveCheckBox->isChecked() || previewSubWindow->isHidden())
+    {
+        return;
+    }
+
+
+    float weight1 = (float) ui->doubleSpinBoxW1->value();
+    float weight2 = (float) ui->doubleSpinBoxW2->value();
+
+    RMat *rMatSharp = processing->sharpenCurrentImage(currentROpenGLWidget->getRMatImageList().at(frameIndex), weight1, weight2);
+    cv::Mat matImage = convertTo8Bit(rMatSharp);
+    previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
+
+
+    QPixmap pixMap = QPixmap::fromImage(previewQImage);
+    QGraphicsScene *newScene = new QGraphicsScene;
+    newScene->addPixmap(pixMap);
+    delete graphicsView->scene();
+    graphicsView->setScene(newScene);
+    previewSubWindow->setWindowTitle(QString("Sharpened image (static preview)"));
+    previewSubWindow->update();
+
+}
+
+void RMainWindow::changeZoomAxisSlot()
+{
+    if (limbFitPlot->selectedAxes().isEmpty()) { return; }
+
+    if (limbFitPlot->selectedAxes().at(0) == limbFitPlot->xAxis)
+    {
+        limbFitPlot->axisRect(0)->setRangeZoomAxes(limbFitPlot->xAxis, limbFitPlot->yAxis);
+        limbFitPlot->axisRect(0)->setRangeDragAxes(limbFitPlot->xAxis, limbFitPlot->yAxis);
+        limbFitPlot->axisRect(0)->setRangeDrag(Qt::Horizontal);
+        limbFitPlot->axisRect(0)->setRangeZoom(Qt::Horizontal);
+    }
+    else if (limbFitPlot->selectedAxes().at(0) == limbFitPlot->yAxis)
+    {
+        limbFitPlot->axisRect(0)->setRangeZoomAxes(limbFitPlot->xAxis, limbFitPlot->yAxis);
+        limbFitPlot->axisRect(0)->setRangeDragAxes(limbFitPlot->xAxis, limbFitPlot->yAxis);
+        limbFitPlot->axisRect(0)->setRangeDrag(Qt::Vertical);
+        limbFitPlot->axisRect(0)->setRangeZoom(Qt::Vertical);
+    }
+    else if (limbFitPlot->selectedAxes().at(0) == limbFitPlot->yAxis2)
+    {
+        limbFitPlot->axisRect(0)->setRangeZoomAxes(limbFitPlot->xAxis2, limbFitPlot->yAxis2);
+        limbFitPlot->axisRect(0)->setRangeDragAxes(limbFitPlot->xAxis2, limbFitPlot->yAxis2);
+        limbFitPlot->axisRect(0)->setRangeDrag(Qt::Vertical);
+        limbFitPlot->axisRect(0)->setRangeZoom(Qt::Vertical);
+    }
+    else
+    {
+        limbFitPlot->axisRect(0)->setRangeDrag(Qt::Vertical);
+        limbFitPlot->axisRect(0)->setRangeZoom(Qt::Vertical);
+    }
+
 }
 
 
@@ -1678,4 +2080,10 @@ void RMainWindow::on_actionROISelect_triggered()
 void RMainWindow::on_actionROIExtract_triggered()
 {
     extractNewImageROI();
+}
+
+
+void RMainWindow::on_actionHeader_triggered()
+{
+
 }

@@ -16,8 +16,9 @@
 
 
 RProcessing::RProcessing(QObject *parent): QObject(parent),
-    masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), useROI(false), useXCorr(false),
-    radius(0), radius1(0), radius2(0), radius3(0), masterWithMean(true), masterWithSigmaClip(false)
+    masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useROI(false), useXCorr(false),
+    radius(0), radius1(0), radius2(0), radius3(0), meanRadius(0), masterWithMean(true), masterWithSigmaClip(false), stackWithMean(true),
+    stackWithSigmaClip(false)
 {
     listImageManager = new RListImageManager();
 }
@@ -196,6 +197,10 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         char keyNameTelescop[] = "TELESCOP";
         char keyValueTelescop[] = "USET";
         fits_write_key(fptr, TSTRING, keyNameTelescop, keyValueTelescop, NULL, &status);
+        char keyNameRadius[] = "SOLAR_R";
+        float keyValueRadius = meanRadius;
+        fits_write_key(fptr, TFLOAT, keyNameRadius, &keyValueRadius, NULL, &status);
+
     }
     else
     {
@@ -267,6 +272,53 @@ void RProcessing::showMinMax(const cv::Mat &matImage)
     qDebug("RProcessing::showMinMax:: min =%f , max =%f", min, max);
 }
 
+cv::Mat RProcessing::histogram(cv::Mat matVector, int &nBins, float &width)
+{
+    cv::Mat matHistogram;
+    double min, max;
+    cv::minMaxLoc(matVector, &min, &max);
+    float range[2];
+    range[0] = (float) min;
+    range[1] = (float) max;
+    nBins = roundf((max - min)/ width);
+    const float* histRange = { range };
+    bool uniform = true;
+    bool accumulate = false;
+
+    cv::calcHist( &matVector, 1, 0, cv::Mat(), matHistogram, 1, &nBins, &histRange, uniform, accumulate);
+
+    return matHistogram;
+}
+
+float RProcessing::calcMedian(std::vector<float> data, float width)
+{
+    cv::Mat matVector(data, false);
+    double min, max;
+    cv::minMaxLoc(matVector, &min, &max);
+
+    int nBins;
+    cv::Mat matHistogram = histogram(matVector, nBins, width);
+
+    float cdf = 0;
+    int totalCounts = data.size();
+    float medianVal;
+
+    for (int i = 1; i < nBins ; i++)
+    {
+        cdf += matHistogram.at<float>(i);
+
+        if (cdf / totalCounts >= 0.5)
+        {
+            medianVal = i;
+            break;
+        }
+    }
+    /// We have to recover the actual data value
+    /// that falls within that median bin value
+    medianVal = min + medianVal*width;
+
+    return medianVal;
+}
 
 void RProcessing::createMasters()
 {
@@ -470,6 +522,33 @@ bool RProcessing::makeMasterFlat()
     return true;
 }
 
+void RProcessing::stack(QList<RMat *> rMatImageList)
+{
+    if (rMatImageList.isEmpty())
+    {
+        tempMessageSignal(QString("No image to stack"));
+        return;
+    }
+
+    if (stackWithMean)
+    {
+        stackedRMat = average(rMatImageList);
+    }
+    else if (stackWithSigmaClip)
+    {
+        stackedRMat = sigmaClipAverage(rMatImageList);
+    }
+
+    if (stackedRMat == NULL)
+    {
+        tempMessageSignal(QString("Stacking failed"));
+        return;
+    }
+
+    emit resultSignal(stackedRMat);
+
+    return;
+}
 
 RMat* RProcessing::average(QList<RMat*> rMatList)
 {
@@ -491,6 +570,7 @@ RMat* RProcessing::average(QList<RMat*> rMatList)
     }
 
     avgImg = avgImg / (float) rMatList.size();
+    avgImg.convertTo(avgImg, rMatList.at(0)->matImage.type());
     RMat *rMatAvg = new RMat(avgImg, rMatList.at(0)->isBayer(), rMatList.at(0)->getInstrument());
     return rMatAvg;
 }
@@ -526,19 +606,20 @@ RMat *RProcessing::sigmaClipAverage(QList<RMat*> rMatImageList)
 
     af::array meanArf = af::median(arfSeries, 2);
     qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
-    af::array meanArfTiled = af::tile(meanArf, 1, 1, nFrames);
-    //af::array stdevArf = af::moddims(af::stdev(arfSeries, 2), naxis2, naxis1);
-    af::array stdevArf = af::stdev(arfSeries, 2);
-    af::array stdevArfTiled = af::tile(stdevArf, 1, 1, nFrames);
-    af::array arfMaskReject = af::abs(arfSeries - meanArfTiled) > stdevArfTiled;
-    arfSeries(arfMaskReject) = meanArfTiled(arfMaskReject);
-    meanArf = af::mean(arfSeries, 2);
-    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+//    af::array meanArfTiled = af::tile(meanArf, 1, 1, nFrames);
+//    //af::array stdevArf = af::moddims(af::stdev(arfSeries, 2), naxis2, naxis1);
+//    af::array stdevArf = af::stdev(arfSeries, 2);
+//    af::array stdevArfTiled = af::tile(stdevArf, 1, 1, nFrames);
+//    af::array arfMaskReject = af::abs(arfSeries - meanArfTiled) > stdevArfTiled;
+//    arfSeries(arfMaskReject) = meanArfTiled(arfMaskReject);
+//    meanArf = af::mean(arfSeries, 2);
+//    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
     /// Copy an array from the device to the host:
     float *hostArf = meanArf.host<float>();
     qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
     /// Prepare output Mat image
     cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
+    matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
     RMat *rMatAvg = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
 
     return rMatAvg;
@@ -660,6 +741,36 @@ cv::Mat RProcessing::makeImageHPF(cv::Mat matImage, double sigma)
     return matImageHPF;
 }
 
+QList<RMat *> RProcessing::sharpenSeries(QList<RMat*> rMatImageList, float weight1, float weight2)
+{
+    QList<RMat*> rMatSharpList;
+
+    for (int i = 0 ; i < rMatImageList.size() ; i++)
+    {
+        RMat *rMatSharp = sharpenCurrentImage(rMatImageList.at(i), weight1, weight2);
+        rMatSharpList << normalizeByStats(rMatSharp);
+        rMatSharpList.at(i)->setImageTitle(QString("Sharpened image # %1").arg(i));
+    }
+
+    return rMatSharpList;
+}
+
+RMat* RProcessing::sharpenCurrentImage(RMat *rMatImage, float weight1, float weight2)
+{
+    cv::Mat blurredImage;
+    cv::Mat matImageSharpened;
+
+    cv::GaussianBlur(rMatImage->matImage, blurredImage, cv::Size(0, 0), 3);
+
+    cv::addWeighted(rMatImage->matImage, weight1, blurredImage, -weight2, 0, matImageSharpened);
+//        cv::Mat matDiff = rMatImageList.at(i)->matImage - blurredImage;
+//        cv::addWeighted(rMatImageList.at(i)->matImage, 1.0, matDiff, weight2, 0, matImageSharpened);
+    RMat *rMatSharp = new RMat(matImageSharpened, false, rMatImage->getInstrument());
+    RMat *rMatSharpN = normalizeByStats(rMatSharp);
+    rMatSharpN->setSOLAR_R(rMatImage->getSOLAR_R());
+
+    return rMatSharpN;
+}
 
 void RProcessing::calibrateOffScreen()
 {
@@ -910,7 +1021,7 @@ void RProcessing::registerSeries()
 
 void RProcessing::registerSeriesOnLimbFit()
 {   /// X-correlate upon the results of the limb-based registration
-    /// Uses output variable "limbFitResultList1" from cannyRegisterSeries();
+    /// Uses output variable "limbFitResultList1" from solarLimbRegisterSeries();
 
     if (limbFitWarpMat.empty())
     {
@@ -1151,7 +1262,6 @@ void RProcessing::cannyEdgeDetectionOffScreen(int thresh)
         setupCannyDetection(i);
         cannyDetect(thresh);
 
-
         limbFit(i);
 
         /// Get results showing contours of all the edges
@@ -1299,8 +1409,9 @@ void RProcessing::cannyDetect(int thresh)
 }
 
 bool RProcessing::limbFit(int i)
-{
-    // Find contours
+{   /// Limb-fitting based on canny edge detection
+
+    /// Find contours
     vector< vector <cv::Point> > contours;
     vector< cv::Vec4i > hierarchy;
     cv::findContours(contoursMat.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
@@ -1468,68 +1579,10 @@ bool RProcessing::limbFit(int i)
     return true;
 }
 
-
-void RProcessing::cannyRegisterSeries()
+bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smoothSize)
 {
-    if (centers.isEmpty())
-    {
-        tempMessageSignal(QString("Run limb fitting first."));
-        return;
-    }
-
-    if (!limbFitResultList1.isEmpty())
-    {
-        qDeleteAll(limbFitResultList1);
-        limbFitResultList1.clear();
-    }
-
-
-    for (int i = 0 ; i < rMatLightList.size() ; ++i)
-    {
-        qDebug("Canny-registering image # %i ", i+1);
-        /// Register series
-        limbFitWarpMat = cv::Mat::eye( 2, 3, CV_32FC1 );
-        cv::Point2f origin(rMatLightList.at(i)->matImage.cols / 2.0f, rMatLightList.at(i)->matImage.rows / 2.0f);
-
-        cv::Point2f delta = centers.at(i) - origin;
-        limbFitWarpMat.at<float>(0, 2) = delta.x;
-        limbFitWarpMat.at<float>(1, 2) = delta.y;
-        std::cout << "limbFitWarpMat = " << std::endl << " " << limbFitWarpMat << std::endl << std::endl;
-
-        cv::Mat registeredMat = rMatLightList.at(i)->matImage.clone();
-        registeredMat.convertTo(registeredMat, CV_32F);
-
-        cv::warpAffine(registeredMat, registeredMat, limbFitWarpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
-
-        registeredMat.convertTo(registeredMat, CV_16U);
-
-        RMat *resultMat = new RMat(registeredMat, false, rMatLightList.at(i)->getInstrument());
-        resultMat->setImageTitle(QString("Registered image # ") + QString::number(i));
-        resultMat->setDate_time(rMatLightList.at(i)->getDate_time());
-        limbFitResultList1 << resultMat;
-    }
-
-    limbFitPlot = new QCustomPlot();
-    limbFitPlot->addGraph();
-
-    // Prepare the plot data
-    QVector<double> frameNumbers(rMatLightList.size());
-    QVector<double> radius(rMatLightList.size());
-    for (int i = 0 ; i < rMatLightList.size() ; ++i)
-    {
-        frameNumbers << i;
-        radius << circleOutList.at(i).r;
-    }
-
-    limbFitPlot->graph(0)->setData(frameNumbers, radius);
-    limbFitPlot->rescaleAxes();
-    limbFitPlot->xAxis->setRange(0, rMatLightList.size());
-}
-
-bool RProcessing::wernerLimbFit()
-{
-    // Check if data exist
-    if (rMatLightList.isEmpty())
+    /// Check if data exist
+    if (rMatImageList.isEmpty())
     {
         emit tempMessageSignal(QString("No images"));
         return false;
@@ -1547,10 +1600,10 @@ bool RProcessing::wernerLimbFit()
     }
 
 //    int i = 0;
-    for (int i = 0; i < rMatLightList.size(); i++)
+    for (int i = 0; i < rMatImageList.size(); i++)
     {
 
-        cv::Mat matImage0 = rMatLightList.at(i)->matImage.clone(); //normalizeByThresh(rMatLightList.at(i)->matImage, rMatLightList.at(i)->getIntensityLow(), rMatLightList.at(i)->getIntensityHigh(), rMatLightList.at(i)->getNormalizeRange());
+        cv::Mat matImage0 = rMatImageList.at(i)->matImage.clone(); //normalizeByThresh(rMatLightList.at(i)->matImage, rMatLightList.at(i)->getIntensityLow(), rMatLightList.at(i)->getIntensityHigh(), rMatLightList.at(i)->getNormalizeRange());
         cv::Mat matImage;
         //matImage.create(matImage0.rows, matImage0.cols, CV_32S);
         cv::Mat matImageHPF;
@@ -1569,8 +1622,7 @@ bool RProcessing::wernerLimbFit()
         int numDots = 64;
 
         Data wernerPoints = Data(numDots*4);
-        raphFindLimb2( matImage, &wernerPoints, numDots);
-
+        raphFindLimb( matImage, &wernerPoints, numDots, smooth, smoothSize);
         circleOut = CircleFitByTaubin(wernerPoints);
 
         //    Circle circleOut1 = CircleFitByHyper(wernerPoints);
@@ -1586,6 +1638,7 @@ bool RProcessing::wernerLimbFit()
         /// 3) Reject them to define a cleaner set of points.
         /// 4) Fit this cleaner set of points (2nd pass)
 
+        /// 2nd pass
         cv::Point2f circleCenter(circleOut.a, circleOut.b);
         std::vector<float> distances(wernerPoints.n);
         for (int j = 0; j < wernerPoints.n; j++)
@@ -1598,11 +1651,13 @@ bool RProcessing::wernerLimbFit()
         /// documentation: void meanStdDev(InputArray src, OutputArray mean, OutputArray stddev, InputArray mask=noArray())
         cv::Scalar mean, stddev;
         cv::meanStdDev(distances, mean, stddev);
+        float median = calcMedian(distances, 0.1);
 
         std::vector<cv::Point> newPoints;
         for (int j = 0; j < wernerPoints.n; j++)
         {
-            if ( abs(distances[j] - mean[0] ) <  stddev[0] )
+//            if ( abs(distances[j] - mean[0] ) <  stddev[0] )
+            if ( abs(distances[j] - median ) <  stddev[0] )
             {
                 cv::Point2f point( (float) wernerPoints.X[j], (float) wernerPoints.Y[j]);
                 newPoints.push_back(point);
@@ -1624,13 +1679,54 @@ bool RProcessing::wernerLimbFit()
             circleOut2 = CircleFitByTaubin(cleanDataPoints);
         }
         /// End of 2nd pass
-        if (!newPoints.empty())
-        {   /// Store the 2nd pass
-            circleOutList << circleOut2;
+
+        /// 3rd pass
+        cv::Point2f circleCenter2(circleOut2.a, circleOut2.b);
+        std::vector<float> distances2(cleanDataPoints.n);
+        for (int j = 0; j < cleanDataPoints.n; j++)
+        {
+            cv::Point2f point( (float) cleanDataPoints.X[j], (float) cleanDataPoints.Y[j]);
+            float distance = cv::norm(point-circleCenter2);
+            distances2[j] = distance;
         }
-        else
+        cv::meanStdDev(distances2, mean, stddev);
+        median = calcMedian(distances2, 0.1);
+
+        std::vector<cv::Point> newPoints2;
+        for (int j = 0; j < cleanDataPoints.n; j++)
+        {
+            //if ( abs(distances2[j] - mean[0] ) <  stddev[0] )
+            if ( abs(distances2[j] - median ) <  stddev[0] )
+            {
+                cv::Point2f point( (float) cleanDataPoints.X[j], (float) cleanDataPoints.Y[j]);
+                newPoints2.push_back(point);
+
+            }
+        }
+        Data cleanDataPoints2(newPoints2.size());
+        Circle circleOut3;
+        if (!newPoints2.empty())
+        {
+            for (int j = 0; j < newPoints2.size() ; j++)
+            {
+                cleanDataPoints2.X[j] = newPoints2.at(j).x;
+                cleanDataPoints2.Y[j] = newPoints2.at(j).y;
+            }
+
+            /// 3rd pass at fitting
+            circleOut3 = CircleFitByTaubin(cleanDataPoints2);
+        }
+        /// End of 3rd pass
+
+        if (newPoints2.empty())
         {   /// if there were only 1 pass, store it.
             circleOutList << circleOut;
+            centers.append(cv::Point2f((float) circleOut.a, (float) circleOut.b));
+        }
+        else
+        {   /// Store the 3rd pass
+            circleOutList << circleOut3;
+            centers.append(cv::Point2f((float) circleOut3.a, (float) circleOut3.b));
         }
 
 
@@ -1643,37 +1739,41 @@ bool RProcessing::wernerLimbFit()
 
         cv::cvtColor(contoursMat, contoursMat, CV_GRAY2RGB);
 
-        /// Display points in contoursMat
-        for (int j = 0; j < wernerPoints.n; j++)
+        if (showContours)
         {
-            /// 1st pass in green
-            cv::Point point( wernerPoints.X[j], wernerPoints.Y[j]);
-            cv::line(contoursMat, point, point, cv::Scalar(0, 255, 0), 8, 8, 0);
-        }
-        if (!newPoints.empty())
-        {
-            for (int j = 0; j < cleanDataPoints.n; j++)
+            /// Display points in contoursMat
+            for (int j = 0; j < wernerPoints.n; j++)
             {
-                /// 2nd pass in red
-                cv::Point point( cleanDataPoints.X[j], cleanDataPoints.Y[j]);
-                cv::line(contoursMat, point, point, cv::Scalar(255, 0, 0), 6, 6, 0);
+                /// 1st pass in green
+                cv::Point point( wernerPoints.X[j], wernerPoints.Y[j]);
+                cv::line(contoursMat, point, point, cv::Scalar(0, 255, 0), 8, 8, 0);
+            }
+            if (!newPoints2.empty())
+            {
+                for (int j = 0; j < cleanDataPoints2.n; j++)
+                {
+                    /// 2nd pass in red
+                    cv::Point point( cleanDataPoints2.X[j], cleanDataPoints2.Y[j]);
+                    cv::line(contoursMat, point, point, cv::Scalar(255, 0, 0), 6, 6, 0);
+                }
             }
         }
-
 
         if (showLimb)
         {
 
-            // draw the 1st fitted circle in red
+
             cv::Scalar green = cv::Scalar(0, 255, 0);
             cv::Scalar red = cv::Scalar(255, 0, 0);
+            cv::Scalar orange = cv::Scalar(255, 128, 0);
+            // draw the 1st fitted circle in green
             cv::circle(contoursMat, circleCenter, circleOut.r, green, 2, 8);
 
-            if (!newPoints.empty())
+            if (!newPoints2.empty())
             {
-                // draw the 2nd fitted circle in green
-                cv::Point2f circleCenter2(circleOut2.a, circleOut2.b);
-                cv::circle(contoursMat, circleCenter2, circleOut2.r, red, 2, 8);
+                // draw the 2nd fitted circle in orange
+                cv::Point2f circleCenter3(circleOut3.a, circleOut3.b);
+                cv::circle(contoursMat, circleCenter3, circleOut3.r, orange, 2, 8);
             }
 
         }
@@ -1685,67 +1785,84 @@ bool RProcessing::wernerLimbFit()
 
     }
 
-        return true;
-}
+    limbFitPlot = new QCustomPlot();
+    limbFitPlot->addGraph();
 
-void RProcessing::raphFindLimb(cv::Mat matImage, Data *dat, int numDots)
-{
-    cv::Mat blurMat, matSlice1, matSlice2, matSlice3, matSlice4;
-    cv::blur(matImage, blurMat, cv::Size(7, 7));
-    cv::Mat gradXLeft, gradXRight, gradYBottom, gradYTop;
-    cv::Point minLoc, maxLoc;
-    double minVal, maxVal;
-
-    int naxis1 = matImage.cols;
-    int naxis2 = matImage.rows;
-
-    /// Kernels for image gradients.
-    /// Over x-axis, forward (from left edge) and backward (from right-edge) direction
-    cv::Mat kernelXLeft = (cv::Mat_<float>(1,3)<<-0.5, 0, 0.5);
-    cv::Mat kernelXRight = (cv::Mat_<float>(1,3)<<0.5, 0, -0.5);
-    /// Over y-axis, forward and backward direction
-    cv::Mat kernelYBottom = (cv::Mat_<float>(3,1)<<-0.5, 0, 0.5);
-    cv::Mat kernelYTop = (cv::Mat_<float>(3,1)<<0.5, 0, -0.5);
-
-    cv::filter2D(blurMat, gradXLeft, -1, kernelXLeft, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
-    cv::filter2D(blurMat, gradXRight, -1, kernelXRight, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
-    cv::filter2D(blurMat, gradYBottom, -1, kernelYBottom, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
-    cv::filter2D(blurMat, gradYTop, -1, kernelYTop, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
-
-    gradXLeft(cv::Range::all(), cv::Range(0,15)) = 0;
-    gradYBottom(cv::Range(0,15), cv::Range::all()) = 0;
-
-    for (int ii = 0; ii < numDots; ii++)
+    // Prepare the plot data
+    QVector<double> frameNumbers;
+    QVector<double> radius;
+    for (int i = 0 ; i < rMatLightList.size() ; ++i)
     {
-        int X = naxis1/4 + ii*naxis1/(2*numDots);
-        int Y = naxis2/4 + ii*naxis2/(2*numDots);
-        /// Left-hand slices (no copy)
-        matSlice1 = gradXLeft(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
-        cv::minMaxLoc(matSlice1, &minVal, &maxVal, &minLoc, &maxLoc);
-        dat->X[ii] = maxLoc.x;
-        dat->Y[ii] = Y;
-        /// Right-hand slices (no copy)
-        matSlice2 = gradXRight(cv::Range(Y, Y+1), cv::Range(3*naxis1/4, naxis1));
-        cv::minMaxLoc(matSlice2, &minVal, &maxVal, &minLoc, &maxLoc);
-        dat->X[ii + numDots] = maxLoc.x + 3*naxis1/4;
-        dat->Y[ii + numDots] = Y;
-        ///Bottom slices (no copy)
-        matSlice3 = gradYBottom(cv::Range(0, naxis2/4), cv::Range(X, X+1));
-        cv::minMaxLoc(matSlice3, &minVal, &maxVal, &minLoc, &maxLoc);
-        dat->X[ii + 2*numDots] = X;
-        dat->Y[ii + 2*numDots] = maxLoc.y;
-        ///Top slices (no copy)
-        matSlice4 = gradYTop(cv::Range(3*naxis2/4, naxis2), cv::Range(X, X+1));
-        cv::minMaxLoc(matSlice4, &minVal, &maxVal, &minLoc, &maxLoc);
-        dat->X[ii + 3*numDots] = X;
-        dat->Y[ii + 3*numDots] = maxLoc.y + 3*naxis2/4;
-
+        frameNumbers << i;
+        radius << circleOutList.at(i).r;
+        qDebug("radius = %f", circleOutList.at(i).r);
     }
+    std::vector<double> radii = radius.toStdVector();
+    cv::Scalar tempRadius = cv::mean(radii);
+    meanRadius = (float) tempRadius[0];
+    qDebug() << "vector radius = " << radius;
+    qDebug("meanRadius() = %f", meanRadius);
+
+    limbFitPlot->graph(0)->setData(frameNumbers, radius);
+    limbFitPlot->rescaleAxes();
+    limbFitPlot->xAxis->setRange(0, rMatLightList.size());
+
+
+    return true;
 }
 
-void RProcessing::raphFindLimb2(cv::Mat matImage, Data *dat, int numDots)
+bool RProcessing::solarLimbRegisterSeries(QList<RMat*> rMatImageList)
 {
-    cv::Mat matSlice1, matSlice2;
+    if (centers.isEmpty())
+    {
+        tempMessageSignal(QString("Run limb fitting first."));
+        return false;
+    }
+
+    if (!limbFitResultList1.isEmpty())
+    {
+        qDeleteAll(limbFitResultList1);
+        limbFitResultList1.clear();
+    }
+
+
+
+    for (int i = 0 ; i < rMatImageList.size() ; ++i)
+    {
+        qDebug("Canny-registering image # %i ", i+1);
+        /// Register series
+        limbFitWarpMat = cv::Mat::eye( 2, 3, CV_32FC1 );
+        cv::Point2f origin(rMatImageList.at(i)->matImage.cols / 2.0f, rMatImageList.at(i)->matImage.rows / 2.0f);
+
+        cv::Point2f delta = centers.at(i) - origin;
+        limbFitWarpMat.at<float>(0, 2) = delta.x;
+        limbFitWarpMat.at<float>(1, 2) = delta.y;
+        std::cout << "limbFitWarpMat = " << std::endl << " " << limbFitWarpMat << std::endl << std::endl;
+
+        cv::Mat registeredMat = rMatImageList.at(i)->matImage.clone();
+        registeredMat.convertTo(registeredMat, CV_32F);
+
+        cv::warpAffine(registeredMat, registeredMat, limbFitWarpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+
+        registeredMat.convertTo(registeredMat, CV_16U);
+
+        RMat *resultMat = new RMat(registeredMat, false, rMatImageList.at(i)->getInstrument());
+        resultMat->setImageTitle(QString("Registered image # ") + QString::number(i));
+        resultMat->setDate_time(rMatImageList.at(i)->getDate_time());
+        limbFitResultList1 << resultMat;
+    }
+
+
+    return true;
+}
+
+
+
+void RProcessing::raphFindLimb(cv::Mat matImage, Data *dat, int numDots, bool smooth, int smoothSize)
+{
+    /// Fix Uset for bad 1st column and 1st row
+    fixUset(matImage);
+    cv::Mat matSlice;
     cv::Mat gradXLeft, gradXRight, gradYBottom, gradYTop;
     cv::Point minLoc, maxLoc;
     double minVal, maxVal;
@@ -1758,42 +1875,41 @@ void RProcessing::raphFindLimb2(cv::Mat matImage, Data *dat, int numDots)
     /// Over y-axis, forward and backward direction
     cv::Mat kernelYBottom = (cv::Mat_<float>(3,1)<<-0.5, 0, 0.5);
     cv::Mat kernelYTop = (cv::Mat_<float>(3,1)<<0.5, 0, -0.5);
-
+    cv::Size kernelSize(smoothSize, smoothSize);
+    if (smoothSize == 0) { smooth = false; }
 
     for (int ii = 0; ii < numDots; ii++)
     {
         int X = naxis1/4 + ii*naxis1/(2*numDots);
         int Y = naxis2/4 + ii*naxis2/(2*numDots);
         /// Left-hand slices (no copy)
-        //matSlice1 = matImage(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
-        matSlice1 = matImage(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
-        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
-        cv::filter2D(matSlice2, gradXLeft, -1, kernelXLeft, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        matSlice = matImage(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
+        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
+        cv::filter2D(matSlice, gradXLeft, -1, kernelXLeft, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
         cv::minMaxLoc(gradXLeft, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii] = maxLoc.x;
         dat->Y[ii] = Y;
         /// Right-hand slices (no copy)
-        matSlice1 = matImage(cv::Range(Y, Y+1), cv::Range(3*naxis1/4, naxis1));
-        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
-        cv::filter2D(matSlice2, gradXRight, -1, kernelXRight, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        matSlice = matImage(cv::Range(Y, Y+1), cv::Range(3*naxis1/4, naxis1));
+        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
+        cv::filter2D(matSlice, gradXRight, -1, kernelXRight, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
         cv::minMaxLoc(gradXRight, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii + numDots] = maxLoc.x + 3*naxis1/4;
         dat->Y[ii + numDots] = Y;
         ///Bottom slices (no copy)
-        matSlice1 = matImage(cv::Range(0, naxis2/4), cv::Range(X, X+1));
-        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
-        cv::filter2D(matSlice2, gradYBottom, -1, kernelYBottom, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        matSlice = matImage(cv::Range(0, naxis2/4), cv::Range(X, X+1));
+        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
+        cv::filter2D(matSlice, gradYBottom, -1, kernelYBottom, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
         cv::minMaxLoc(gradYBottom, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii + 2*numDots] = X;
         dat->Y[ii + 2*numDots] = maxLoc.y;
         ///Top slices (no copy)
-        matSlice1 = matImage(cv::Range(3*naxis2/4, naxis2), cv::Range(X, X+1));
-        cv::blur(matSlice1, matSlice2, cv::Size(7, 7));
-        cv::filter2D(matSlice2, gradYTop, -1, kernelYTop, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        matSlice = matImage(cv::Range(3*naxis2/4, naxis2), cv::Range(X, X+1));
+        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
+        cv::filter2D(matSlice, gradYTop, -1, kernelYTop, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
         cv::minMaxLoc(gradYTop, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii + 3*numDots] = X;
         dat->Y[ii + 3*numDots] = maxLoc.y + 3*naxis2/4;
-
     }
 }
 
@@ -1831,6 +1947,8 @@ RMat* RProcessing::normalizeByStats(RMat *rMat)
 
     RMat* normalizeRMat = new RMat(matImage, rMat->isBayer(), rMat->getInstrument());
     normalizeRMat->setImageTitle(QString("Normalized image "));
+    normalizeRMat->setDate_time(rMat->getDate_time());
+    normalizeRMat->setSOLAR_R(rMat->getSOLAR_R());
     showMinMax(matImage);
 
     return normalizeRMat;
@@ -1866,13 +1984,16 @@ cv::Mat RProcessing::normalizeByThresh(cv::Mat matImage, float oldMin, float old
     cv::Mat normalizedMatImage;
     matImage.convertTo(normalizedMatImage, CV_32F);
 
+    normalizedMatImage = normalizedMatImage * alpha + beta;
+    cv::threshold(normalizedMatImage, normalizedMatImage, newRange - 1, newRange - 1, cv::THRESH_TRUNC);
+
     if (matImage.type() == CV_32F || matImage.type() == CV_32FC3)
     {
-        normalizedMatImage.convertTo(normalizedMatImage, CV_16U, alpha, beta);
+        normalizedMatImage.convertTo(normalizedMatImage, CV_16U);
     }
     else
     {
-        normalizedMatImage.convertTo(normalizedMatImage, matImage.type(), alpha, beta);
+        normalizedMatImage.convertTo(normalizedMatImage, matImage.type());
     }
 
     return normalizedMatImage;
@@ -1900,12 +2021,61 @@ cv::Mat RProcessing::normalizeClipByThresh(cv::Mat matImage, float newMin, float
 
 void RProcessing::fixUset(cv::Mat matImage)
 {
-    for (int x = 0; x < 2048; x++)
+    if (matImage.type() == CV_8U)
     {
-        matImage.at<uchar>(0, x) = 0;
-        matImage.at<uchar>(1, x) = 0;
-        matImage.at<uchar>(2, x) = 0;
+        for (int x = 0; x < matImage.cols; x++)
+        {   /// 1st rows
+            matImage.at<uchar>(0, x) = matImage.at<uchar>(4, x);
+            matImage.at<uchar>(1, x) = matImage.at<uchar>(4, x);
+            matImage.at<uchar>(2, x) = matImage.at<uchar>(4, x);
+            matImage.at<uchar>(3, x) = matImage.at<uchar>(4, x);
+            /// 1st column
+        }
+        for (int y = 0; y < matImage.rows; y++)
+        {   /// 1st rows
+            matImage.at<uchar>(y, 0) = matImage.at<uchar>(y, 4);
+            matImage.at<uchar>(y, 1) = matImage.at<uchar>(y, 4);
+            matImage.at<uchar>(y, 2) = matImage.at<uchar>(y, 4);
+            matImage.at<uchar>(y, 3) = matImage.at<uchar>(y, 4);
+            /// 1st column
+        }
     }
+    else if (matImage.type() == CV_16U)
+    {
+        for (int x = 0; x < matImage.cols; x++)
+        {   /// 1st rows
+            matImage.at<ushort>(0, x) = matImage.at<ushort>(4, x);
+            matImage.at<ushort>(1, x) = matImage.at<ushort>(4, x);
+            matImage.at<ushort>(2, x) = matImage.at<ushort>(4, x);
+            matImage.at<ushort>(3, x) = matImage.at<ushort>(4, x);
+        }
+        for (int y = 0; y < matImage.rows; y++)
+        {   /// 1st rows
+            matImage.at<ushort>(y, 0) = matImage.at<ushort>(y, 4);
+            matImage.at<ushort>(y, 1) = matImage.at<ushort>(y, 4);
+            matImage.at<ushort>(y, 2) = matImage.at<ushort>(y, 4);
+            matImage.at<ushort>(y, 3) = matImage.at<ushort>(y, 4);
+        }
+    }
+
+    else if (matImage.type() == CV_32F)
+    {
+        for (int x = 0; x < matImage.cols; x++)
+        {   /// 1st rows
+            matImage.at<float>(0, x) = matImage.at<float>(4, x);
+            matImage.at<float>(1, x) = matImage.at<float>(4, x);
+            matImage.at<float>(2, x) = matImage.at<float>(4, x);
+            matImage.at<float>(3, x) = matImage.at<float>(4, x);
+        }
+        for (int y = 0; y < matImage.rows; y++)
+        {   /// 1st rows
+            matImage.at<float>(y, 0) = matImage.at<float>(y, 4);
+            matImage.at<float>(y, 1) = matImage.at<float>(y, 4);
+            matImage.at<float>(y, 2) = matImage.at<float>(y, 4);
+            matImage.at<float>(y, 3) = matImage.at<float>(y, 4);
+        }
+    }
+
 }
 
 
@@ -1983,6 +2153,21 @@ void RProcessing::setUseHPF(bool status)
 void RProcessing::setHPFSigma(double sigma)
 {
     this->hpfSigma = sigma;
+}
+
+void RProcessing::setSharpenLiveStatus(bool status)
+{
+    this->sharpenLiveStatus = status;
+}
+
+void RProcessing::setStackWithMean(bool status)
+{
+    this->stackWithMean = status;
+}
+
+void RProcessing::setStackWithSigmaClip(bool status)
+{
+    this->stackWithSigmaClip = status;
 }
 
 void RProcessing::setupMasterWithSigmaClip(bool enabled)
@@ -2068,6 +2253,12 @@ QVector<Circle> RProcessing::getCircleOutList()
     return circleOutList;
 }
 
+float RProcessing::getMeanRadius()
+{
+    return meanRadius;
+}
+
+
 RMat *RProcessing::getCannyRMat()
 {
     return cannyRMat;
@@ -2084,3 +2275,297 @@ bool RProcessing::compareContourAreas(std::vector<cv::Point> contour1, std::vect
     double j = fabs( cv::contourArea(cv::Mat(contour2)) );
     return ( i < j );
 }
+
+void RProcessing::red_tab(int* red, int* green ,int* blue)
+{
+    int const redpr[] =
+    {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+       0,   0,   1,   2,   5,   7,  10,  11,  13,  15,  17,  18,  21,  23,  24,  27,
+       28,  30,  33,  34,  36,  37,  40,  42,  43,  46,  47,  49,  50,  53,  55,  56,
+       59,  60,  62,  63,  66,  68,  69,  70,  73,  75,  76,  78,  81,  82,  84,  85,
+       88,  89,  91,  92,  95,  97,  98,  99, 102, 104, 105, 107, 108, 111, 113, 114,
+       115, 118, 120, 121, 123, 126, 127, 128, 130, 131, 134, 136, 137, 139, 141, 143,
+       144, 146, 147, 150, 152, 153, 155, 156, 159, 160, 162, 163, 166, 168, 169, 170,
+       172, 175, 176, 178, 179, 181, 184, 185, 186, 188, 189, 192, 194, 195, 197, 198,
+       201, 202, 204, 205, 207, 210, 211, 212, 214, 215, 218, 220, 221, 223, 224, 227,
+       228, 230, 231, 233, 236, 237, 239, 240, 241, 243, 246, 247, 249, 250, 252, 255,
+       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+       255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+    int const greenpr[] =
+    { 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  3,  5,  7,  9, 13, 15, 17, 18, 20, 24,
+      26, 28, 30, 32, 35, 37, 39, 41, 43, 47, 49, 51, 52, 54, 58, 60, 62, 64, 66, 69,
+      71, 73, 75, 77, 81, 83, 85, 86, 88, 90, 94, 96, 98,100,102,105,107,109,111,113,
+      115,119,120,122,124,126,130,132,134,136,137,139,143,145,147,149,151,154,156,158,
+      160,162,164,168,170,171,173,175,177,181,183,185,187,188,192,194,196,198,200,202,
+      205,207,209,211,213,215,219,221,222,224,226,228,232,234,236,238,239,241,245,247,
+      249,251,253,255,255,255,255,255,255,255,255,255,255,255,255,255};
+    int const bluepr[] =
+    {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+       0,  0,  0,  0,  0,  0,  0,  0,  3,  7, 11, 15, 23, 27, 31, 35, 39, 47, 51, 54,
+       58, 62, 66, 74, 78, 82, 86, 90, 94,102,105,109,113,117,125,129,133,137,141,145,
+       153,156,160,164,168,172,180,184,188,192,196,200,207,211,215,219,223,227,235,239,
+       243,247,251,255,255,255,255,255,255,255,255,255,255,255,255,255};
+
+    for (int i=0; i < 256; i++)
+    {
+        red[i] = redpr[i];
+        blue[i] = bluepr[i];
+        green[i] = greenpr[i];
+    }
+
+}
+
+cv::Mat RProcessing::scalePreviewImage(float sunX,float sunY,float sunR, cv::Mat matImage, char filter)
+{
+    /* scale intensities for jpeg output */
+
+    int naxis1 = matImage.cols;
+    int naxis2 = matImage.rows;
+
+    int xsq, ysq, x,y,maxOut=0, offset;
+    long meanOut = 0;
+    long meanIn = 0;
+    double diskMean;
+    float scalein, scaleout, rq;
+    float r2 = 2;
+    float Pi = 3.1415;
+    int z;
+
+
+    /// Squared oversized solar radius
+    rq = powf(sunR + r2, 2);
+    if (filter=='H')
+    {
+//#pragma omp parallel for
+        for (x=0;x<naxis1;x++)
+        {
+            /// Squared x-distance to disk center
+            xsq = std::pow(x-sunX,2);
+            for (y=0;y<naxis2;y++)
+            {
+                /// Squared y-distance to disk center
+                ysq = std::pow(y-sunY,2);
+                //index = x+y*naxis1;
+                if (xsq + ysq >= rq)
+                {
+                    /// Maximum value outside the disk
+                    z = (int) matImage.at<ushort>(y, x);
+                    if (z > maxOut)
+                    {
+                       maxOut =  z;
+                    }
+                    /// Sum intensity of pixels outside the disk (to get the mean)
+                    meanOut +=  z;
+                }
+               meanIn += z;
+            }
+        }
+        /// Approx. mean intensity of pixels outside the disk
+        meanOut /= (naxis1*naxis2-rq*Pi);
+        meanOut *= 1.2;
+        meanIn /= sunR*sunR*Pi;
+    }
+
+    scaleout = (maxOut-meanOut);
+
+    diskMean  = (cv::sum(matImage)[0]) / (sunR*sunR*Pi);
+
+
+    /// Prepare output image
+    cv::Mat outputMat(naxis2, naxis1, CV_8U);
+    /// Clip image between 10 and 250?
+
+    if (filter == 'H')
+    {
+       /// Scaling factor so that image within solar disk have a mean value of 170
+       scalein = 170.0/diskMean;
+       offset = 5;
+    }
+    else if (filter == 'P')
+    {
+        scalein = 165.0/diskMean;
+        offset=0;
+    }
+    else if (filter == 'C')
+    {
+        scalein = 115.0/diskMean;
+        offset=-10;
+    }
+    else
+    {
+        qDebug("Image filter type is not recognized. Returning.");
+        return outputMat;
+    }
+
+
+    for (x=0;x<naxis1;x++)
+    {
+        xsq = std::pow(x-sunX,2);
+        for (y=0;y<naxis2;y++)
+        {
+            ysq = std::pow(y-sunY,2);
+            z = (int) matImage.at<ushort>(y, x);
+            if (xsq + ysq <= rq )
+            {
+                int z0 = z;
+                z = z*scalein-offset;
+//                qDebug("scaling = %f", scalein);
+//                qDebug("offset = %d", offset);
+//                qDebug("before scaling z0 = %d", z0);
+//                qDebug("after scaling z = %d,", z);
+                if(z < 10)
+                {
+                    z = 10;
+                }
+                else if(z > 250)
+                {
+                    z = 250;
+                }
+            }
+            else
+            {
+                /// scale corona for H-alpha
+                if (filter=='H'){ z = 180*(z-meanOut)/scaleout; }
+                else {z = 0;}
+                if(z < 0){ z = 0; }
+                if( z > 220){ z = 220; }
+            }
+            outputMat.at<uchar>(y, x) = (uchar) z;
+        }
+    }
+    return outputMat;
+}
+
+cv::Mat RProcessing::wSolarColorize(cv::Mat matImage, char filter)
+{
+    int red[256];
+    int green[256];
+    int blue[256];
+
+    red_tab(red, green, blue);
+
+    int naxis1 = matImage.cols;
+    int naxis2 = matImage.rows;
+    float sunR = meanRadius;
+
+    cv::Mat mat8Bit(naxis2, naxis1, CV_8U);
+    if (filter == 'H')
+    {
+        mat8Bit = scalePreviewImage(naxis1/2, naxis2/2, sunR, matImage, 'H');
+    }
+    else
+    {
+        mat8Bit = cv::Mat::zeros(naxis2, naxis1, CV_8UC3);
+        return mat8Bit;
+    }
+
+    double dataMax;
+    cv::minMaxLoc(mat8Bit, NULL, &dataMax);
+    int fac = 255/ dataMax;
+
+    cv::Mat coloredImg = cv::Mat::zeros(naxis2, naxis1, CV_8UC3);
+
+    for (uint x = 0 ; x < naxis1 ; x++)
+    {
+        for (uint y = 0 ; y < naxis2 ; y++)
+        {
+            uchar z = mat8Bit.at<uchar>(y,x);
+            coloredImg.at<cv::Vec3b>(y,x) = fac*cv::Vec3b(red[z], green[z], blue[z]);
+        }
+    }
+
+    return coloredImg;
+}
+
+QList<RMat*> RProcessing::wSolarColorizeSeries(QList<RMat *> rMatImageList, char filter)
+{
+    QList<RMat*> rMat8BitList;
+
+    for (int i = 0 ; i < rMatImageList.size() ; ++i)
+    {
+        cv::Mat matImage8Bit = wSolarColorize(rMatImageList.at(i)->matImage, filter);
+
+        RMat *rMat8Bit = new RMat(matImage8Bit, false);
+        rMat8Bit->setImageTitle(QString("8-bit image # %1").arg(i));
+        rMat8Bit->setDate_time(rMatImageList.at(i)->getDate_time());
+        rMat8BitList << rMat8Bit;
+    }
+
+    return rMat8BitList;
+}
+
+
+//void ushrpMask(int naxis1,int naxis2,int* data,int Datamin,int Datamax){
+//   /* unsharp masking of image 2*image - smoothed image*/
+//   int i,x,u,area,d=3,dd;
+//   float* data2;
+//   data2 = (float*) malloc(naxis1*naxis2*sizeof(float));
+//   float* data3;
+//   data3 = (float*) malloc(naxis1*naxis2*sizeof(float));
+//   area = naxis1*naxis2;
+//   dd = (2*d+1)*(2*d+1);
+//   /* split into first half of image and second half -> only one "if"
+//      smooth horizontally */
+//   for (i=0;i<area/2;i++){
+//      data2[i] = 0;
+//      for (x=-d;x<=d;x++){
+//         u = i+x;
+//         if(u<0){u+=area;}
+//         data2[i] += data[u];
+//         }
+//      data3[i] = data2[i];
+//      }
+//   for (i=area/2;i<area;i++){
+//      data2[i] = 0;
+//      for (x=-d;x<=d;x++){
+//         u = i+x;
+//         if(u>=area){u-=area;}
+//         data2[i] += data[u];
+//         }
+//      data3[i] = data2[i];
+//      }
+//  /* split into first half of image and second half -> only one "if"
+//     smooth vertically */
+//   for (i=0;i<area/2;i++){
+//     for (x=-d;x<=d;x++){
+//         u = i+x*naxis1;
+//         if(u<0){u+=area;}
+//         data3[i] += data2[u];
+//         }
+//      }
+//   for (i=area/2;i<area;i++){
+//     for (x=-d;x<=d;x++){
+//         u = i+x*naxis1;
+//         if(u>=area){u-=area;}
+//         data3[i] += data2[u];
+//         }
+//      }
+//   #pragma omp parallel for
+//   for (i=0;i<area;i++){
+//      data[i] = 2.0*data[i]-data3[i]/dd;
+//      if (data[i]<Datamin){data[i]=Datamin;}
+//      if (data[i]>Datamax){data[i]=Datamax;}}
+//   free(data2);
+//   free(data3);
+//}
+
+
+

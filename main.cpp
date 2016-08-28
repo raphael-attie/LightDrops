@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     qDebug() << "opengGL version:" << format.version();
-    std::cout << "sizeof(int) = " << sizeof(int) << std::endl;
+    //std::cout << "sizeof(int) = " << sizeof(int) << std::endl;
 
     //a.setStyle("fusion");
 

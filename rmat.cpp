@@ -12,8 +12,8 @@ RMat::RMat()
 }
 
 RMat::RMat(const RMat &rMat)
-    : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime),
-       instrument(rMat.instrument), item(NULL)
+    : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE),
+       SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL)
 {
     rMat.matImage.copyTo(this->matImage);
     this->imageTitle = QString("Image #");
@@ -33,7 +33,8 @@ RMat::RMat(const RMat &rMat)
 
 
 
-RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
+RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0),
+    SOLAR_R(0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
@@ -53,7 +54,8 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
     calcStats();
 }
 
-RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
+RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0),
+    SOLAR_R(0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
@@ -73,7 +75,8 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
     calcStats();
 }
 
-RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), item(NULL)
+RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
+    bzero(0), expTime(0), XPOSURE(0), SOLAR_R(0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
@@ -125,11 +128,6 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
         cv::calcHist( &matImageGray, 1, 0, cv::Mat(), matHist, 1, &nBins, &histRange, uniform, accumulate);   
     }
 
-    float cdf = 0;
-    for (int i = 0 ; i < matHist.rows ; ++i)
-    {
-        cdf += matHist.at<float>(i);
-    }
 }
 
 void RMat::calcStats()
@@ -313,6 +311,16 @@ float RMat::getExpTime() const
     return expTime;
 }
 
+float RMat::getXPOSURE() const
+{
+    return XPOSURE;
+}
+
+float RMat::getSOLAR_R() const
+{
+    return SOLAR_R;
+}
+
 float RMat::getWbRed() const
 {
     return wbRed;
@@ -453,6 +461,16 @@ void RMat::setDataMax(float dataMax)
 void RMat::setExpTime(float expTime)
 {
     this->expTime = expTime;
+}
+
+void RMat::setSOLAR_R(float SOLAR_R)
+{
+    this->SOLAR_R = SOLAR_R;
+}
+
+void RMat::setXPOSURE(float XPOSURE)
+{
+    this->XPOSURE = XPOSURE;
 }
 
 void RMat::setWbRed(float wbRed)

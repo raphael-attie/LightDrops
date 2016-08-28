@@ -11,11 +11,13 @@
 
 // Qt
 #include <iostream>
+#include <QObject>
 #include <QString>
 #include <QDebug>
 #include <QColor>
 #include <QImage>
 #include <QElapsedTimer>
+#include <QDateTime>
 
 using namespace cv;
 
@@ -29,7 +31,6 @@ RawImage::RawImage(QString filePath):imageProcessed(NULL)
     QElapsedTimer timer1, timer2;
 
     int error = 0;
-    LibRaw rawProcess = LibRaw();
 
     std::string filePathStr(filePath.toStdString());
 
@@ -47,6 +48,7 @@ RawImage::RawImage(QString filePath):imageProcessed(NULL)
     rawProcess.imgdata.params.no_auto_bright = 1;
     //rawProcess.imgdata.params.user_qual = -1;
 
+    extractExif();
 
     timer1.start();
 
@@ -98,7 +100,8 @@ RawImage::RawImage(QString filePath):imageProcessed(NULL)
             j++;
         }
     }
-   matCFA.convertTo(matCFA, CV_32F);
+   //matCFA.convertTo(matCFA, CV_32F);
+    matCFA.convertTo(matCFA, CV_16U);
 
 
     // White balance
@@ -198,11 +201,60 @@ RawImage::~RawImage()
     delete[] imageProcessed;
 }
 
+
+void RawImage::extractExif()
+{
+    QDateTime dt = QDateTime::fromTime_t( rawProcess.imgdata.other.timestamp );
+
+    keyNames << QObject::tr("Brand")
+             << QObject::tr("Model")
+             << QObject::tr("Colors")
+             << QObject::tr("Bayer pattern")
+             << QObject::tr("DATE")
+             << QObject::tr("NAXIS1")
+             << QObject::tr("NAXIS2")
+             << QObject::tr("Flip")
+             << QObject::tr("Order")
+             << QObject::tr("ISO")
+             << QObject::tr("XPOSURE");
+
+/// Flip: image orientation
+/// 0 if does not require rotation
+/// 3 if requires 180-deg rotation
+/// 5 if 90 deg counterclockwise
+/// 6 if 90 deg clockwise
+
+    keyValues << QString::fromUtf8(rawProcess.imgdata.idata.make)
+              << QString::fromUtf8(rawProcess.imgdata.idata.model)
+              << QString::number(rawProcess.imgdata.idata.colors)
+              << QString::fromUtf8(rawProcess.imgdata.idata.cdesc)
+              << dt.toString("MMMM d yyyy hh:mm:ss t")
+              << QString::number(rawProcess.imgdata.sizes.width)
+              << QString::number(rawProcess.imgdata.sizes.height)
+              << QString::number(rawProcess.imgdata.sizes.flip)
+              << QString::number(rawProcess.imgdata.other.shot_order)
+              << QString::number(rawProcess.imgdata.other.iso_speed)
+              << QString::number(rawProcess.imgdata.other.shutter);
+
+    keyComments << QObject::tr("")
+                << QObject::tr("")
+                << QObject::tr("Number of color channels")
+                << QObject::tr("Color pattern of the Bayer matrix")
+                << QObject::tr("")
+                << QObject::tr("Image width (px)")
+                << QObject::tr("Image height (px)")
+                << QObject::tr("0: 0; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW")
+                << QObject::tr("Shot ordered number")
+                << QObject::tr("")
+                << QObject::tr("Exposure time (s)");
+
+    //rawProcess.imgdata.idata.make
+}
+
 LibRaw RawImage::getRawProcess() const
 {
     return rawProcess;
 }
-
 
 Mat RawImage::getImRed() const
 {
@@ -281,3 +333,17 @@ float RawImage::getWbBlue() const
     return wbBlue;
 }
 
+QVector<QString> RawImage::getKeyNames() const
+{
+    return keyNames;
+}
+
+QVector<QString> RawImage::getKeyValues() const
+{
+    return keyValues;
+}
+
+QVector<QString> RawImage::getKeyComments() const
+{
+    return keyComments;
+}

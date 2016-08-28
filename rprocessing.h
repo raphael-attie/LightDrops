@@ -17,13 +17,16 @@
 #include "utilities.h"
 #include "werner/limb.h"
 
+namespace Ui {
+class RMainWindow;
+}
 
 class RProcessing: public QObject
 {
     Q_OBJECT
 
 public:
-    RProcessing(QObject *parent = 0);
+    RProcessing(QObject *parent = NULL);
     ~RProcessing();
 
     void loadRMatLightList(QList<QUrl> urls);
@@ -31,30 +34,40 @@ public:
     void loadRMatDarkList(QList<QUrl> urls);
     void loadRMatFlatList(QList<QUrl> urls);
 
-    // Calibration (bias, dark, ...)
+    /// Calibration (bias, dark, ...)
     bool makeMasterBias();
     bool makeMasterDark();
     bool makeMasterFlat();
+    void stack(QList<RMat*> rMatImageList);
 
     RMat *average(QList<RMat*> rMatList);
     RMat *sigmaClipAverage(QList<RMat *> rMatImageList);
 
-    // Fourier filtering
+    /// Fourier filtering
     double pixelDistance(double u, double v);
     cv::Mat make2DGaussian(int matSize, double sigma);
     cv::Mat fftshift(cv::Mat matFourier);
     cv::Mat makePowerSpectrumFFT(cv::Mat matImage);
     cv::Mat makeImageHPF(cv::Mat matImage, double sigma);
 
-    // export methods
+    /// Sharpenning
+    QList<RMat*> sharpenSeries(QList<RMat*> rMatImageList, float weight1, float weight2);
+    RMat* sharpenCurrentImage(RMat* rMatImage, float weight1, float weight2);
+
+    /// export methods
     void exportMastersToFits();
     void exportToFits(RMat *rMatImage, QString QStrFilename);
     QString setupFileName(QFileInfo fileInfo, QString format);
     void loadMasterDark();
     void loadMasterFlat();
 
+    /// Statistics
     void showMinMax(const cv::Mat & matImage);
-    // setters
+    cv::Mat histogram(cv::Mat matVector, int &nBins, float &width);
+    float calcMedian(std::vector<float> data, float width);
+
+
+    /// setters
     void setTreeWidget(RTreeWidget *treeWidget);
     void setCurrentROpenGLWidget(ROpenGLWidget *rOpenGLWidget);
     void setShowContours(bool status);
@@ -65,8 +78,11 @@ public:
     void setBlurSigma(double sigma);
     void setUseHPF(bool status);
     void setHPFSigma(double sigma);
+    void setSharpenLiveStatus(bool status);
+    void setStackWithMean(bool status);
+    void setStackWithSigmaClip(bool status);
 
-    // getters
+    /// getters
     QString getExportMastersDir();
     QString getExportCalibrateDir();
 
@@ -82,8 +98,9 @@ public:
     QList<RMat*> getResultList2();
     QList<RMat*> getLimbFitResultList1();
     QList<RMat*> getLimbFitResultList2();
-
     QVector<Circle> getCircleOutList();
+    float getMeanRadius();
+
 
     // public properties (for "easier" referencing)
     QList<RMat*> rMatLightList;
@@ -92,6 +109,13 @@ public:
     QList<RMat*> rMatFlatList;
 
     static bool compareContourAreas(std::vector<cv::Point> contour1, std::vector<cv::Point> contour2);
+
+    // Display - lookup table
+    void red_tab(int* red, int* green ,int* blue);
+    cv::Mat scalePreviewImage(float sunX,float sunY,float sunR, cv::Mat matImage, char filter);
+    /// Colorize
+    cv::Mat wSolarColorize(cv::Mat matImage, char filter);
+    QList<RMat*> wSolarColorizeSeries(QList<RMat*> rMatImageList, char filter);
 
 signals:
 
@@ -128,10 +152,9 @@ public slots:
    void setupCannyDetection(int i);
    void cannyDetect(int thresh);
    bool limbFit(int i);
-   void cannyRegisterSeries();
-   bool wernerLimbFit();
-   void raphFindLimb(cv::Mat matImage, Data *dat, int numDots);
-   void raphFindLimb2(cv::Mat matImage, Data *dat, int numDots);
+   bool wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smoothSize = 5);
+   bool solarLimbRegisterSeries(QList<RMat*> rMatImageList);
+   void raphFindLimb(cv::Mat matImage, Data *dat, int numDots, bool smooth, int smoothSize);
 
    void blurRMat(RMat* rMat);
    QList<RMat*> normalizeSeriesByStats(QList<RMat*> rMatImageList);
@@ -153,6 +176,7 @@ private:
     RMat *masterDark;
     RMat *masterFlat;
     RMat *masterFlatN;
+    RMat *stackedRMat;
     QList<RMat*> resultList;
     QList<RMat*> resultList2;
     QList<RMat*> limbFitResultList1;
@@ -165,6 +189,7 @@ private:
     RMat *cannyRMat;
     RMat *contoursRMat;
     RMat *ellipseRMat;
+
 
     QList<ImageManager*> imageManagerList;
     QList<RMat*> contoursRMatList;
@@ -185,8 +210,9 @@ private:
     bool useXCorr;
     bool masterWithSigmaClip;
     bool masterWithMean;
+    bool stackWithMean, stackWithSigmaClip;
 
-    float radius, radius1, radius2, radius3;
+    float radius, radius1, radius2, radius3, meanRadius;
     cv::Rect cvRectROI;
     bool useROI;
     Circle circleOut;
@@ -202,6 +228,9 @@ private:
     // Fourier Filters
     bool useHPF;
     double hpfSigma;
+
+    // Sharpenning
+    bool sharpenLiveStatus;
 
 };
 

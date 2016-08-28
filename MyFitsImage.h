@@ -34,6 +34,7 @@ public:
     bool isBayer() const;
     float getBscale() const;
     float getExpTime() const;
+    float getSolar_r() const;
     int getBzero() const;
     cv::Mat getMatFits() const;
 

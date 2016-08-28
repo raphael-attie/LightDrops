@@ -125,15 +125,18 @@ void ROpenGLWidget::initialize()
     lambda = 100.0;
     mu = 100.0;
     applyToneMapping = false;
+    scaleLimb = false;
 
     imageCoordX = naxis1/2;
     imageCoordY = naxis2/2;
+    radius = 0.0f;
 
     prepImage();
     matImageRGB = matImageListRGB.at(frameIndex);
     initSubQImage();
     setupHistoPlots();
 
+    radius = rMatImageList.at(0)->getSOLAR_R();
     /// Create series of image titles
     /// If the frames do not come from disk files, need to create one from the default frame titles
     if (rListImageManager == NULL)
@@ -156,24 +159,20 @@ void ROpenGLWidget::initialize()
 
 void ROpenGLWidget::prepImage()
 {
-//    if (!matImageListRGB.isEmpty())
-//    {
-//        matImageListRGB.clear();
-//    }
-
+    /// Only deBayerize the image if it is of Bayer type. Pass-through otherwise.
     for (int ii = 0; ii < nFrames; ii++)
     {
         cv::Mat tempMatRGB(naxis2, naxis1, rMatImageList.at(ii)->matImage.type());
 
         if (rMatImageList.at(ii)->isBayer())
         {
-            cv::Mat tempMat16;
-            rMatImageList.at(ii)->matImage.convertTo(tempMat16, CV_16U);
-            cv::cvtColor(tempMat16, tempMatRGB, CV_BayerBG2RGB);
+            //cv::Mat tempMat16;
+            //rMatImageList.at(ii)->matImage.convertTo(tempMat16, CV_16U);
+            cv::cvtColor(rMatImageList.at(ii)->matImage, tempMatRGB, CV_BayerBG2RGB);
         }
         else
         {
-            tempMatRGB = rMatImageList.at(ii)->matImage.clone();
+            tempMatRGB = rMatImageList.at(ii)->matImage;
         }        
         matImageListRGB.append(tempMatRGB);
     }
@@ -428,8 +427,9 @@ void ROpenGLWidget::paintGL()
     int lambdaLocation = m_shader.uniformLocation("lambda");
     int muLocation = m_shader.uniformLocation("mu");
     int applyToneMappingLocation = m_shader.uniformLocation("applyToneMapping");
-
+    int scaleLimbLocation = m_shader.uniformLocation("scaleLimb");
     int wbRGBLocation = m_shader.uniformLocation("wbRGB");
+    int radiusXYnormLocation = m_shader.uniformLocation("radiusXYnorm");
 
     m_shader.setUniformValue(alphaLocation, alpha);
     m_shader.setUniformValue(betaLocation, beta);
@@ -439,11 +439,22 @@ void ROpenGLWidget::paintGL()
     m_shader.setUniformValue(lambdaLocation, lambda);
     m_shader.setUniformValue(muLocation, mu);
     m_shader.setUniformValue(applyToneMappingLocation, applyToneMapping);
-
-
-
+    m_shader.setUniformValue(scaleLimbLocation, scaleLimb);
     QVector3D wbRGB(wbRed, wbGreen, wbBlue);
     m_shader.setUniformValue(wbRGBLocation, wbRGB);
+
+    int naxis1 = rMatImageList.at(frameIndex)->matImage.cols;
+    int naxis2 = rMatImageList.at(frameIndex)->matImage.rows;
+    float radiusXnorm = radius / (float) naxis1;
+    float radiusYnorm = radius / (float) naxis2;
+    QVector2D radiusXYnorm(radiusXnorm, radiusYnorm);
+    m_shader.setUniformValue(radiusXYnormLocation, radiusXYnorm);
+
+    /// Limb scaling
+    int alphaLimbLocation = m_shader.uniformLocation("alphaLimb");
+    int betaLimbLocation = m_shader.uniformLocation("betaLimb");
+    m_shader.setUniformValue(alphaLimbLocation, alphaLimb);
+    m_shader.setUniformValue(betaLimbLocation, betaLimb);
 
 
     m_vao.bind();
@@ -524,7 +535,7 @@ void ROpenGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void ROpenGLWidget::setupTableWidget(int value)
 {
-    if (rMatImageList.empty() || rMatImageList.at(value)->isBayer())
+    if (rMatImageList.empty())
     {
         return;
     }
@@ -925,6 +936,16 @@ float ROpenGLWidget::getNewMin()
     return newMin;
 }
 
+float ROpenGLWidget::getLimbNewMax()
+{
+    return limbNewMax;
+}
+
+float ROpenGLWidget::getLimbNewMin()
+{
+    return limbNewMin;
+}
+
 float ROpenGLWidget::getAlpha()
 {
     return alpha;
@@ -950,6 +971,16 @@ float ROpenGLWidget::getWbBlue()
     return wbBlue;
 }
 
+float ROpenGLWidget::getRadius()
+{
+    return radius;
+}
+
+float ROpenGLWidget::getScaleLimb()
+{
+    return scaleLimb;
+}
+
 void ROpenGLWidget::setRMatImageList(QList<RMat *> rMatImageList)
 {
     this->rMatImageList = rMatImageList;
@@ -966,6 +997,16 @@ void ROpenGLWidget::setNewMin(float newMin)
     this->newMin = newMin;
 }
 
+void ROpenGLWidget::setLimbNewMax(float limbNewMax)
+{
+    this->limbNewMax = limbNewMax;
+}
+
+void ROpenGLWidget::setLimbNewMin(float limbNewMin)
+{
+    this->limbNewMin = limbNewMin;
+}
+
 // Setters
 
 
@@ -977,6 +1018,16 @@ void ROpenGLWidget::setAlpha(float newAlpha)
 void ROpenGLWidget::setBeta(float newBeta)
 {
     beta = newBeta;
+}
+
+void ROpenGLWidget::setAlphaLimb(float alphaLimb)
+{
+    this->alphaLimb = alphaLimb;
+}
+
+void ROpenGLWidget::setBetaLimb(float betaLimb)
+{
+    this->betaLimb = betaLimb;
 }
 
 void ROpenGLWidget::setGamma(float newGamma)
@@ -1007,6 +1058,11 @@ void ROpenGLWidget::setApplyToneMapping(bool state)
 void ROpenGLWidget::setUseInverseGausssian(bool state)
 {
     useInverseGaussian = state;
+}
+
+void ROpenGLWidget::setScaleLimb(bool state)
+{
+    scaleLimb = state;
 }
 
 
@@ -1064,5 +1120,10 @@ void ROpenGLWidget::setWbBlue(float wbBlue)
 void ROpenGLWidget::setTableSize(QSize size)
 {
     this->tableSize = size;
+}
+
+void ROpenGLWidget::setRadius(float radius)
+{
+    this->radius = radius;
 }
 

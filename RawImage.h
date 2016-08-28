@@ -4,6 +4,7 @@
 #include "winsockwrapper.h"
 #include <iostream>
 #include <QString>
+#include <QVector>
 #include <QColor>
 
 //opencv
@@ -21,6 +22,8 @@ public:
     RawImage();
     RawImage(QString filePath);
     ~RawImage();
+
+    void extractExif();
 
     LibRaw getRawProcess() const;
 
@@ -47,6 +50,10 @@ public:
     float getWbRed() const;
     float getWbGreen() const;
     float getWbBlue() const;
+
+    QVector<QString> getKeyNames() const;
+    QVector<QString> getKeyValues() const;
+    QVector<QString> getKeyComments() const;
 
 
 private:
@@ -78,6 +85,10 @@ private:
     cv::Mat imGreen;
     cv::Mat imBlue;
     cv::Mat imGreen2;
+
+    QVector<QString> keyNames;
+    QVector<QString> keyValues;
+    QVector<QString> keyComments;
 
 
 

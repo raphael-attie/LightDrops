@@ -43,6 +43,8 @@ public:
     double getDataMin() const;
     double getDataMax() const;
     float getExpTime() const;
+    float getXPOSURE() const;
+    float getSOLAR_R() const;
     float getWbRed() const;
     float getWbGreen() const;
     float getWbBlue() const;
@@ -75,6 +77,8 @@ public:
     void setDataMin(float dataMin);
     void setDataMax(float dataMax);
     void setExpTime(float expTime);
+    void setSOLAR_R(float SOLAR_R);
+    void setXPOSURE(float XPOSURE);
     void setWbRed(float wbRed);
     void setWbGreen(float wbGreen);
     void setWbBlue(float wbBlue);
@@ -96,6 +100,8 @@ private:
    double dataMin;
    double dataMax;
    float expTime;
+   float XPOSURE;
+   float SOLAR_R;
    float wbRed;
    float wbGreen;
    float wbBlue;
