@@ -16,6 +16,11 @@
 // libraw
 #include <libraw/libraw.h>
 
+// Exiv2
+#include <exiv2/exiv2.hpp>
+// Exiftool
+//#include <Exiftool/include/ExifTool.h>
+
 class RawImage
 {
 public:

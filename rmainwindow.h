@@ -17,7 +17,6 @@
 //QCustomPlot
 #include <qcustomplot/qcustomplot.h>
 
-
 namespace Ui {
 class RMainWindow;
 }

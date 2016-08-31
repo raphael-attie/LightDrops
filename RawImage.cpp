@@ -36,6 +36,32 @@ RawImage::RawImage(QString filePath):imageProcessed(NULL)
 
     qDebug() << "Raw file path:" + filePath.toLatin1();
 
+    /// Sample program to print the Exif metadata of an image
+    Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(filePathStr);
+    assert(image.get() != 0);
+    image->readMetadata();
+    Exiv2::ExifData &exifData = image->exifData();
+        if (exifData.empty())
+        {
+            std::string error(filePathStr);
+            error += ": No Exif data found in the file";
+            throw Exiv2::Error(1, error);
+        }
+
+        Exiv2::Exifdatum data = exifData["Exif.CanonPr.ColorTemperature"];
+        QString dataValue = QString::fromStdString(data.toString());
+        qDebug() << "Exif.CanonPr.ColorTemperature" << dataValue;
+
+//   Exiv2::ExifData::const_iterator end = exifData.end();
+//   for (Exiv2::ExifData::const_iterator i = exifData.begin(); i != end; ++i)
+//   {
+//       QString keyName = QString::fromStdString(i->key());
+//       QString keyValue = QString::fromStdString(i->value().toString());
+//       qDebug() << keyName << " : ";
+//    }
+
+
+
     error = rawProcess.open_file(filePathStr.c_str());
 
     if (error !=0)
@@ -247,6 +273,8 @@ void RawImage::extractExif()
                 << QObject::tr("Shot ordered number")
                 << QObject::tr("")
                 << QObject::tr("Exposure time (s)");
+
+
 
     //rawProcess.imgdata.idata.make
 }

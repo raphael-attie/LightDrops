@@ -14,6 +14,7 @@
 #include "RawImage.h"
 #include "rmat.h"
 
+
 class ImageManager
 {
 public:
