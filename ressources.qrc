@@ -511,5 +511,7 @@
         <file>Icons/myIcons/extract_ROI_1.png</file>
         <file>Icons/myIcons/selection_2.png</file>
         <file>Icons/myIcons/extract_ROI_2.png</file>
+        <file>Icons/myIcons/Temperature_1.png</file>
+        <file>Icons/myIcons/Temperature_2.png</file>
     </qresource>
 </RCC>

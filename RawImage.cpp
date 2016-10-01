@@ -20,37 +20,84 @@
 #include <QDateTime>
 
 using namespace cv;
+using namespace std;
 
 RawImage::RawImage()
 {
 
 }
 
-RawImage::RawImage(QString filePath):imageProcessed(NULL)
+RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
 {
     QElapsedTimer timer1, timer2;
 
     int error = 0;
 
-    std::string filePathStr(filePath.toStdString());
+//    qDebug() << "Raw file path:" + filePath.toLatin1();
 
-    qDebug() << "Raw file path:" + filePath.toLatin1();
+//    unsigned char x;
+//    ifstream inputF(filePathStr, ios::binary);
+//    inputF.seekg(0, ios::beg);
+//    //qDebug() << "inputF.tellg() = " << inputF.tellg();
+//    inputF >> noskipws;
+//    istream_iterator<unsigned char> it(inputF);
+
+//    unsigned char *array = new unsigned char[100];
+//    int i = 0;
+//    while(inputF.tellg() < 60)
+//    {
+//        qDebug() << "inputF.tellg() = " << inputF.tellg();
+//        inputF >> hex >> setw(2) >> array[i];
+//        i++;
+//    }
+
+//    for( int i = 0; i < 60; i++ )
+//    {
+//          cout << uppercase << showbase << hex << array[i] << endl;
+//    }
+
+//    int position = 0;
+//    char * array = new char[100];
+
+//    while(inputF.tellg() < 60)
+//    {
+//        qDebug() << "inputF.tellg() = " << inputF.tellg();
+//        inputF.get(array[position]);
+//        position++;
+//    }
+//    qDebug() << "position = " << position;
+//    array[position-1] = '\0';
+//    ///displaying the data stored in the array
+//    qDebug() << "array[0] = " << array[0];
+//    qDebug() << "array[1] = " << array[1];
+//    qDebug() << "array[2] = " << array[2];
+
+
+
 
     /// Sample program to print the Exif metadata of an image
-    Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(filePathStr);
-    assert(image.get() != 0);
-    image->readMetadata();
-    Exiv2::ExifData &exifData = image->exifData();
-        if (exifData.empty())
-        {
-            std::string error(filePathStr);
-            error += ": No Exif data found in the file";
-            throw Exiv2::Error(1, error);
-        }
 
-        Exiv2::Exifdatum data = exifData["Exif.CanonPr.ColorTemperature"];
-        QString dataValue = QString::fromStdString(data.toString());
-        qDebug() << "Exif.CanonPr.ColorTemperature" << dataValue;
+
+
+//    for (Exiv2::ExifData::const_iterator i = exifData.begin(); i != exifData.end() ; i++)
+//    {
+//        qDebug() << "i->key() = " << QString::fromStdString((*i).key());
+//    }
+
+//    for (int i = 0 ; i < strList.size() ; i++)
+//    {
+
+//        Exiv2::Exifdatum data = exifData[strList[i]];
+
+//        QString dataName = QString::fromStdString(strList[i]);
+//        QString dataValue = QString::fromStdString(data.toString());
+
+//        qDebug() << dataName << " = " << dataValue;
+//    }
+
+
+
+
 
 //   Exiv2::ExifData::const_iterator end = exifData.end();
 //   for (Exiv2::ExifData::const_iterator i = exifData.begin(); i != end; ++i)
@@ -61,8 +108,7 @@ RawImage::RawImage(QString filePath):imageProcessed(NULL)
 //    }
 
 
-
-    error = rawProcess.open_file(filePathStr.c_str());
+    error = rawProcess.open_file(filePath_.toStdString().c_str());
 
     if (error !=0)
     {
@@ -230,53 +276,34 @@ RawImage::~RawImage()
 
 void RawImage::extractExif()
 {
+    /// Extract exif data
+    image = Exiv2::ImageFactory::open(filePath_.toStdString());
+    assert(image.get() != 0);
+    image->readMetadata();
+    Exiv2::ExifData &exifData = image->exifData();
+    if (exifData.empty())
+    {
+        std::string error(filePath_.toStdString());
+        error += ": No Exif data found in the file";
+        throw Exiv2::Error(1, error);
+    }
+    Exiv2::Exifdatum temperatureData = exifData["Exif.CanonSi.CameraTemperature"];
+
     QDateTime dt = QDateTime::fromTime_t( rawProcess.imgdata.other.timestamp );
 
-    keyNames << QObject::tr("Brand")
-             << QObject::tr("Model")
-             << QObject::tr("Colors")
-             << QObject::tr("Bayer pattern")
-             << QObject::tr("DATE")
-             << QObject::tr("NAXIS1")
-             << QObject::tr("NAXIS2")
-             << QObject::tr("Flip")
-             << QObject::tr("Order")
-             << QObject::tr("ISO")
-             << QObject::tr("XPOSURE");
+    dispatchMetaDatum("Brand", QString::fromUtf8(rawProcess.imgdata.idata.make));
+    dispatchMetaDatum("Model", QString::fromUtf8(rawProcess.imgdata.idata.model));
+    dispatchMetaDatum("Colors", QString::number(rawProcess.imgdata.idata.colors), "Number of color channels");
+    dispatchMetaDatum("Bayer pattern", QString::fromUtf8(rawProcess.imgdata.idata.cdesc), "Color pattern of the Bayer matrix");
+    dispatchMetaDatum("DATE", dt.toString("MMMM d yyyy hh:mm:ss t"));
+    dispatchMetaDatum("NAXIS1", QString::number(rawProcess.imgdata.sizes.width), "Image width (px)");
+    dispatchMetaDatum("NAXIS2", QString::number(rawProcess.imgdata.sizes.height), "Image height (px)");
+    dispatchMetaDatum("Flip", QString::number(rawProcess.imgdata.sizes.flip), "0: 0; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW");
+    dispatchMetaDatum("Order", QString::number(rawProcess.imgdata.other.shot_order), "Shot ordered number");
+    dispatchMetaDatum("ISO", QString::number(rawProcess.imgdata.other.iso_speed));
+    dispatchMetaDatum("XPOSURE", QString::number(rawProcess.imgdata.other.shutter), "Exposure time (s)");
+    dispatchMetaDatum("Temperature", QString::fromStdString(temperatureData.print()), "Temperature of camera sensor in degrees Celsius");
 
-/// Flip: image orientation
-/// 0 if does not require rotation
-/// 3 if requires 180-deg rotation
-/// 5 if 90 deg counterclockwise
-/// 6 if 90 deg clockwise
-
-    keyValues << QString::fromUtf8(rawProcess.imgdata.idata.make)
-              << QString::fromUtf8(rawProcess.imgdata.idata.model)
-              << QString::number(rawProcess.imgdata.idata.colors)
-              << QString::fromUtf8(rawProcess.imgdata.idata.cdesc)
-              << dt.toString("MMMM d yyyy hh:mm:ss t")
-              << QString::number(rawProcess.imgdata.sizes.width)
-              << QString::number(rawProcess.imgdata.sizes.height)
-              << QString::number(rawProcess.imgdata.sizes.flip)
-              << QString::number(rawProcess.imgdata.other.shot_order)
-              << QString::number(rawProcess.imgdata.other.iso_speed)
-              << QString::number(rawProcess.imgdata.other.shutter);
-
-    keyComments << QObject::tr("")
-                << QObject::tr("")
-                << QObject::tr("Number of color channels")
-                << QObject::tr("Color pattern of the Bayer matrix")
-                << QObject::tr("")
-                << QObject::tr("Image width (px)")
-                << QObject::tr("Image height (px)")
-                << QObject::tr("0: 0; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW")
-                << QObject::tr("Shot ordered number")
-                << QObject::tr("")
-                << QObject::tr("Exposure time (s)");
-
-
-
-    //rawProcess.imgdata.idata.make
 }
 
 LibRaw RawImage::getRawProcess() const
@@ -374,4 +401,11 @@ QVector<QString> RawImage::getKeyValues() const
 QVector<QString> RawImage::getKeyComments() const
 {
     return keyComments;
+}
+
+void RawImage::dispatchMetaDatum(const char* keyName, QString keyValue, const char* comment)
+{
+    keyNames << QObject::tr(keyName);
+    keyValues << keyValue;
+    keyComments << QObject::tr(comment);
 }

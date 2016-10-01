@@ -17,9 +17,8 @@
 #include <libraw/libraw.h>
 
 // Exiv2
-#include <exiv2/exiv2.hpp>
-// Exiftool
-//#include <Exiftool/include/ExifTool.h>
+//#include <exiv2/exiv2.hpp>
+#include "exiv2/exiv2.hpp"
 
 class RawImage
 {
@@ -60,9 +59,12 @@ public:
     QVector<QString> getKeyValues() const;
     QVector<QString> getKeyComments() const;
 
+    void dispatchMetaDatum(const char *keyName, QString keyValue, const char *comment = "");
+
 
 private:
 
+    QString filePath_;
     LibRaw rawProcess;
     libraw_processed_image_t* imageProcessed;
 
@@ -94,6 +96,8 @@ private:
     QVector<QString> keyNames;
     QVector<QString> keyValues;
     QVector<QString> keyComments;
+
+    Exiv2::Image::AutoPtr image;
 
 
 

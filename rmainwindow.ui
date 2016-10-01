@@ -92,7 +92,7 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>1312</width>
+     <width>1393</width>
      <height>180</height>
     </size>
    </property>
@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>4</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -1920,7 +1920,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -2470,7 +2470,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="page">
+       <widget class="QWidget" name="luckyImagingPage">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -2482,6 +2482,110 @@
         <attribute name="label">
          <string>Lucky Imaging</string>
         </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_17">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_14">
+           <item>
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>Binning:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="luckyBin2RButton">
+             <property name="text">
+              <string> 2x2</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="luckyBin4RButton">
+             <property name="text">
+              <string>4x4</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_6">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>60</height>
+            </size>
+           </property>
+           <property name="title">
+            <string>Quality metrics</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_18">
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QRadioButton" name="luckyGradientRButton">
+              <property name="text">
+               <string>Gradient</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="luckySobelRButton">
+              <property name="text">
+               <string>Sobel-gradient</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_8">
+           <property name="title">
+            <string>Processing device</string>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_15">
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QRadioButton" name="luckyGPURButton">
+              <property name="text">
+               <string>GPU</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="luckyCPURButton">
+              <property name="text">
+               <string>CPU</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="blockProcessButton">
+           <property name="text">
+            <string>Block-process</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </widget>
      </item>
@@ -2555,6 +2659,7 @@
    <addaction name="actionHeader"/>
    <addaction name="actionROISelect"/>
    <addaction name="actionROIExtract"/>
+   <addaction name="actionTemperature"/>
   </widget>
   <action name="actionTileView">
    <property name="checkable">
@@ -2611,6 +2716,18 @@
    </property>
    <property name="toolTip">
     <string>Extract ROI</string>
+   </property>
+  </action>
+  <action name="actionTemperature">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="ressources.qrc">
+     <normaloff>:/icons/Icons/myIcons/Temperature_2.png</normaloff>:/icons/Icons/myIcons/Temperature_2.png</iconset>
+   </property>
+   <property name="text">
+    <string>Temperature</string>
    </property>
   </action>
  </widget>
@@ -2677,7 +2794,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1662</x>
-     <y>514</y>
+     <y>529</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2725,7 +2842,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1632</x>
-     <y>548</y>
+     <y>563</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -2804,11 +2921,11 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>418</x>
+     <x>421</x>
      <y>811</y>
     </hint>
     <hint type="destinationlabel">
-     <x>577</x>
+     <x>574</x>
      <y>812</y>
     </hint>
    </hints>
@@ -2837,7 +2954,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1586</x>
-     <y>423</y>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -2856,7 +2973,7 @@
      <y>849</y>
     </hint>
     <hint type="destinationlabel">
-     <x>577</x>
+     <x>574</x>
      <y>850</y>
     </hint>
    </hints>
@@ -2868,8 +2985,8 @@
    <slot>previewMatImageHPFSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>675</x>
-     <y>854</y>
+     <x>672</x>
+     <y>856</y>
     </hint>
     <hint type="destinationlabel">
      <x>701</x>
@@ -2884,7 +3001,7 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>577</x>
+     <x>574</x>
      <y>850</y>
     </hint>
     <hint type="destinationlabel">
@@ -2900,11 +3017,11 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>577</x>
+     <x>574</x>
      <y>812</y>
     </hint>
     <hint type="destinationlabel">
-     <x>418</x>
+     <x>421</x>
      <y>811</y>
     </hint>
    </hints>
@@ -2916,8 +3033,8 @@
    <slot>solarLimbFit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1540</x>
-     <y>528</y>
+     <x>1596</x>
+     <y>535</y>
     </hint>
     <hint type="destinationlabel">
      <x>1459</x>
@@ -2932,7 +3049,7 @@
    <slot>solarLimbRegisterSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1551</x>
+     <x>1596</x>
      <y>560</y>
     </hint>
     <hint type="destinationlabel">
@@ -2948,8 +3065,8 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>557</x>
-     <y>814</y>
+     <x>554</x>
+     <y>832</y>
     </hint>
     <hint type="destinationlabel">
      <x>524</x>
@@ -2964,12 +3081,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>760</x>
+     <x>665</x>
      <y>805</y>
     </hint>
     <hint type="destinationlabel">
-     <x>859</x>
-     <y>794</y>
+     <x>903</x>
+     <y>805</y>
     </hint>
    </hints>
   </connection>
@@ -2980,12 +3097,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>751</x>
-     <y>826</y>
+     <x>665</x>
+     <y>837</y>
     </hint>
     <hint type="destinationlabel">
-     <x>856</x>
-     <y>833</y>
+     <x>903</x>
+     <y>837</y>
     </hint>
    </hints>
   </connection>
@@ -2996,12 +3113,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>803</x>
-     <y>853</y>
+     <x>665</x>
+     <y>868</y>
     </hint>
     <hint type="destinationlabel">
-     <x>858</x>
-     <y>856</y>
+     <x>903</x>
+     <y>868</y>
     </hint>
    </hints>
   </connection>
@@ -3018,6 +3135,22 @@
     <hint type="destinationlabel">
      <x>1456</x>
      <y>619</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>blockProcessButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>blockProcessingSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1564</x>
+     <y>541</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1119</x>
+     <y>703</y>
     </hint>
    </hints>
   </connection>
@@ -3042,5 +3175,6 @@
   <slot>solarLimbRegisterSlot()</slot>
   <slot>solarColorizeSeriesSlot()</slot>
   <slot>stackSlot()</slot>
+  <slot>blockProcessingSlot()</slot>
  </slots>
 </ui>

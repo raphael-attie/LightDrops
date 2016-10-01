@@ -5,6 +5,10 @@
 #include <QApplication>
 #include <QtCore>
 
+// Arrayfire
+#include <arrayfire.h>
+
+
 #include "rmat.h"
 #include "rlistimagemanager.h"
 #include "rtreewidget.h"
@@ -16,6 +20,7 @@
 #include "circle.h"
 #include "utilities.h"
 #include "werner/limb.h"
+
 
 namespace Ui {
 class RMainWindow;
@@ -53,6 +58,30 @@ public:
     /// Sharpenning
     QList<RMat*> sharpenSeries(QList<RMat*> rMatImageList, float weight1, float weight2);
     RMat* sharpenCurrentImage(RMat* rMatImage, float weight1, float weight2);
+
+    /// Lucky imaging
+    /// Block Processing
+
+    // void blockProcessing(QList<RMat*> rMatImageList, void (*functionPtr)(af::array array3D));
+
+
+    void blockProcessingLocal(QList<RMat*> rMatImageList);
+
+    void sortBestBlocks(af::array & bestBlk, af::array & templateBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
+                        int blkSize, int blkSizeL, QPoint blkPos, int nFrames, int binning);
+
+    void blockProcessingGlobal(QList<RMat*> rMatImageList);
+    void extractBestBlock(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries, int blkSize, QPoint blkPos, int nFrames, int binning);
+    void extractBestBlock2(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
+                           const int & blkSize, const int &binnedBlkSize, const int & x, const int & y,
+                           const int & nFrames, const int & binning);
+
+    void matchTemplate2(af::array &res, af::array &A, af::array &k);
+    void matchTemplate3(af::array &res, af::array &A, af::array &k, af::array &arrOnes);
+    void fetchTMatchShifts(af::array & ar, int & dx, int & dy);
+    void fetchTMatchShifts2(af::array & ar, int &x, int &y);
+    void fetchTMatchShifts3(af::array & ar, int &x, int &y);
+
 
     /// export methods
     void exportMastersToFits();
@@ -231,6 +260,9 @@ private:
 
     // Sharpenning
     bool sharpenLiveStatus;
+
+    // Block Processing
+
 
 };
 

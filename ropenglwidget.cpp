@@ -343,7 +343,7 @@ void ROpenGLWidget::loadGLTexture()
 
         if (tempImageRGB.type() == CV_32F)
         {
-            qDebug("ROpenGLWidget::loadGLTexture():: image is 32 bits float, 3 channels");
+            qDebug("ROpenGLWidget::loadGLTexture():: image is 32 bits float, 1 channel");
             oglt->setFormat(QOpenGLTexture::R32F);
             oglt->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::Float32);
             oglt->setData(QOpenGLTexture::Red, QOpenGLTexture::Float32, tempImageRGB.data);

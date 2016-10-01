@@ -155,10 +155,7 @@ void ImageManager::loadFits()
 void ImageManager::loadRaw()
 {
     newRawImage = new RawImage(filePathQStr);
-
     rMatImage = new RMat(newRawImage->matCFA, true, instruments::DSLR);
-
-
 
     rMatImage->setWbRed(newRawImage->getWbRed());
     rMatImage->setWbGreen(newRawImage->getWbGreen());

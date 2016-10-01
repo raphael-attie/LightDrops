@@ -16,7 +16,7 @@ RMat::RMat(const RMat &rMat)
        SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL)
 {
     rMat.matImage.copyTo(this->matImage);
-    this->imageTitle = QString("Image #");
+    this->imageTitle = QString("");
 
 
     if (matImage.channels() > 1)
@@ -39,7 +39,7 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = false;
-    this->imageTitle = QString("Image #");
+    this->imageTitle = QString("");
     this->instrument = instruments::generic;
 
     if (matImage.channels() > 1)
@@ -60,7 +60,7 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
-    this->imageTitle = QString("Image #");
+    this->imageTitle = QString("");
     this->instrument = instruments::generic;
 
     if (matImage.channels() > 1)
@@ -81,7 +81,7 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
-    this->imageTitle = QString("Image #");
+    this->imageTitle = QString("");
     this->instrument = instrument;
 
     if (matImage.channels() > 1)
@@ -197,6 +197,11 @@ void RMat::calcStats()
 
     intensityLow = calcThreshold(cutOffLow, histWidth, minHistRange);
     intensityHigh = calcThreshold(cutOffHigh, histWidth, minHistRange);
+
+    if (intensityLow == intensityHigh)
+    {
+        intensityHigh = intensityLow + 1;
+    }
 
     int matType = matImage.type();
     if (instrument == instruments::USET)
@@ -413,6 +418,7 @@ QTreeWidgetItem* RMat::getItem() const
 
 QFileInfo RMat::getFileInfo() const
 {
+
     return fileInfo;
 }
 

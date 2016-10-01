@@ -2,35 +2,100 @@
 #include "rmainwindow.h"
 #include <QApplication>
 
+// Arrayfire
+#include <arrayfire.h>
+
 int main(int argc, char *argv[])
 {
+
+//    string filePath("/Users/raphaela/Pictures/Astrophotography/Joris/Andromede_iso3200_20s/F36A7292.CR2");
+//    ifstream inputF(filePath, ios::binary);
+//    inputF >> noskipws;
+//    qDebug() << "position = " << inputF.tellg();
+    //istream_iterator<unsigned char> it(inputF);
+    //inputF.seekg(0, ios::beg);
+
+//    char buff;
+//    qDebug() << "sizeof(buff) = " << sizeof(buff);
+//    int i = 0;
+
+//    while (inputF.tellg() < 60)
+//    {
+//        qDebug() << "inputF.tellg() = " << inputF.tellg();
+//        inputF.read( reinterpret_cast<char *> (&buff), sizeof(buff));
+//        i++;
+//        qDebug() << "buff = " << buff;
+//    }
+
+
+//    cout << hex << setw(2) << setfill('0') << (int)*it << endl;
+//    ++it;
+//    qDebug() << "position = " << inputF.tellg();
+//    cout << hex << setw(2) << setfill('0') << (int)*it << endl;
+//    ++it;
+//    qDebug() << "position = " << inputF.tellg();
+//    cout << hex << setw(2) << setfill('0') << (int)*it << endl;
+
+//    cout << *it;
+//    qDebug() << "position = " << inputF.tellg();
+//    ++it;
+//    cout << *it;
+//    qDebug() << "position = " << inputF.tellg();
+//    ++it;
+//    cout << *it << endl;
+
+/////////////
+
+//    char buff;
+//    unsigned short number;
+
+//    inputF.seekg(0, ios::beg);
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( &buff, 1);
+//    qDebug() << "buff = " << buff;
+
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( &buff, 1);
+//    qDebug() << "buff = " << buff;
+
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( &buff, 1);
+//    qDebug() << "buff = " << buff;
+
+
+
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( reinterpret_cast<char *> (&number), 1);
+//    qDebug() << "number = " << number;
+
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( reinterpret_cast<char *> (&number), 1);
+//    qDebug() << "number = " << number;
+//    cout << "number (hex offset to first IFD) = " << hex << showbase << number << endl;
+
+//    inputF.seekg(8, ios::beg);
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( &buff, 1);
+//    qDebug() << "buff = " << buff;
+
+//    qDebug() << "position = " << inputF.tellg();
+//    inputF.read( &buff, 1);
+//    qDebug() << "buff = " << buff;
+
+    qDebug() << af::infoString();
+
+
     QSurfaceFormat format;
     format.setDepthBufferSize(24);
     format.setStencilBufferSize(8);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setVersion(3, 3);
-    //format.setSamples(4);
     QSurfaceFormat::setDefaultFormat(format);
 
 
     QApplication a(argc, argv);
 
-    qDebug() << "opengGL version:" << format.version();
-    //std::cout << "sizeof(int) = " << sizeof(int) << std::endl;
-
     //a.setStyle("fusion");
-
-
-//    cv::Mat ellMat = cv::Mat::zeros(500,500, CV_8U);
-//    QImage image2(ellMat.data, ellMat.cols, ellMat.rows, QImage::Format_Grayscale8);
-
-//    QGraphicsPixmapItem item( QPixmap::fromImage(image2));
-//    QGraphicsScene* scene = new QGraphicsScene;
-//    scene->addItem(&item);
-
-//    QGraphicsView* graphicsView= new QGraphicsView(scene);
-//    graphicsView->show();
-
 
     RMainWindow w;
     w.show();

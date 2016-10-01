@@ -7,13 +7,12 @@
 
 //opencv
 #include <opencv2/world.hpp>
-// Arrayfire
-#include <arrayfire.h>
 
 #include "imagemanager.h"
 #include "parallelcalibration.h"
 #include "typedefs.h"
 
+using namespace af;
 
 RProcessing::RProcessing(QObject *parent): QObject(parent),
     masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useROI(false), useXCorr(false),
@@ -59,6 +58,7 @@ RProcessing::~RProcessing()
         qDeleteAll(imageManagerList);
         resultList.clear();
     }
+
 
 /// Do not to delete the rMatLightList if it comes from the treeWidget->rMatLightList
 //    if (!rMatLightList.isEmpty())
@@ -582,6 +582,13 @@ RMat *RProcessing::sigmaClipAverage(QList<RMat*> rMatImageList)
         qDebug() << "Only 1 image. Returning input Mat Image.";
         return rMatImageList.at(0);
     }
+
+    try {
+        af::setBackend(AF_BACKEND_OPENCL);
+//        af::array tempArray(10, 10, 2);
+//        tempArray(af::span, af::span, 0) = 1;
+//        tempArray(af::span, af::span, 1) = 0;
+
     /// Get sigma coefficient from sigmaEdit
     float sigmaFactor = 1.0f;
     int naxis2 = rMatImageList.at(0)->matImage.rows;
@@ -605,7 +612,7 @@ RMat *RProcessing::sigmaClipAverage(QList<RMat*> rMatImageList)
     af::timer start2 = af::timer::start();
 
     af::array meanArf = af::median(arfSeries, 2);
-    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+//    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
 //    af::array meanArfTiled = af::tile(meanArf, 1, 1, nFrames);
 //    //af::array stdevArf = af::moddims(af::stdev(arfSeries, 2), naxis2, naxis1);
 //    af::array stdevArf = af::stdev(arfSeries, 2);
@@ -613,16 +620,25 @@ RMat *RProcessing::sigmaClipAverage(QList<RMat*> rMatImageList)
 //    af::array arfMaskReject = af::abs(arfSeries - meanArfTiled) > stdevArfTiled;
 //    arfSeries(arfMaskReject) = meanArfTiled(arfMaskReject);
 //    meanArf = af::mean(arfSeries, 2);
-//    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+//    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f s", af::timer::stop(start2));
     /// Copy an array from the device to the host:
     float *hostArf = meanArf.host<float>();
-    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f us", af::timer::stop(start2));
+
+    qDebug("RProcessing::sigmaClipAverage::  elapsed seconds: %f s", af::timer::stop(start2));
     /// Prepare output Mat image
     cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
     matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
     RMat *rMatAvg = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
 
+    rMatAvg->setSOLAR_R(rMatImageList.at(0)->getSOLAR_R());
+
+
     return rMatAvg;
+
+    } catch (af::exception& e) {
+        printf("caught exception when trying CPU backend\n");
+        fprintf(stderr, "%s\n", e.what());
+    }
 }
 
 double RProcessing::pixelDistance(double u, double v)
@@ -770,6 +786,668 @@ RMat* RProcessing::sharpenCurrentImage(RMat *rMatImage, float weight1, float wei
     rMatSharpN->setSOLAR_R(rMatImage->getSOLAR_R());
 
     return rMatSharpN;
+}
+
+void RProcessing::blockProcessingLocal(QList<RMat*> rMatImageList)
+{
+
+    if (!resultList.empty())
+    {
+        qDeleteAll(resultList);
+        resultList.clear();
+    }
+
+    setBackend(AF_BACKEND_OPENCL);
+
+    int naxis2 = rMatImageList.at(0)->matImage.rows;
+    int naxis1 = rMatImageList.at(0)->matImage.cols;
+    int nFrames = rMatImageList.size();
+
+    /// Initialize the GPU array series
+    int binning = 2;
+    int nBAxis1 = naxis1/binning;
+    int nBAxis2 = naxis2/binning;
+    af::array arfSeries(naxis2, naxis1, nFrames);
+    //af::array arfSeriesBinned(nBAxis2, nBAxis1, nFrames);
+    af::array gradientMagSeries(nBAxis2, nBAxis1, nFrames);
+
+
+    /// gaussiankernel (const int rows, const int cols, const double sig_r=0, const double sig_c=0)
+//    af::array kernel = gaussianKernel(3, 3, 1, 1);
+//    af::array kernel = af::constant(0, 3, 3);
+//    kernel(1, 1) = 1;
+//    kernel(1, 2) = 1;
+//    kernel(2, 1) = 1;
+//    kernel(2, 2) = 1;
+
+    af::array kernel = af::constant(0, 7, 7);
+    kernel(seq(3,6), seq(3,6)) = 1;
+    af_print(kernel);
+
+    /// Store the matImageList (converted to float) in the GPU array, and get a binned version
+    ///
+
+    af::timer afTimer1 = af::timer::start();
+
+    cv::Mat tempMat(naxis2, naxis1, CV_32F);
+    for ( int k=0; k < nFrames; k++)
+    {
+        rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
+        af::array tempArf(naxis2, naxis1, (float*) tempMat.data);
+        arfSeries(span, span, k) = tempArf;
+        af::array  arfTemp = convolve2(tempArf, kernel);
+        af::array binnedFrame = arfTemp(seq(0, af::end, binning), seq(0, af::end, binning));
+        af::array dx, dy;
+        af::grad(dx, dy, binnedFrame);
+        /// Sum of absolute of the X- and Y- gradient (look for a norm-L2 function in ArrayFire?)
+        af::array gradientMagnitude = af::abs(dx) + af::abs(dy);
+        gradientMagSeries(span, span, k) = gradientMagnitude;
+        /// Sobel gradient magnitude
+        ///gradientMagSeries(span, span, k) = af::sobel(binnedFrame);
+    }
+    qDebug("RProcessing::blockProcessingLocal:: afTimer1 elapsed seconds: %f s", af::timer::stop(afTimer1));
+
+    /// Sobel gradient. Comment this if using the classical gradient above.
+//    af::timer afTimer2 = af::timer::start();
+//    af::array gradientMagSeries = af::sobel(arfSeriesBinned);
+//    qDebug("RProcessing::blockProcessing:: afTimer2 elapsed seconds: %f s", af::timer::stop(afTimer2));
+
+
+    /// Calculate number of blocks in the binned image. There must be enough block to cover the whole image, considering an overlap of 50%;
+    int blkSize = 32;
+    int blkSizeL = blkSize * 3;
+    int binnedBlkSize = blkSize/binning;
+    int nBBlksX = nBAxis1 / binnedBlkSize * 2; /// *2 from an overalp of 50% in the X-direction;
+    int nBBlksY = nBAxis2 / binnedBlkSize;
+    //int nBPixels = nBAxis1 * nBAxis2;
+    int nBBlks = nBBlksX * nBBlksY;
+
+
+
+//    af::timer afTimer3 = af::timer::start();
+
+//    af::array canvas = constant(0, naxis2, naxis1);
+
+//    /// Loop over all the block series
+//    for (int k = 0; k < nBBlks; k++)
+//    {
+//        int blkOffsetX = (k % nBBlksY) * binnedBlkSize;
+//        int blkOffsetY = (k / nBBlksX) * binnedBlkSize;
+
+//        af::array binnedBlkSeries = moddims(gradientMagSeries(seq(blkOffsetY, blkOffsetY + binnedBlkSize -1), seq(blkOffsetX, blkOffsetX + binnedBlkSize -1), seq(0, nFrames-1)), dim4(binnedBlkSize*binnedBlkSize, nFrames));
+//        af::array gradSum = flat(af::sum( binnedBlkSeries, 0 ));
+//        /// Sort the sum of the gradient-norm
+//        af::array sortedArray;
+//        af::array sortIndices;
+//        af::sort(sortedArray, sortIndices, gradSum, 0, false);
+
+//        blkOffsetX *= binning;
+//        blkOffsetY *= binning;
+
+//        af::array blkSeries = arfSeries(seq(blkOffsetY, blkOffsetY + blkSize -1), seq(blkOffsetX, blkOffsetX + blkSize -1), seq(0, nFrames-1));
+//        af::array sortedBlk = blkSeries(span, span, sortIndices);
+//        af::array bestBlock = sortedBlk(span, span, 0);
+//        canvas(seq(blkOffsetY, blkOffsetY + blkSize -1), seq(blkOffsetX, blkOffsetX + blkSize -1)) = bestBlock;
+//    }
+
+//    qDebug("RProcessing::blockProcessing:: afTimer3 elapsed seconds: %f s", af::timer::stop(afTimer3));
+
+
+    af::timer afTimer4 = af::timer::start();
+
+    af::array canvas = constant(0, naxis1, naxis2, f32);
+    af::array canvasWeights = constant(0, naxis1, naxis2, f32);
+
+    /// Loop over all the block series
+    ///
+    int offsetX = 500;
+    int offsetY = 500;
+
+    int x1 = offsetX;
+    int x2 = x1;
+    int y1 = offsetY;
+    int y2 = y1;
+    int xL1, yL1, xL2, yL2;
+    int dx = 0;
+    int dy = 0;
+    int x1_Bottom = offsetX;
+    int y1_Bottom = offsetY;
+    int dx_Bottom = 0;
+    int dy_Bottom = 0;
+
+    QPoint blkPos1(x1, y1);
+//    qDebug("[x1 , y1] = [%d, %d]", x1, y1);
+    qDebug("y1 = %d", y1);
+    af::array searchBlk1, searchBlk2, bestBlk1, bestBlk2;
+    /// Create a swappable template for dealing with the blocks at the edge of the image who need a bottom template
+    af::array searchBlk1Bottom;
+    sortBestBlocks(bestBlk1, searchBlk1, arfSeries, gradientMagSeries, blkSize, blkSizeL, blkPos1, nFrames, binning);
+    searchBlk1Bottom = searchBlk1;
+
+    /// Put the best block on the new canvas. Careful with the dimensions, they are not consistent with cv::Mat
+    /// We have to assimilate the rows as the x-direction, so we have 2D af::array as array[x,y]
+    canvas(seq(blkPos1.x(), blkPos1.x() + blkSize -1), seq(blkPos1.x(), blkPos1.x() + blkSize -1)) = bestBlk1;
+    //canvasWeights(seq(blkPos1.x(), blkPos1.x() + blkSize -1), seq(blkPos1.x(), blkPos1.x() + blkSize -1)) += 1;
+
+
+    int k = 0;
+    //while (k < 2)
+    while ((x2 < 1500) && (y2 < 600))
+    {
+        /// If the end of the 2nd block is off the edge, we go back to the beginning of the x-axis but step-up in the y-axis;
+        if ((x2 + blkSize > 1500) )
+        {
+
+            x1 = offsetX;
+            y1 += blkSize/2;
+
+            if (y1 > 600)
+            {
+                break;
+            }
+            blkPos1 = QPoint(x1, y1);
+
+            //qDebug("Changing to row at y1 = %d", y1);
+            //qDebug("y1 = %d", y1);
+
+            sortBestBlocks(bestBlk1, searchBlk1, arfSeries, gradientMagSeries, blkSize, blkSizeL, blkPos1, nFrames, binning);
+
+            /// Template matching
+            af::array SAD = matchTemplate(searchBlk1Bottom, bestBlk1);
+            //af_print(SAD);
+            af::array idx, idy;
+            af::array minValuesX, minValuesY;
+            af::min(minValuesX, idx, SAD);
+            af::min(minValuesY, idy, minValuesX, 1);
+            af::array minY = flat(idy);
+            af::array minX = flat(idx(minY));
+
+            unsigned int *dx1 = minX.host<unsigned int>();
+            unsigned int *dy1 = minY.host<unsigned int>();
+            //qDebug("[dx1, dy1] = [%u, %u]", dx1[0], dy1[0]);
+
+            xL1 = x1_Bottom - blkSize;
+            yL1 = y1_Bottom - blkSize; /// Investigate possible correction needed for fixing the relative position of the top block with respect to the bottom block, on the 3rd row, because the bottom block starts shifts as of 2nd row...
+            int x1Shifted = xL1 + (int) dx1[0] + dx_Bottom;
+            int y1Shifted = yL1 + (int) dy1[0] + dy_Bottom;
+
+            QPoint newBlkPos1(x1Shifted, y1Shifted);
+
+            canvas(seq(newBlkPos1.x(), newBlkPos1.x() + blkSize -1), seq(newBlkPos1.y(), newBlkPos1.y() + blkSize -1)) = bestBlk1;
+            //canvasWeights(seq(newBlkPos1.x(), newBlkPos1.x() + blkSize -1), seq(newBlkPos1.y(), newBlkPos1.y() + blkSize -1)) += 1;
+
+            searchBlk1Bottom = searchBlk1;
+
+            dx_Bottom = x1Shifted - x1;
+            dy_Bottom = y1Shifted - y1;
+            x1_Bottom = x1;
+            y1_Bottom = y1;
+
+            /// The new block on the left-side of the row is also the new template for the next (2nd) block in that row. So its correct position need to be adujusted by an updated dx- and dy- shift.
+            dx = dx_Bottom;
+            dy = dy_Bottom;
+        }
+
+        /// X-position of block 2, overlapping with block 1 by 50%. Y-position of block 2, same as block 1;
+        x2 = x1 + blkSize/2;
+        y2 = y1;
+        QPoint blkPos2(x2, y2);
+
+        sortBestBlocks(bestBlk2, searchBlk2, arfSeries, gradientMagSeries, blkSize, blkSizeL, blkPos2, nFrames, binning);
+
+        /// Template matching
+        af::array SAD = matchTemplate(searchBlk1, bestBlk2);
+        //af_print(SAD);
+        af::array idx, idy;
+        af::array minValuesX, minValuesY;
+        af::min(minValuesX, idx, SAD);
+        af::min(minValuesY, idy, minValuesX, 1);
+        af::array minY = flat(idy);
+        af::array minX = flat(idx(minY));
+
+        unsigned int *dx2 = minX.host<unsigned int>();
+        unsigned int *dy2 = minY.host<unsigned int>();
+        /// new x2 = xL1 + d2 + dx (see Lucky Imaging slides 3-4)
+        xL1 = x1 - blkSize;
+        yL1 = y1 - blkSize;
+        int x2shifted = xL1 + (int) dx2[0] + dx;
+        int y2shifted = yL1 + (int) dy2[0] + dy;
+        QPoint shiftedBlkPos2(x2shifted, y2shifted);
+
+//        qDebug("[x2shifted, y2shifted] = [%d, %d]", x2shifted, y2shifted);
+
+        canvas(seq(shiftedBlkPos2.x(), shiftedBlkPos2.x() + blkSize -1), seq(shiftedBlkPos2.y(), shiftedBlkPos2.y() + blkSize -1)) = bestBlk2;
+        //canvasWeights(seq(shiftedBlkPos2.x(), shiftedBlkPos2.x() + blkSize -1), seq(shiftedBlkPos2.y(), shiftedBlkPos2.y() + blkSize -1)) += 1;
+
+        /// Advance to block2 as base of the new template block.
+        searchBlk1 = searchBlk2;
+        dx = (x2shifted - x2);
+        dy = (y2shifted - y2);
+
+
+        x1 = x2;
+        blkPos1 = QPoint(x1, y1);
+
+//        qDebug("[x2shifted, y2shifted] = [%d, %d]", x2shifted, y2shifted);
+//        qDebug("[dx, dy] = [%d, %d]", dx, dy);
+
+        delete[] dx2;
+        delete[] dy2;
+
+        //qDebug("[dx, dy] = %d, %d", dx, dy);
+        k++;
+
+//        if (kk == 1)
+//        {
+//            break;
+//        }
+    }
+
+    //canvas /= canvasWeights;
+
+    qDebug("RProcessing::blockProcessingLocal:: afTimer4 elapsed seconds: %f s", af::timer::stop(afTimer4));
+
+    float *hostArf = canvas.host<float>();
+    cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
+//    cv::Mat matImage(N2, N1, CV_32F, hostArf);
+    matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
+    RMat *blockRMat = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+    blockRMat->setImageTitle("with local templates");
+    resultList << blockRMat;
+    delete[] hostArf;
+
+    /// Display one block series
+//    for ( int k=0; k < nFrames; k++)
+//    {
+//        af::array resultSlice = sortedBlk(span, span, k);
+//        //af::array resultSlice = arfSeriesBinned(span, span, k);
+//        //cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
+
+//        float *hostArf = resultSlice.host<float>();
+//        cv::Mat matImage(blkSize, blkSize, CV_32F, hostArf);
+//        matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
+//        RMat *blockMat = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+//        luckyList << blockMat;
+//        delete[] hostArf;
+//    }
+
+    /// Test a problematic template / block pair
+//    x1 = 1332;
+//    y1 = 596;
+//    blkPos1 = QPoint(x1, y1);
+
+//    x2 = x1 + blkSize/2;
+//    y2 = y1;
+//    QPoint blkPos2(x2, y2);
+
+//    sortBestBlocks(bestBlk1, searchBlk1, arfSeries, gradientMagSeries, blkSize, blkSizeL, blkPos1, nFrames, binning);
+//    sortBestBlocks(bestBlk2, searchBlk2, arfSeries, gradientMagSeries, blkSize, blkSizeL, blkPos2, nFrames, binning);
+
+//    /// Template matching
+//    af::array SAD = matchTemplate(searchBlk1, bestBlk2);
+//    //af_print(SAD);
+//    af::array idx, idy;
+//    af::array minValuesX, minValuesY;
+//    af::min(minValuesX, idx, SAD);
+//    af::min(minValuesY, idy, minValuesX, 1);
+//    af::array minY = flat(idy);
+//    af::array minX = flat(idx(minY));
+
+//    unsigned int *dx2 = minX.host<unsigned int>();
+//    unsigned int *dy2 = minY.host<unsigned int>();
+
+//    int xShift = (int) dx2[0] - (blkSize + blkSize/2);
+//    int yShift = (int) dy2[0] - blkSize;
+
+//    int x2Shifted = blkSize/2 + xShift;
+//    int Yoffset2 = 10;
+//    int y2Shifted = Yoffset2 + yShift;
+
+
+//    qDebug("[x2Shifted , y2Shifted] = [%d, %d]", x2Shifted, y2Shifted);
+//    qDebug("[xShift , yShift] = [%d, %d]", xShift, yShift);
+
+//    af::array testCanvas = constant(0, 3*blkSize, 3*blkSize);
+//    testCanvas(seq(0, blkSize-1), seq(Yoffset2, Yoffset2 + blkSize-1)) = bestBlk1;
+//    testCanvas(seq(x2Shifted, x2Shifted + blkSize -1), seq(y2Shifted, y2Shifted + blkSize -1)) = bestBlk2;
+
+
+//    float *hostArfTest = testCanvas.host<float>();
+//    cv::Mat matImageTest(3*blkSize, 3*blkSize, CV_32F, hostArfTest);
+//    matImageTest.convertTo(matImageTest, rMatImageList.at(0)->matImage.type());
+//    RMat *blockRMatTest = new RMat(matImageTest, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+
+//    if (!resultList2.empty())
+//    {
+//        qDeleteAll(resultList2);
+//        resultList2.clear();
+//    }
+
+//    resultList2 << blockRMatTest;
+//    delete[] hostArfTest;
+
+}
+
+
+
+void RProcessing::sortBestBlocks(af::array & bestBlk, af::array & searchBlk, af::array & arraySeries, af::array & arrayBinnedSeries, int blkSize, int blkSizeL, QPoint blkPos, int nFrames, int binning)
+{
+    QPoint blkPosB = blkPos/binning;
+    int binnedBlkSize = blkSize / binning;
+
+    af::array binnedBlkSeries = moddims(arrayBinnedSeries(seq(blkPosB.x(), blkPosB.x() + binnedBlkSize -1), seq(blkPosB.y(), blkPosB.y() + binnedBlkSize -1), seq(0, nFrames-1)), dim4(binnedBlkSize*binnedBlkSize, nFrames));
+    af::array gradSum = flat(af::sum( binnedBlkSeries, 0 ));
+    //af_print(gradSum);
+
+    /// Sort the sum of the gradient-norm
+    af::array sortedArray;
+    af::array sortIndices;
+    af::sort(sortedArray, sortIndices, gradSum, 0, false);
+    //af_print(sortedArray);
+
+    /// Extract the larger version of the best block.
+    int xL = blkPos.x() - blkSize;
+    int yL = blkPos.y() - blkSize;
+
+    QPoint blkPosL(xL, yL);
+    /// Index of the best block is supposed to be at sortIndices(0)
+    //af::array blkSeriesL = arraySeries(seq(blkPosL.x(), blkPosL.x() + blkSizeL -1), seq(blkPosL.y(), blkPosL.y() + blkSizeL -1), seq(0, nFrames-1));
+    unsigned int *bestIndex = sortIndices.host<unsigned int>();
+    searchBlk = arraySeries(seq(blkPosL.x(), blkPosL.x() + blkSizeL -1), seq(blkPosL.y(), blkPosL.y() + blkSizeL -1), bestIndex[0]);
+
+    //af::array blkSeries = arraySeries(seq(blkPos.x(), blkPos.x() + blkSize -1), seq(blkPos.y(), blkPos.y() + blkSize -1), seq(0, nFrames-1));
+    bestBlk = searchBlk(seq(blkSize, 2*blkSize -1), seq(blkSize, 2*blkSize -1));
+}
+
+void RProcessing::blockProcessingGlobal(QList<RMat *> rMatImageList)
+{
+
+    if (!resultList2.empty())
+    {
+        qDeleteAll(resultList2);
+        resultList2.clear();
+    }
+
+    setBackend(AF_BACKEND_OPENCL);
+
+    int naxis2 = rMatImageList.at(0)->matImage.rows;
+    int naxis1 = rMatImageList.at(0)->matImage.cols;
+    int nFrames = rMatImageList.size();
+
+    /// Initialize the GPU array series
+    int binning = 2;
+    int nBAxis1 = naxis1/binning;
+    int nBAxis2 = naxis2/binning;
+    int blkSize = 32;
+    int binnedBlkSize = blkSize/binning;
+    int blkSizeSeach = blkSize * 3;
+
+    af::array arfSeries(naxis2, naxis1, nFrames);
+    //af::array arfSeriesBinned(nBAxis2, nBAxis1, nFrames);
+    af::array gradientMagSeries(nBAxis2, nBAxis1, nFrames);
+
+    af::array kernel = af::constant(0, 7, 7);
+    kernel(seq(3,6), seq(3,6)) = 1;
+
+    cv::Mat tempMat(naxis2, naxis1, CV_32F);
+    for ( int k=0; k < nFrames; k++)
+    {
+        rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
+        af::array tempArf(naxis2, naxis1, (float*) tempMat.data);
+        arfSeries(span, span, k) = tempArf;
+        af::array  arfTemp = convolve2(tempArf, kernel);
+        af::array binnedFrame = arfTemp(seq(0, af::end, binning), seq(0, af::end, binning));
+        af::array dx, dy;
+        af::grad(dx, dy, binnedFrame);
+        /// Sum of absolute of the X- and Y- gradient (look for a norm-L2 function in ArrayFire?)
+        af::array gradientMagnitude = af::abs(dx) + af::abs(dy);
+        gradientMagSeries(span, span, k) = gradientMagnitude;
+        /// Sobel gradient magnitude
+        ///gradientMagSeries(span, span, k) = af::sobel(binnedFrame);
+    }
+
+
+    //    af::array globalTemplate = arfSeries(span, span, 0); //af::median(arfSeries, 2);
+    af::array globalTemplate = af::median(arfSeries, 2);
+    qDebug("Median template ready...");
+
+    //    af::array sharpKernel = af::constant(0, 3, 3);
+    //    sharpKernel(1, 0) = -1;
+    //    sharpKernel(0, 1) = -1;
+    //    sharpKernel(1, 2) = -1;
+    //    sharpKernel (2, 1) = -1;
+    //    sharpKernel(1, 1) = 5;
+    //    globalTemplate = convolve2(globalTemplate, sharpKernel);
+
+
+    af::array canvas = constant(0, naxis1, naxis2, f32);
+    //af::array canvasWeights = constant(0, naxis1, naxis2, f32);
+
+    /// Loop over all the block series
+    ///
+//    int offsetX = blkSize;
+//    int offsetY = blkSize;
+    int offsetX = 500;
+    int offsetY = 500;
+    int k = 0;
+
+    af::array searchBlk;
+    af::array bestBlk; //, bestBlk2;
+
+    double timeA1 = 0;
+    double timeB1 = 0;
+    double timeA2 = 0;
+    double timeB2 = 0;
+    double timeC1 = 0;
+    double timeC2 = 0;
+    double timeC3 = 0;
+    double loopTime = 0;
+
+//    af::array arrOnes = constant(1, dim4(blkSize, blkSize));
+
+    QElapsedTimer timer;
+    timer.start();
+
+//    for (int y = offsetY; y< naxis2 - 1 - blkSizeSeach; y += blkSize/2)
+//    {
+//        for (int x = offsetX; x< naxis1 - 1 - blkSizeSeach; x += blkSize/2)
+//        {
+                for (int y = offsetY; y< 600; y += blkSize/2)
+                {
+                    for (int x = offsetX; x< 1500; x += blkSize/2)
+                    {
+
+            af::sync();
+            af::timer afTimer4 = af::timer::start();
+
+
+            //            int x = offsetX;
+            //            int y = offsetY;
+
+            k++;
+
+            int xT1 = x - blkSize;
+            int yT1 = y - blkSize;
+            int xT2 = xT1 + blkSizeSeach - 1;
+            int yT2 = yT1 + blkSizeSeach - 1;
+
+
+            /// Extract the best block from the current block series
+
+            //            af::sync();
+            //            af::timer afTimerA2 = af::timer::start();
+            extractBestBlock2(bestBlk, arfSeries, gradientMagSeries, blkSize, binnedBlkSize, x, y, nFrames, binning);
+            //            af::sync();
+            //            timeA2 += af::timer::stop(afTimerA2);
+
+            /// Need to extract the template block from the global template.
+            searchBlk  = globalTemplate(seq(xT1, xT2), seq(yT1, yT2));
+
+            //            af::sync();
+            //            af::timer afTimerC1 = af::timer::start();
+            //            af::array SAD = matchTemplate(searchBlk, bestBlk, AF_SAD);
+            //            af::sync();
+            //            timeC1 += af::timer::stop(afTimerC1);
+
+            //            int dx, dy;
+            //            fetchTMatchShifts3(SAD, dx, dy);
+            //            int xShifted = x + dx;
+            //            int yShifted = y + dy;
+            //            qDebug("[dx, dy] = [%d, %d]", dx, dy);
+
+
+
+            af::sync();
+            af::timer afTimerC2 = af::timer::start();
+            af::array SAD;
+            matchTemplate2(SAD, searchBlk, bestBlk);
+            af::sync();
+            timeC2 += af::timer::stop(afTimerC2);
+            //qDebug("[dx2, dy2] = [%d, %d]", dx2, dy2);
+
+            int dx, dy;
+            fetchTMatchShifts3(SAD, dx, dy);
+            dx -= bestBlk.dims(0)/2;
+            dy -= bestBlk.dims(1)/2;
+            int xShifted = x + dx;
+            int yShifted = y + dy;
+
+            canvas(seq(xShifted, xShifted + blkSize -1), seq(yShifted, yShifted + blkSize -1)) = bestBlk;
+
+            af::sync();
+            loopTime += af::timer::stop(afTimer4);
+        }
+    }
+    qDebug("blockProcessingGlobal:: QTimer : total time: %f s", (float) timer.elapsed() /1000);
+
+
+    qDebug("blockProcessingGlobal:: Total blocks processed: %d", k);
+    qDebug("blockProcessingGlobal:: templateMatching time per block timeA1: %f ms", timeA1 / k * 1000);
+    qDebug("blockProcessingGlobal:: templateMatching time per block timeA2: %f ms", timeA2 / k * 1000);
+
+    qDebug("blockProcessingGlobal::  time per block timeB1: %f ms", timeB1 / k * 1000);
+    qDebug("blockProcessingGlobal::  time per block timeB2: %f ms", timeB2 / k * 1000);
+
+    qDebug("blockProcessingGlobal:: timeC1: %f ms", timeC1 / k * 1000);
+    qDebug("blockProcessingGlobal:: timeC2: %f ms", timeC2 / k * 1000);
+    qDebug("blockProcessingGlobal:: timeC3: %f ms", timeC3 / k *1000);
+
+    qDebug("blockProcessingGlobal:: Loop time per block: %f ms", loopTime/k * 1000);
+
+    float *hostArf = canvas.host<float>();
+    cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
+//    float *hostArf = searchBlk.host<float>();
+//    cv::Mat matImage(blkSizeSeach, blkSizeSeach, CV_32F, hostArf);
+    matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
+    RMat *blockRMat = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+    blockRMat->setImageTitle("with global templates");
+    resultList2 << blockRMat;
+    delete[] hostArf;
+
+//    float *hostArf2 = bestBlk.host<float>();
+//    cv::Mat matImage2(blkSize, blkSize, CV_32F, hostArf2);
+//    matImage2.convertTo(matImage2, rMatImageList.at(0)->matImage.type());
+//    RMat *blockRMat2 = new RMat(matImage2, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+//    resultList2 << blockRMat2;
+//    delete[] hostArf2;
+}
+
+
+void RProcessing::extractBestBlock(af::array &bestBlk, af::array &arfSeries, af::array &arrayBinnedSeries, int blkSize, QPoint blkPos, int nFrames, int binning)
+{
+    QPoint blkPosB = blkPos/binning;
+    int binnedBlkSize = blkSize / binning;
+
+    af::array binnedBlkSeries = moddims(arrayBinnedSeries(seq(blkPosB.x(), blkPosB.x() + binnedBlkSize -1), seq(blkPosB.y(), blkPosB.y() + binnedBlkSize -1), seq(0, nFrames-1)), dim4(binnedBlkSize*binnedBlkSize, nFrames));
+    af::array gradSum = flat(af::sum( binnedBlkSeries, 0 ));
+    //af_print(gradSum);
+
+    /// Sort the sum of the gradient-norm
+    af::array sortedArray;
+    af::array sortIndices;
+    af::sort(sortedArray, sortIndices, gradSum, 0, false);
+
+    unsigned int *bestIndex = sortIndices.host<unsigned int>();
+    bestBlk = arfSeries(seq(blkPos.x(), blkPos.x() + blkSize -1), seq(blkPos.y(), blkPos.y() + blkSize -1), bestIndex[0]);
+
+}
+
+void RProcessing::extractBestBlock2(af::array &bestBlk, af::array &arfSeries, af::array &arrayBinnedSeries,
+                                    const int &blkSize, const int &binnedBlkSize, const int &x, const int &y,
+                                    const int &nFrames, const int &binning)
+{
+    int xB = x/binning;
+    int yB = y/binning;
+
+    af::array binnedBlkSeries = moddims(arrayBinnedSeries(seq(xB, xB + binnedBlkSize -1), seq(yB, yB + binnedBlkSize -1), seq(0, nFrames-1)), dim4(binnedBlkSize*binnedBlkSize, nFrames));
+    af::array gradSum = flat(af::sum( binnedBlkSeries, 0 ));
+    //af_print(gradSum);
+
+    /// Sort the sum of the gradient-norm
+    af::array sortedArray;
+    af::array sortIndices;
+    af::sort(sortedArray, sortIndices, gradSum, 0, false);
+
+    unsigned int *bestIndex = sortIndices.host<unsigned int>();
+    bestBlk = arfSeries(seq(x, x + blkSize -1), seq(y, y + blkSize -1), bestIndex[0]);
+
+}
+
+void RProcessing::matchTemplate2(af::array &res, af::array &A, af::array &k)
+{
+    af::array k1 = flip(flip(k, 0), 1);
+    af::array o = constant(1, k.dims());
+    af::array A2 = convolve2(A * A, o);
+    af::array AK = convolve2(A, k1);
+    res = A2 - 2 * AK;
+}
+
+void RProcessing::matchTemplate3(af::array &res, af::array &A, af::array &k, af::array &arrOnes)
+{
+    af::array k1 = flip(flip(k, 0), 1);
+    af::array A2 = convolve2(A * A, arrOnes);
+    af::array AK = convolve2(A, k1);
+    res = A2 - 2 * AK;
+}
+
+void RProcessing::fetchTMatchShifts(af::array &ar, int & dx, int & dy)
+{
+    af::array idx, idy;
+    af::array minValuesX, minValuesY;
+    af::min(minValuesX, idx, ar);
+    af::min(minValuesY, idy, minValuesX, 1);
+    af::array minY = flat(idy);
+    af::array minX = flat(idx(minY));
+
+    unsigned int *shiftX = minX.host<unsigned int>();
+    unsigned int *shiftY = minY.host<unsigned int>();
+
+    dx = (int) shiftX[0];
+    dy = (int) shiftY[0];
+
+    delete[] shiftX;
+    delete[] shiftY;
+}
+
+void RProcessing::fetchTMatchShifts2(af::array &ar, int &x, int &y)
+{
+    float *minVal = af::pinned<float>(1);
+    unsigned *minLoc = af::pinned<unsigned>(1);
+    af::min<float>(minVal, minLoc, ar);
+
+    dim4 arDims = ar.dims();
+    x = *minLoc % arDims[0];
+    y = *minLoc / arDims[0];
+}
+
+void RProcessing::fetchTMatchShifts3(af::array &ar, int &x, int &y)
+{
+    float minVal = 0;
+    unsigned minLoc = 0;
+    af::min<float>(&minVal, &minLoc, ar);
+
+    x = minLoc % ar.dims(0);
+    y = minLoc / ar.dims(0);
 }
 
 void RProcessing::calibrateOffScreen()
@@ -2511,6 +3189,7 @@ QList<RMat*> RProcessing::wSolarColorizeSeries(QList<RMat *> rMatImageList, char
 
     return rMat8BitList;
 }
+
 
 
 //void ushrpMask(int naxis1,int naxis2,int* data,int Datamin,int Datamax){

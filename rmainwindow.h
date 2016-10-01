@@ -93,8 +93,11 @@ private slots:
     void sharpenSliderSlot();
     void sharpenLiveSlot();
 
-    /// Stats graph
+    ///  Graphs
     void changeZoomAxisSlot();
+    QVector<double> extractTemperatureFromSeries();
+    void displayTemperatureSeries();
+    void plotData(QVector<double> data, QString xLabel, QString yLabel);
 
     // Processing
     void calibrateOffScreenSlot();
@@ -104,6 +107,7 @@ private slots:
     void normalizeCurrentSeries();
     void previewMatImageHPFSlot();
     void stackSlot();
+    void blockProcessingSlot();
 
     // Plots
     void showLimbFitStats();
@@ -137,6 +141,10 @@ private slots:
     void on_actionROIExtract_triggered();
 
     void on_actionHeader_triggered();
+
+    void on_actionTemperature_triggered();
+
+    void on_actionTemperature_toggled(bool arg1);
 
 private:
 

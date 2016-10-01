@@ -20,7 +20,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
     limbFittingROpenGLWidget(NULL),
     graphicsView(NULL),
     limbRegisterSubWindow(NULL),
-    currentSubWindow(NULL), plotSubWindow(NULL), tempSubWindow(NULL),
+    currentSubWindow(NULL), plotSubWindow(NULL), customPlot(NULL), tempSubWindow(NULL),
     toneMappingGraph(NULL), previewQImage(NULL)
 {
     ui->setupUi(this);
@@ -226,6 +226,7 @@ void RMainWindow::createNewImage(QList<RMat*> newRMatImageList)
     currentSubWindow->show();
     setupSliders(currentROpenGLWidget);
     currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+
 }
 
 void RMainWindow::createNewImage(RMat *rMatImage)
@@ -580,7 +581,7 @@ void RMainWindow::loadSubWindow(QScrollArea *scrollArea)
     //currentSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
     currentSubWindow->setWidget(scrollArea);
     ui->mdiArea->addSubWindow(currentSubWindow);
-    currentSubWindow->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getImageTitle());
+    currentSubWindow->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getImageTitle() + QString(" #%1 ").arg(frameIndex+1));
 
     /// ROpenGLWidget can only be resized once it has been assigned to the QMdiSubWindow.
     /// Otherwise the shaders will not be bound.
@@ -875,15 +876,17 @@ void RMainWindow::solarLimbFit()
         currentROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
         addImage(currentROpenGLWidget);
         setupSliders(currentROpenGLWidget);
+
+        autoScale(currentROpenGLWidget);
+        currentSubWindow->show();
+        displayPlotWidget(currentROpenGLWidget);
+
     }
     else
     {
             return;
     }
 
-    autoScale(currentROpenGLWidget);
-    currentSubWindow->show();
-    displayPlotWidget(currentROpenGLWidget);
 
 
 }
@@ -902,9 +905,10 @@ void RMainWindow::solarLimbRegisterSlot()
 
     createNewImage(processing->getLimbFitResultList1());
 
-    currentROpenGLWidget->setRadius(processing->getMeanRadius());
     //rangeScale();
     autoScale();
+    currentROpenGLWidget->setRadius(processing->getMeanRadius());
+
 }
 
 
@@ -944,6 +948,18 @@ void RMainWindow::stackSlot()
     processing->setStackWithSigmaClip(ui->stackSigmaClipRButton->isChecked());
 
     processing->stack(currentROpenGLWidget->getRMatImageList());
+
+}
+
+void RMainWindow::blockProcessingSlot()
+{
+//    processing->blockProcessingLocal(currentROpenGLWidget->getRMatImageList());
+//    createNewImage(processing->getResultList());
+//    autoScale();
+
+    processing->blockProcessingGlobal(currentROpenGLWidget->getRMatImageList());
+    createNewImage(processing->getResultList2());
+    autoScale();
 
 }
 
@@ -1048,7 +1064,6 @@ void RMainWindow::showLimbFitStats()
     connect(limbFitPlot->xAxis , SIGNAL(selectionChanged(QCPAxis::SelectableParts)), this, SLOT(changeZoomAxisSlot()));
     connect(limbFitPlot->yAxis , SIGNAL(selectionChanged(QCPAxis::SelectableParts)), this, SLOT(changeZoomAxisSlot()));
     connect(limbFitPlot->yAxis2 , SIGNAL(selectionChanged(QCPAxis::SelectableParts)), this, SLOT(changeZoomAxisSlot()));
-
 
 
     plotSubWindow->setWidget(limbFitPlot);
@@ -1661,7 +1676,7 @@ void RMainWindow::updateFrameInSeries(int frameIndex)
     // The sliderValue minimum is 1. The frameIndex minimum is 0;
     ui->imageLabel->setText(QString::number(frameIndex+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
     currentROpenGLWidget->changeFrame(frameIndex);
-    ui->mdiArea->currentSubWindow()->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getImageTitle());
+    ui->mdiArea->currentSubWindow()->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getImageTitle() + QString(" #%1 ").arg(frameIndex+1));
     displayPlotWidget(currentROpenGLWidget);
 
     this->frameIndex = frameIndex;
@@ -1896,6 +1911,77 @@ void RMainWindow::changeZoomAxisSlot()
 
 }
 
+QVector<double> RMainWindow::extractTemperatureFromSeries()
+{
+    /// Not all ROpenGLWidget have temperature data, will need to account for this.
+    QList<QTableWidget*> tableWidgetList = currentROpenGLWidget->getRListImageManager()->getTableWidgetList();
+    QVector<double> temperatureSeries;
+    for (int i = 0 ; i < tableWidgetList.size(); i++)
+    {
+        const QTableWidget* tableWidget = tableWidgetList.at(i);
+        QTableWidgetItem * temperatureItem = tableWidget->findItems(QString("Temperature"), Qt::MatchFixedString).at(0);
+        double temperature = tableWidgetList.at(i)->item(temperatureItem->row(), 1)->text().toDouble();
+        temperatureSeries << temperature;
+    }
+
+    return temperatureSeries;
+}
+
+void RMainWindow::displayTemperatureSeries()
+{
+    QVector<double> temperatureSeries = extractTemperatureFromSeries();
+    plotData(temperatureSeries, QString("Frame #"), QString("Temperature (Celsius)"));
+}
+
+void RMainWindow::plotData(QVector<double> data, QString xLabel, QString yLabel)
+{
+    QPoint windowPos(1,1);
+    bool addWindow = false;
+
+    if (plotSubWindow == NULL)
+    {
+        plotSubWindow = new QMdiSubWindow();
+        addWindow = true;
+    }
+    else
+    {
+        // Restore last used position
+        windowPos = plotSubWindow->pos();
+    }
+
+    QVector<double> x(data.size());
+    for (int i = 0 ; i < data.size() ; ++i)
+    {
+        x[i]  = i+1;
+    }
+
+    customPlot = new QCustomPlot();
+    customPlot->addGraph();
+    customPlot->plottable(0)->setPen(QPen(Qt::blue));
+    customPlot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc));
+    customPlot->xAxis->setLabel(xLabel);
+    customPlot->xAxis->setAutoTicks(false);
+    customPlot->xAxis->setTickVector(x);
+    customPlot->yAxis->setLabel(yLabel);
+    customPlot->graph(0)->setData(x, data);
+    customPlot->graph(0)->rescaleAxes();
+    customPlot->yAxis->setRange(10, 50);
+
+    // Allow the user to zoom in / zoom out and scroll horizontally
+    customPlot->setInteraction(QCP::iRangeDrag, true);
+    customPlot->setInteraction(QCP::iRangeZoom, true);
+
+    plotSubWindow->setWidget(customPlot);
+    if (addWindow)
+    {
+        ui->mdiArea->addSubWindow(plotSubWindow);
+    }
+    plotSubWindow->resize(defaultWindowSize);
+    plotSubWindow->move(windowPos);
+    plotSubWindow->show();
+
+}
+
 
 void RMainWindow::calibrateOffScreenSlot()
 {
@@ -2086,4 +2172,27 @@ void RMainWindow::on_actionROIExtract_triggered()
 void RMainWindow::on_actionHeader_triggered()
 {
 
+}
+
+void RMainWindow::on_actionTemperature_triggered()
+{
+
+}
+
+void RMainWindow::on_actionTemperature_toggled(bool arg1)
+{
+    if (arg1)
+    {
+        if (currentROpenGLWidget != NULL)
+        {
+            displayTemperatureSeries();
+        }
+    }
+    else
+    {
+        if (plotSubWindow != NULL)
+        {
+            plotSubWindow->hide();
+        }
+    }
 }
