@@ -953,13 +953,41 @@ void RMainWindow::stackSlot()
 
 void RMainWindow::blockProcessingSlot()
 {
-//    processing->blockProcessingLocal(currentROpenGLWidget->getRMatImageList());
-//    createNewImage(processing->getResultList());
-//    autoScale();
+    /// Let's get the UI input parameters
+    const int binning = 2 * (int)ui->luckyBin2RButton->isChecked() + 4 * (int)ui->luckyBin4RButton->isChecked();
+    const int blkSize = ui->luckyBlkSizeSpinBox->value();
 
-    processing->blockProcessingGlobal(currentROpenGLWidget->getRMatImageList());
-    createNewImage(processing->getResultList2());
-    autoScale();
+    /// Run the processing according to the selected method.
+
+    if (ui->luckySampleCheckBox->isChecked())
+    {
+        processing->extractLuckySample(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
+        createNewImage(processing->getLuckyBlkList());
+        autoScale();
+        return;
+    }
+
+    if (ui->luckyLocalRButton->isChecked())
+    { /// Local method, aligning blocks with each other, no fixed global search image
+        processing->blockProcessingLocal(currentROpenGLWidget->getRMatImageList());
+        createNewImage(processing->getResultList());
+        autoScale();
+    }
+
+    if (ui->luckyGlobal1RButton->isChecked())
+    { /// Global method with one global averaged reference image, and 1st best block
+        processing->blockProcessingGlobal(currentROpenGLWidget->getRMatImageList());
+        createNewImage(processing->getResultList2());
+        autoScale();
+    }
+
+    if (ui->luckyGlobalS1RButton->isChecked())
+    {
+        processing->blockProcessingGlobalStack1(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
+        createNewImage(processing->getResultList());
+        autoScale();
+    }
+
 
 }
 

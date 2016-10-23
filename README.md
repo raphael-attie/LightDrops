@@ -41,3 +41,6 @@ Any intel or AMD CPU of the last decade should do, although things are not teste
 
 After you run the app, the main UI appears; just drag and drop your 2D FITS or DSLR image(s) in the main window. 
 You can drag multiple files at once and use the player for viewing through the image series. For FITS files, the "header" button will show the FITS header's full list of keywords/values/comments. 
+
+## Notes on DSLRs
+For DSLR files, for now only Canon raw .CR2 file are supported. We will support Nikon and Sony DSLRs in the near future. 

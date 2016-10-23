@@ -70,17 +70,27 @@ public:
     void sortBestBlocks(af::array & bestBlk, af::array & templateBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
                         int blkSize, int blkSizeL, QPoint blkPos, int nFrames, int binning);
 
+    void extractLuckySample(QList<RMat *> rMatImageList, const int &blkSize, const int &binning);
     void blockProcessingGlobal(QList<RMat*> rMatImageList);
-    void extractBestBlock(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries, int blkSize, QPoint blkPos, int nFrames, int binning);
-    void extractBestBlock2(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
+    void blockProcessingSetup(QList<RMat*> rMatImageList, af::array &arfSeries, af::array &qualityBinnedSeries, const int &binning);
+    void blockProcessingGlobalStack1(QList<RMat*> rMatImageList, const int &blkSize, const int &binning);
+
+    void extractBestBlock(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
                            const int & blkSize, const int &binnedBlkSize, const int & x, const int & y,
                            const int & nFrames, const int & binning);
+    void makeAlignedStack(af::array & bestBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
+                          const int nBest, const int & blkSize, const int &binnedBlkSize, int & x, int & y,
+                          const int bufferSpace, const int & binning);
+    void populateResultListWithAr(QList<RMat*> rMatImageList, af::array &canvas, QString title);
 
-    void matchTemplate2(af::array &res, af::array &A, af::array &k);
+    void matchTemplate2(af::array &res, af::array &searchImg, af::array &img);
     void matchTemplate3(af::array &res, af::array &A, af::array &k, af::array &arrOnes);
-    void fetchTMatchShifts(af::array & ar, int & dx, int & dy);
-    void fetchTMatchShifts2(af::array & ar, int &x, int &y);
-    void fetchTMatchShifts3(af::array & ar, int &x, int &y);
+    void findMinLoc(af::array & ar, int &dx, int &dy);
+    void findMinLoc(af::array & a, af::array &dx, af::array &dy);
+    void fetchTMatch2Shifts(af::array & a, int &dx, int &dy, af::dim4 dims);
+    void fetchTMatch2Shifts(af::array & a, af::array &dx, af::array &dy, af::dim4 dims);
+
+    void fetchTMatchShiftsGfor(af::array & ar, af::array &dxAr, af::array &dyAr);
 
 
     /// export methods
@@ -127,6 +137,7 @@ public:
     QList<RMat*> getResultList2();
     QList<RMat*> getLimbFitResultList1();
     QList<RMat*> getLimbFitResultList2();
+    QList<RMat*> getLuckyBlkList();
     QVector<Circle> getCircleOutList();
     float getMeanRadius();
 
@@ -142,6 +153,7 @@ public:
     // Display - lookup table
     void red_tab(int* red, int* green ,int* blue);
     cv::Mat scalePreviewImage(float sunX,float sunY,float sunR, cv::Mat matImage, char filter);
+    void printArDims(af::array &ar);
     /// Colorize
     cv::Mat wSolarColorize(cv::Mat matImage, char filter);
     QList<RMat*> wSolarColorizeSeries(QList<RMat*> rMatImageList, char filter);
@@ -262,6 +274,7 @@ private:
     bool sharpenLiveStatus;
 
     // Block Processing
+    QList<RMat*> luckyBlkList;
 
 
 };
