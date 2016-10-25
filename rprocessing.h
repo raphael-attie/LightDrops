@@ -74,6 +74,7 @@ public:
     void blockProcessingGlobal(QList<RMat*> rMatImageList);
     void blockProcessingSetup(QList<RMat*> rMatImageList, af::array &arfSeries, af::array &qualityBinnedSeries, const int &binning);
     void blockProcessingGlobalStack1(QList<RMat*> rMatImageList, const int &blkSize, const int &binning);
+    void blockProcessingGlobalStack2(QList<RMat*> rMatImageList, const int &blkSize, const int &binning);
 
     void extractBestBlock(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
                            const int & blkSize, const int &binnedBlkSize, const int & x, const int & y,
@@ -81,12 +82,18 @@ public:
     void makeAlignedStack(af::array & bestBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
                           const int nBest, const int & blkSize, const int &binnedBlkSize, int & x, int & y,
                           const int bufferSpace, const int & binning);
+    void makeAlignedStack2(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
+                          const af::array & arDim, const af::array &xRange, const af::array &yRange,
+                           const int nBest, const int & blkSize, const int &binnedBlkSize, const int & binning, int & x, int & y);
+
     void populateResultListWithAr(QList<RMat*> rMatImageList, af::array &canvas, QString title);
 
     void matchTemplate2(af::array &res, af::array &searchImg, af::array &img);
     void matchTemplate3(af::array &res, af::array &A, af::array &k, af::array &arrOnes);
+    void phaseCorrelate(af::array &array, af::array &shiftedArray, const af::array & arDim, af::array &shifts);
     void findMinLoc(af::array & ar, int &dx, int &dy);
     void findMinLoc(af::array & a, af::array &dx, af::array &dy);
+    void findMaxLoc(af::array & a, af::array &locxy);
     void fetchTMatch2Shifts(af::array & a, int &dx, int &dy, af::dim4 dims);
     void fetchTMatch2Shifts(af::array & a, af::array &dx, af::array &dy, af::dim4 dims);
 

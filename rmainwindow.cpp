@@ -983,7 +983,40 @@ void RMainWindow::blockProcessingSlot()
 
     if (ui->luckyGlobalS1RButton->isChecked())
     {
-        processing->blockProcessingGlobalStack1(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
+        if (currentROpenGLWidget != NULL)
+        {
+            processing->blockProcessingGlobalStack1(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
+        }
+        else
+        {
+            if (ui->treeWidget->getLightUrls().empty())
+            {
+                tempMessageSignal(QString("Nothing to process"));
+                return;
+            }
+            processing->loadRMatLightList(ui->treeWidget->getLightUrls());
+            processing->blockProcessingGlobalStack1(processing->rMatLightList, blkSize, binning);
+        }
+        createNewImage(processing->getResultList());
+        autoScale();
+    }
+
+    if (ui->luckyGlobalS2RButton->isChecked())
+    {
+        if (currentROpenGLWidget != NULL)
+        {
+            processing->blockProcessingGlobalStack2(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
+        }
+        else
+        {
+            if (ui->treeWidget->getLightUrls().empty())
+            {
+                tempMessageSignal(QString("Nothing to process"));
+                return;
+            }
+            processing->loadRMatLightList(ui->treeWidget->getLightUrls());
+            processing->blockProcessingGlobalStack2(processing->rMatLightList, blkSize, binning);
+        }
         createNewImage(processing->getResultList());
         autoScale();
     }
@@ -1776,7 +1809,8 @@ void RMainWindow::exportFramesToFits()
 
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {
-        QString fileName(QString("image_") + QString::number(i) + QString(".") + format);
+        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
+        QString fileName(QString("image_") + indexQStr + QString(".") + format);
         QFileInfo fileInfo(exportDir.filePath(fileName));
         QString filePath = processing->setupFileName(fileInfo, format);
         processing->exportToFits(currentROpenGLWidget->getRMatImageList().at(i), filePath);

@@ -66,6 +66,14 @@ macx {
     QMAKE_CXXFLAGS += -stdlib=libc++
     LIBS += -stdlib=libc++
     QMAKE_CXXFLAGS += -std=c++11
+
+# Setup Qt for optimization
+#QMAKE_CXXFLAGS_RELEASE -= -O
+#QMAKE_CXXFLAGS_RELEASE -= -O1
+#QMAKE_CXXFLAGS_RELEASE -= -O2
+
+#QMAKE_CXXFLAGS_RELEASE += -O3
+
 }
 
 SOURCES += main.cpp\
