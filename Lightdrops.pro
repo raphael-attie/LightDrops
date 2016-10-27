@@ -18,13 +18,14 @@ win32 {
     INCLUDEPATH += C:/dev/cfitsio_64
     INCLUDEPATH += C:/dev/libraw
     INCLUDEPATH += C:/dev/opencv/include
-    INCLUDEPATH += C:\dev\ArrayFire\v3\include
+    INCLUDEPATH += C:/dev/ArrayFire/v3/include
+    INCLUDEPATH += C:/dev/exiv2/include
 
-    LIBS += -LC:\dev\cfitsio_64 -lcfitsio
+    LIBS += -LC:/dev/exiv2/x64/Debug -llibexiv2
+    LIBS += -LC:/dev/cfitsio_64 -lcfitsio
     LIBS += -LC:/dev/libraw/lib -llibraw
     LIBS += -LC:/dev/ArrayFire/v3/lib -lafopencl
     LIBS += -LC:/dev/opencv/lib -lopencv_world310
-
 }
 
 macx {
@@ -95,7 +96,6 @@ SOURCES += main.cpp\
     circle.cpp \
     utilities.cpp \
     rgraphicsscene.cpp \
-    werner/limb.cpp \
     rscrollarea.cpp
 
 HEADERS  += winsockwrapper.h \
@@ -119,7 +119,6 @@ HEADERS  += winsockwrapper.h \
     typedefs.h \
     circle.h \
     rgraphicsscene.h \
-    werner/limb.h \
     werner/circle.h \
     werner/mystuff.h \
     rscrollarea.h

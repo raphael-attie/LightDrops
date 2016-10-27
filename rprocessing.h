@@ -19,7 +19,6 @@
 #include "data.h"
 #include "circle.h"
 #include "utilities.h"
-#include "werner/limb.h"
 
 
 namespace Ui {
@@ -64,7 +63,6 @@ public:
 
     // void blockProcessing(QList<RMat*> rMatImageList, void (*functionPtr)(af::array array3D));
 
-
     void blockProcessingLocal(QList<RMat*> rMatImageList);
 
     void sortBestBlocks(af::array & bestBlk, af::array & templateBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
@@ -85,15 +83,23 @@ public:
     void makeAlignedStack2(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
                           const af::array & arDim, const af::array &xRange, const af::array &yRange,
                            const int nBest, const int & blkSize, const int &binnedBlkSize, const int & binning, int & x, int & y);
+    void makeAlignedStack3(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
+                           const af::array & arDim, const af::array &xRange, const af::array &yRange,
+                           const int nBest, const int & blkSize, const int &binnedBlkSize, const int & binning, int & x, int & y);
 
     void populateResultListWithAr(QList<RMat*> rMatImageList, af::array &canvas, QString title);
 
     void matchTemplate2(af::array &res, af::array &searchImg, af::array &img);
     void matchTemplate3(af::array &res, af::array &A, af::array &k, af::array &arrOnes);
-    void phaseCorrelate(af::array &array, af::array &shiftedArray, const af::array & arDim, af::array &shifts);
+    void phaseCorrelate(af::array &refBlk, af::array &shiftedArray, const af::array & arDim, af::array &shifts);
+    void phaseCorrelate2(af::array &stackedBlks, af::array &shifts, const af::array &arDim);
+
+
     void findMinLoc(af::array & ar, int &dx, int &dy);
     void findMinLoc(af::array & a, af::array &dx, af::array &dy);
     void findMaxLoc(af::array & a, af::array &locxy);
+    void findMaxLoc2(af::array & a, af::array &locxy);
+
     void fetchTMatch2Shifts(af::array & a, int &dx, int &dy, af::dim4 dims);
     void fetchTMatch2Shifts(af::array & a, af::array &dx, af::array &dy, af::dim4 dims);
 
@@ -112,6 +118,8 @@ public:
     cv::Mat histogram(cv::Mat matVector, int &nBins, float &width);
     float calcMedian(std::vector<float> data, float width);
 
+    /// ArrayFire matrix multiplication to be used only with af::batchFunc
+    static af::array rMatMul(const af::array &lhs, const af::array &rhs);
 
     /// setters
     void setTreeWidget(RTreeWidget *treeWidget);
