@@ -58,6 +58,13 @@ void main()
             }
 
         }
+
+    }
+    if (applyToneMapping)
+    {
+        vec3 mu3 = vec3(mu);
+        /// Inverse Gaussian
+        scaledRGB = iMax * sqrt(lambda / (2.0*3.1415 * pow(scaledRGB, vec3(3.0)))) * exp(-lambda * pow(scaledRGB - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * scaledRGB)) + scaledRGB;
     }
 
     scaledRGB * wbRGB;

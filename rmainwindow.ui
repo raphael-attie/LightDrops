@@ -44,7 +44,7 @@
    <bool>false</bool>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_7">
+   <layout class="QVBoxLayout" name="verticalLayout_17">
     <property name="leftMargin">
      <number>0</number>
     </property>
@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>4</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -709,6 +709,39 @@
            </item>
            <item row="1" column="2">
             <widget class="QDoubleSpinBox" name="limbDoubleSpinBoxLow"/>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSlider" name="limbSliderGamma">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>20</number>
+             </property>
+             <property name="value">
+              <number>10</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_26">
+             <property name="text">
+              <string>Limb gamma</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QDoubleSpinBox" name="limbDoubleSpinBoxGamma">
+             <property name="maximum">
+              <double>2.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>1.000000000000000</double>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -1338,6 +1371,47 @@
       </widget>
      </item>
      <item>
+      <widget class="QGroupBox" name="groupBox_4">
+       <property name="maximumSize">
+        <size>
+         <width>60</width>
+         <height>140</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Binning</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_19">
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
+         <number>5</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="binning2PButton">
+          <property name="text">
+           <string>2x2</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="binning4PButton">
+          <property name="text">
+           <string>4x4</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
       <widget class="QGroupBox" name="groupBox">
        <property name="minimumSize">
         <size>
@@ -1471,17 +1545,11 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_3">
     <layout class="QVBoxLayout" name="verticalLayout">
-     <property name="leftMargin">
-      <number>5</number>
-     </property>
      <property name="topMargin">
-      <number>12</number>
-     </property>
-     <property name="rightMargin">
-      <number>5</number>
+      <number>0</number>
      </property>
      <property name="bottomMargin">
-      <number>5</number>
+      <number>0</number>
      </property>
      <item>
       <widget class="QGroupBox" name="timeSeriesGroupBox">
@@ -1819,19 +1887,6 @@
       </widget>
      </item>
      <item>
-      <spacer name="verticalSpacer_4">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="RTreeWidget" name="treeWidget">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -1928,7 +1983,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>278</height>
+          <height>330</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2033,7 +2088,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>278</height>
+          <height>330</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2177,7 +2232,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>278</height>
+          <height>330</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2418,7 +2473,7 @@
           <x>0</x>
           <y>0</y>
           <width>210</width>
-          <height>278</height>
+          <height>330</height>
          </rect>
         </property>
         <attribute name="label">
@@ -2475,67 +2530,37 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>210</width>
-          <height>278</height>
+          <width>230</width>
+          <height>330</height>
          </rect>
         </property>
         <attribute name="label">
          <string>Lucky Imaging</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_17">
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_14">
-           <item>
-            <widget class="QLabel" name="label_24">
-             <property name="text">
-              <string>Block size (px):</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QSpinBox" name="luckyBlkSizeSpinBox">
-             <property name="maximum">
-              <number>200</number>
-             </property>
-             <property name="value">
-              <number>32</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_6">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </item>
+        <layout class="QVBoxLayout" name="verticalLayout_20">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_15">
+           <property name="spacing">
+            <number>0</number>
+           </property>
            <item>
             <widget class="QLabel" name="label_23">
              <property name="text">
-              <string>Binning:</string>
+              <string>Binning: </string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="luckyBin0RButton">
+             <property name="text">
+              <string>No</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="luckyBin2RButton">
              <property name="text">
-              <string> 2x2</string>
+              <string> 2x</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -2545,95 +2570,157 @@
            <item>
             <widget class="QRadioButton" name="luckyBin4RButton">
              <property name="text">
-              <string>4x4</string>
+              <string>4x</string>
              </property>
             </widget>
            </item>
           </layout>
          </item>
          <item>
-          <widget class="QGroupBox" name="groupBox_6">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>60</height>
-            </size>
+          <layout class="QFormLayout" name="formLayout">
+           <property name="labelAlignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
            </property>
-           <property name="title">
-            <string>Quality metrics</string>
+           <property name="formAlignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_18">
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QRadioButton" name="luckyGradientRButton">
-              <property name="text">
-               <string>Gradient</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QRadioButton" name="luckySobelRButton">
-              <property name="text">
-               <string>Sobel-gradient</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_25">
+             <property name="text">
+              <string>Best frames:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="nBestSpinBox">
+             <property name="maximumSize">
+              <size>
+               <width>50</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>3</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_24">
+             <property name="text">
+              <string>Block size (px):</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QSpinBox" name="luckyBlkSizeSpinBox">
+             <property name="maximumSize">
+              <size>
+               <width>50</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="maximum">
+              <number>200</number>
+             </property>
+             <property name="value">
+              <number>32</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
          <item>
           <widget class="QGroupBox" name="groupBox_8">
            <property name="title">
-            <string>Methods</string>
+            <string>Methods / samples</string>
            </property>
-           <layout class="QGridLayout" name="gridLayout_13">
-            <item row="0" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout_18">
+            <item>
              <widget class="QRadioButton" name="luckyLocalRButton">
               <property name="text">
                <string>Local</string>
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QRadioButton" name="luckyGlobalS1RButton">
-              <property name="text">
-               <string>Gl. S1</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_14">
+              <item>
+               <widget class="QRadioButton" name="luckyGlobalRButton">
+                <property name="text">
+                 <string>Global</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="LuckyMetricsComboBox">
+                <property name="toolTip">
+                 <string>Quality metrics</string>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>gradient</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Sobel</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Laplace</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+             </layout>
             </item>
-            <item row="1" column="0">
-             <widget class="QRadioButton" name="luckyGlobal1RButton">
-              <property name="text">
-               <string>Gl. 1</string>
-              </property>
-              <property name="checked">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QRadioButton" name="luckyGlobalS2RButton">
-              <property name="text">
-               <string>Gl. S2</string>
-              </property>
-             </widget>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_7">
+              <item>
+               <widget class="QPushButton" name="luckyROIPButton">
+                <property name="minimumSize">
+                 <size>
+                  <width>80</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>80</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>ROI</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="extractBlkPButton">
+                <property name="minimumSize">
+                 <size>
+                  <width>80</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>80</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Extract </string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
            </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="luckySampleCheckBox">
-           <property name="text">
-            <string>Sample only</string>
-           </property>
           </widget>
          </item>
          <item>
@@ -2662,6 +2749,9 @@
      <width>225</width>
      <height>524287</height>
     </size>
+   </property>
+   <property name="floating">
+    <bool>false</bool>
    </property>
    <property name="features">
     <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
@@ -2806,7 +2896,7 @@
    <slot>decreaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1556</x>
+     <x>1430</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -2822,7 +2912,7 @@
    <slot>increaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1589</x>
+     <x>1463</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -2838,8 +2928,8 @@
    <slot>exportMastersToFits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1662</x>
-     <y>529</y>
+     <x>1543</x>
+     <y>634</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2854,8 +2944,8 @@
    <slot>minMaxScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1106</x>
-     <y>833</y>
+     <x>977</x>
+     <y>896</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -2870,8 +2960,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1125</x>
-     <y>822</y>
+     <x>996</x>
+     <y>906</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -2886,8 +2976,8 @@
    <slot>calibrateOffScreenSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1632</x>
-     <y>563</y>
+     <x>1506</x>
+     <y>664</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -2902,8 +2992,8 @@
    <slot>convertTo8Bit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1208</x>
-     <y>799</y>
+     <x>1079</x>
+     <y>863</y>
     </hint>
     <hint type="destinationlabel">
      <x>962</x>
@@ -2918,8 +3008,8 @@
    <slot>convertToNeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1208</x>
-     <y>833</y>
+     <x>1079</x>
+     <y>896</y>
     </hint>
     <hint type="destinationlabel">
      <x>1253</x>
@@ -2934,8 +3024,8 @@
    <slot>autoScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1106</x>
-     <y>799</y>
+     <x>977</x>
+     <y>863</y>
     </hint>
     <hint type="destinationlabel">
      <x>840</x>
@@ -2950,8 +3040,8 @@
    <slot>normalizeCurrentSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1106</x>
-     <y>867</y>
+     <x>977</x>
+     <y>931</y>
     </hint>
     <hint type="destinationlabel">
      <x>723</x>
@@ -2966,12 +3056,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>421</x>
-     <y>811</y>
+     <x>418</x>
+     <y>895</y>
     </hint>
     <hint type="destinationlabel">
      <x>574</x>
-     <y>812</y>
+     <y>896</y>
     </hint>
    </hints>
   </connection>
@@ -2982,8 +3072,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1577</x>
-     <y>430</y>
+     <x>1458</x>
+     <y>473</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -2998,8 +3088,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1586</x>
-     <y>428</y>
+     <x>1467</x>
+     <y>471</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3015,11 +3105,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>510</x>
-     <y>849</y>
+     <y>933</y>
     </hint>
     <hint type="destinationlabel">
      <x>574</x>
-     <y>850</y>
+     <y>934</y>
     </hint>
    </hints>
   </connection>
@@ -3031,7 +3121,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>672</x>
-     <y>856</y>
+     <y>938</y>
     </hint>
     <hint type="destinationlabel">
      <x>701</x>
@@ -3047,11 +3137,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>574</x>
-     <y>850</y>
+     <y>934</y>
     </hint>
     <hint type="destinationlabel">
      <x>510</x>
-     <y>849</y>
+     <y>933</y>
     </hint>
    </hints>
   </connection>
@@ -3063,11 +3153,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>574</x>
-     <y>812</y>
+     <y>896</y>
     </hint>
     <hint type="destinationlabel">
-     <x>421</x>
-     <y>811</y>
+     <x>418</x>
+     <y>895</y>
     </hint>
    </hints>
   </connection>
@@ -3078,8 +3168,8 @@
    <slot>solarLimbFit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1596</x>
-     <y>535</y>
+     <x>1477</x>
+     <y>578</y>
     </hint>
     <hint type="destinationlabel">
      <x>1459</x>
@@ -3094,8 +3184,8 @@
    <slot>solarLimbRegisterSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1596</x>
-     <y>560</y>
+     <x>1477</x>
+     <y>603</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3110,8 +3200,8 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>554</x>
-     <y>832</y>
+     <x>350</x>
+     <y>895</y>
     </hint>
     <hint type="destinationlabel">
      <x>524</x>
@@ -3127,11 +3217,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>665</x>
-     <y>805</y>
+     <y>870</y>
     </hint>
     <hint type="destinationlabel">
-     <x>903</x>
-     <y>805</y>
+     <x>721</x>
+     <y>870</y>
     </hint>
    </hints>
   </connection>
@@ -3143,11 +3233,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>665</x>
-     <y>837</y>
+     <y>902</y>
     </hint>
     <hint type="destinationlabel">
-     <x>903</x>
-     <y>837</y>
+     <x>721</x>
+     <y>902</y>
     </hint>
    </hints>
   </connection>
@@ -3159,11 +3249,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>665</x>
-     <y>868</y>
+     <y>934</y>
     </hint>
     <hint type="destinationlabel">
-     <x>903</x>
-     <y>868</y>
+     <x>721</x>
+     <y>934</y>
     </hint>
    </hints>
   </connection>
@@ -3174,8 +3264,8 @@
    <slot>stackSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1513</x>
-     <y>624</y>
+     <x>1540</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
      <x>1456</x>
@@ -3190,12 +3280,76 @@
    <slot>blockProcessingSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1564</x>
-     <y>541</y>
+     <x>1567</x>
+     <y>778</y>
     </hint>
     <hint type="destinationlabel">
      <x>1119</x>
      <y>703</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>luckyROIPButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>luckyROISlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1454</x>
+     <y>721</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1331</x>
+     <y>729</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>extractBlkPButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>extractLuckySampleSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1540</x>
+     <y>721</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1331</x>
+     <y>657</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>binning2PButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>binningSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1128</x>
+     <y>869</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1109</x>
+     <y>786</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>binning4PButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>binningSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1114</x>
+     <y>921</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1160</x>
+     <y>785</y>
     </hint>
    </hints>
   </connection>
@@ -3221,5 +3375,8 @@
   <slot>solarColorizeSeriesSlot()</slot>
   <slot>stackSlot()</slot>
   <slot>blockProcessingSlot()</slot>
+  <slot>luckyROISlot()</slot>
+  <slot>extractLuckySampleSlot()</slot>
+  <slot>binningSlot()</slot>
  </slots>
 </ui>

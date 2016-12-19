@@ -68,11 +68,15 @@ public:
     void sortBestBlocks(af::array & bestBlk, af::array & templateBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
                         int blkSize, int blkSizeL, QPoint blkPos, int nFrames, int binning);
 
-    void extractLuckySample(QList<RMat *> rMatImageList, const int &blkSize, const int &binning);
-    void blockProcessingGlobal(QList<RMat*> rMatImageList);
-    void blockProcessingSetup(QList<RMat*> rMatImageList, af::array &arfSeries, af::array &qualityBinnedSeries, const int &binning);
-    void blockProcessingGlobalStack1(QList<RMat*> rMatImageList, const int &blkSize, const int &binning);
-    void blockProcessingGlobalStack2(QList<RMat*> rMatImageList, const int &blkSize, const int &binning);
+    void extractLuckySample(QList<RMat *> rMatImageList, QList<RMat *> &blockList, int x, int y, bool isCentered = false);
+    void extractLuckySample2(QList<RMat *> rMatImageList, QList<RMat *> &blockList, int x, int y, bool isCentered = false);
+
+    void blockProcessingGradient(QList<RMat*> rMatImageList, af::array &arfSeries, af::array &qualityBinnedSeries);
+    void blockProcessingSobel(QList<RMat*> rMatImageList, af::array &arfSeries, af::array &qualitySeries);
+    void blockProcessingLaplace(QList<RMat*> rMatImageList, af::array &arfSeries, af::array &qualitySeries);
+
+    void blockProcessingGlobalGradients(QList<RMat*> rMatImageList);
+    void blockProcessingGlobalLaplace(QList<RMat*> rMatImageList);
 
     void extractBestBlock(af::array & bestBlk, af::array & arfSeries, af::array & arrayBinnedSeries,
                            const int & blkSize, const int &binnedBlkSize, const int & x, const int & y,
@@ -83,9 +87,12 @@ public:
     void makeAlignedStack2(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
                           const af::array & arDim, const af::array &xRange, const af::array &yRange,
                            const int nBest, const int & blkSize, const int &binnedBlkSize, const int & binning, int & x, int & y);
-    void makeAlignedStack3(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
+    void makeAlignedStackGradient(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualityBinnedSeries,
                            const af::array & arDim, const af::array &xRange, const af::array &yRange,
-                           const int nBest, const int & blkSize, const int &binnedBlkSize, const int & binning, int & x, int & y);
+                           int & x, int & y);
+    void makeAlignedStackLaplace(af::array & stackedBlks, const af::array & arfSeries, const af::array & qualitySeries,
+                           const af::array & arDim, const af::array &xRange, const af::array &yRange,
+                           int & x, int & y);
 
     void populateResultListWithAr(QList<RMat*> rMatImageList, af::array &canvas, QString title);
 
@@ -118,8 +125,15 @@ public:
     cv::Mat histogram(cv::Mat matVector, int &nBins, float &width);
     float calcMedian(std::vector<float> data, float width);
 
-    /// ArrayFire matrix multiplication to be used only with af::batchFunc
+    /// General matrix manipulation
+    // ArrayFire matrix multiplication to be used only with af::batchFunc
     static af::array rMatMul(const af::array &lhs, const af::array &rhs);
+    // Rebin
+    void rebin(const af::array &a, af::array & b, int binning);
+    void rebin2(const af::array &a, af::array & b2);
+    void rebin4(const af::array &a, af::array & b4);
+    void rebin(RMat *rMatImage, RMat *binnedRMatImage, int binning);
+
 
     /// setters
     void setTreeWidget(RTreeWidget *treeWidget);
@@ -135,6 +149,10 @@ public:
     void setSharpenLiveStatus(bool status);
     void setStackWithMean(bool status);
     void setStackWithSigmaClip(bool status);
+    void setBinning(int binning);
+    void setBlkSize(int blkSize);
+    void setNBest(int nBest);
+    void setQualityMetric(QString qualityMetric);
 
     /// getters
     QString getExportMastersDir();
@@ -169,6 +187,7 @@ public:
     void red_tab(int* red, int* green ,int* blue);
     cv::Mat scalePreviewImage(float sunX,float sunY,float sunR, cv::Mat matImage, char filter);
     void printArDims(af::array &ar);
+
     /// Colorize
     cv::Mat wSolarColorize(cv::Mat matImage, char filter);
     QList<RMat*> wSolarColorizeSeries(QList<RMat*> rMatImageList, char filter);
@@ -288,8 +307,12 @@ private:
     // Sharpenning
     bool sharpenLiveStatus;
 
-    // Block Processing
+    // Block Processing (lucky imaging)
+    int blkSize;
+    int binning;
+    int nBest;
     QList<RMat*> luckyBlkList;
+    QString qualityMetric;
 
 
 };

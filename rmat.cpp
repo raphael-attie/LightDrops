@@ -8,6 +8,8 @@ RMat::RMat()
     this->bayer = false;
     this->bscale = 1;
     this->bzero = 0;
+    this->imageTitle = QString("");
+    this->instrument = instruments::generic;
 
 }
 
@@ -132,6 +134,10 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
 
 void RMat::calcStats()
 {
+    if (matImageGray.empty())
+    {
+        matImageGray = matImage;
+    }
 
     calcMinMax();
     qDebug("RMat::calcStats():: [dataMin , dataMax] = [%f , %f]", (float) dataMin, (float) dataMax);
@@ -168,7 +174,6 @@ void RMat::calcStats()
 
     /// Histogram bin counts
     int nBins = 256;
-
 
     // Get histogram
     computeHist(nBins, minHistRange, maxHistRange + 1);
@@ -236,6 +241,11 @@ void RMat::calcStats()
 
 void RMat::calcMinMax()
 {
+    if (matImageGray.empty())
+    {
+        matImageGray = matImage;
+    }
+
     cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
 }
 

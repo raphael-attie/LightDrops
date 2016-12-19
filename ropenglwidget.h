@@ -75,6 +75,7 @@ public:
     float getNewMin();
     float getLimbNewMax();
     float getLimbNewMin();
+    float getLimbGamma();
     float getAlpha();
     float getBeta();
 
@@ -91,6 +92,7 @@ public:
     void setNewMin(float newMin);
     void setLimbNewMax(float limbNewMax);
     void setLimbNewMin(float limbNewMin);
+    void setLimbGamma(float limbGamma);
     void setAlpha(float newAlpha);
     void setBeta(float newBeta);
     void setAlphaLimb(float alphaLimb);
@@ -162,7 +164,7 @@ private:
     int sliderValueGamma;
 
     float newMin, newMax;
-    float limbNewMin, limbNewMax;
+    float limbNewMin, limbNewMax, limbGamma;
     float alpha, beta, gamma;
     /// Limb
     float alphaLimb, betaLimb;

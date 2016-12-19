@@ -60,10 +60,10 @@ RMainWindow::RMainWindow(QWidget *parent) :
     connect(ui->sliderHigh, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->sliderLow, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->sliderGamma, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
-
+    /// Limb sliders
     connect(ui->limbSliderHigh, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     connect(ui->limbSliderLow, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
-
+    connect(ui->limbSliderGamma, SIGNAL(valueChanged(int)), this, SLOT(updateDoubleSpinBox(int)));
     /// Connect the change of the number in the spinBox to the change of slider value
     ///Use editingFinished() instead of valueChanged(double()) to avoid unwanted feedback on the slider.
     connect(ui->doubleSpinBoxHigh, SIGNAL(editingFinished()), this, SLOT(updateSliderValueSlot()));
@@ -77,6 +77,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
 
     connect(ui->limbSliderHigh, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
     connect(ui->limbSliderLow, SIGNAL(valueChanged(int)), this, SLOT(scaleImageSlot(int)));
+    connect(ui->limbSliderGamma, SIGNAL(valueChanged(int)), this, SLOT(gammaScaleImageSlot(int)));
 
     /// Connect the white balance sliders
     connect(ui->redSlider, SIGNAL(valueChanged(int)), this, SLOT(updateWB(int)));
@@ -333,7 +334,7 @@ void RMainWindow::displayQImage(QImage &image, RGraphicsScene *scene, QMdiSubWin
 
 }
 
-void RMainWindow::selectROI()
+void RMainWindow::selectROI(bool isSquare, int blkSize)
 {
     if (currentROpenGLWidget == NULL)
     {
@@ -345,30 +346,28 @@ void RMainWindow::selectROI()
     lastROpenGLWidget = currentROpenGLWidget;
     /// Use copy constructor of the RMat to copy the current RMat image.
     RMat tempRMat(*currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()));
+    // Setup image display with QImage and not openGL to allow easier drawings
     cv::Mat matImage = processing->normalizeByThresh(tempRMat.matImage, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh(), tempRMat.getDataRange());
-//    int width = 1000;
-//    int height = 1000;
-//    cv::Rect ROI(0, matImage.rows - 1 - height, width, height);
     cv::Mat matImageROI = matImage; //(ROI);
-
     matImageROI.convertTo(matImageROI, CV_8U, 256.0f/currentROpenGLWidget->getRMatImageList().at(0)->getDataRange());
-
-    //QImage targetImage(matImageROI.cols, matImageROI.rows, QImage::Format_Grayscale8);
     QImage imageROI(matImageROI.data, matImageROI.cols, matImageROI.rows, QImage::Format_Grayscale8);
     QImage targetImage = imageROI.mirrored(false, true);
-//    QPainter painter(&targetImage);
-//    painter.scale(currentROpenGLWidget->getResizeFac(), -currentROpenGLWidget->getResizeFac());
-//    painter.drawImage(0, -matImage.cols, imageROI);
-
+    // Instantiate an RGraphicsScene. It allows to draw rectangles with the mouse for ROI selection
     RGraphicsScene *roiScene = new RGraphicsScene();
+    if (isSquare)
+    {
+        roiScene->squareMode = isSquare;
+        roiScene->blkSize = blkSize;
+    }
     QMdiSubWindow *roiSubWindow = new QMdiSubWindow();
     roiSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
     displayQImage(targetImage, roiScene, roiSubWindow, QString("Select ROI"));
 
     connect(roiScene, SIGNAL(ROIsignal(QRect)), this, SLOT(setRect(QRect)));
     connect(roiSubWindow, SIGNAL(destroyed(QObject*)), this, SLOT(disableROIaction()));
-
 }
+
+
 
 void RMainWindow::setRect(QRect rect)
 {
@@ -392,60 +391,27 @@ void RMainWindow::extractNewImageROI()
         return;
     }
 
-
-
     if (rect.isEmpty())
     {
         ui->actionROIExtract->setCheckable(false);
         return;
     }
 
-
-
     currentROpenGLWidget = lastROpenGLWidget;
     cv::Rect cvRectROI(rect.x(), rect.y(), rect.width(), rect.height());
 
-    float minThresh =  currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityLow();
-    float maxThresh = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityHigh();
-    cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->matImage;
-    //cv::Mat matImage = processing->normalizeByThresh(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()), minThresh, maxThresh);
-    cv::Mat matImageROI = matImage(cvRectROI);
+    QList<RMat *> roiList;
+    for (int i=0; i < currentROpenGLWidget->getRMatImageList().size(); i++)
+    {
+        cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(i)->matImage;
+        cv::Mat matImageROI = matImage(cvRectROI);
+        RMat *tempRMat = new RMat(matImageROI, false, currentROpenGLWidget->getRMatImageList().at(i)->getInstrument());
+        tempRMat->setImageTitle(QString("ROI "));
+        roiList << tempRMat;
+    }
 
-    RMat *tempRMat = new RMat(matImageROI, false, currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getInstrument());
-    tempRMat->setImageTitle(QString("ROI"));
-    createNewImage(tempRMat);
-    ui->sliderHigh->setValue(convertScaleToSlider(maxThresh));
-    ui->sliderLow->setValue(convertScaleToSlider(minThresh));
-
-
-//    float minThresh =  currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityLow();
-//    float maxThresh = currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getIntensityHigh();
-
-//    cv::Mat matImage = processing->normalizeByThresh(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()), minThresh, maxThresh);
-//    matImage.convertTo(matImage, CV_8U, 256.0f/ currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->getDataRange());
-
-//    int x = 614;
-//    int y = 1156;
-
-//    // buggy
-//    int width = 237;
-//    int height = 273;
-
-//    //working
-//    //    int width = 400;
-//    //    int height = 400;
-//    QRect ROI(x, y, width, height);
-
-//    QImage imageInit(matImage.data, matImage.cols, matImage.rows,   QImage::Format_Grayscale8);
-//    QImage imageROI = imageInit.copy(ROI);
-//    createNewImage(imageROI);
-
-//    unsigned char* dataBuffer = imageROI.bits();
-//    cv::Mat tempImage(cv::Size(imageROI.width(), imageROI.height()), CV_8UC1, dataBuffer, imageROI.bytesPerLine());
-
-//    cv::namedWindow( "openCV imshow() from a cv::Mat image", cv::WINDOW_AUTOSIZE );
-//    cv::imshow( "openCV imshow() from a cv::Mat image", tempImage);
-
+    createNewImage(roiList);
+    autoScale();
 }
 
 void RMainWindow::disableROIaction()
@@ -627,6 +593,11 @@ void RMainWindow::updateDoubleSpinBox(int value)
         float valueF = convertLimbSliderToScale(value);
         ui->limbDoubleSpinBoxLow->setValue(valueF);
     }
+    else if (this->sender() == ui->limbSliderGamma)
+    {
+        float valueF = convertSliderToGamma(value);
+        ui->limbDoubleSpinBoxGamma->setValue(valueF);
+    }
 
 
 }
@@ -671,13 +642,20 @@ void RMainWindow::gammaScaleImageSlot(int value)
     if (currentROpenGLWidget == NULL)
         return;
 
-    if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
-        return;
-
     gamma = convertSliderToGamma(value);
-    qDebug("RMainWindow::gammaScaleImageSlot() value =%i, gamma = %f", value, gamma);
-    currentROpenGLWidget->setGamma(gamma);
-    currentROpenGLWidget->update();
+
+    if (this->sender() == ui->sliderGamma)
+    {
+        qDebug("RMainWindow::gammaScaleImageSlot() value =%i, gamma = %f", value, gamma);
+        currentROpenGLWidget->setGamma(gamma);
+        currentROpenGLWidget->update();
+    }
+    else if (this->sender() == ui->limbSliderGamma)
+    {
+        currentROpenGLWidget->setLimbGamma(gamma);
+        currentROpenGLWidget->update();
+    }
+
 }
 
 void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
@@ -786,6 +764,11 @@ void RMainWindow::setupSubImage()
 
 void RMainWindow::updateInvGaussianParams()
 {
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
     double fac1, fac2, fac3;
     int matType = currentROpenGLWidget->getRMatImageList().at(0)->matImage.type();
     if (matType == CV_32F || matType == CV_16U)
@@ -951,21 +934,33 @@ void RMainWindow::stackSlot()
 
 }
 
+void RMainWindow::binningSlot()
+{
+    int index = ui->sliderFrame->value();
+    int binning;
+    if (this->sender() == ui->binning2PButton)
+    {
+        binning = 2;
+    }
+
+    if (this->sender() == ui->binning4PButton)
+    {
+        binning = 4;
+    }
+
+    RMat *binnedRMatImage = new RMat();
+    processing->rebin(currentROpenGLWidget->getRMatImageList().at(index), binnedRMatImage, binning);
+    createNewImage(binnedRMatImage);
+    autoScale();
+
+}
+
 void RMainWindow::blockProcessingSlot()
 {
     /// Let's get the UI input parameters
-    const int binning = 2 * (int)ui->luckyBin2RButton->isChecked() + 4 * (int)ui->luckyBin4RButton->isChecked();
-    const int blkSize = ui->luckyBlkSizeSpinBox->value();
+    setupLuckyImaging();
 
-    /// Run the processing according to the selected method.
-
-    if (ui->luckySampleCheckBox->isChecked())
-    {
-        processing->extractLuckySample(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
-        createNewImage(processing->getLuckyBlkList());
-        autoScale();
-        return;
-    }
+    /// Run the block processing according to the selected method
 
     if (ui->luckyLocalRButton->isChecked())
     { /// Local method, aligning blocks with each other, no fixed global search image
@@ -974,20 +969,21 @@ void RMainWindow::blockProcessingSlot()
         autoScale();
     }
 
-    if (ui->luckyGlobal1RButton->isChecked())
-    { /// Global method with one global averaged reference image, and 1st best block
-        processing->blockProcessingGlobal(currentROpenGLWidget->getRMatImageList());
-        createNewImage(processing->getResultList2());
-        autoScale();
-    }
 
-    if (ui->luckyGlobalS1RButton->isChecked())
+    if (ui->luckyGlobalRButton->isChecked())
     {
         if (currentROpenGLWidget != NULL)
         {
-            processing->blockProcessingGlobalStack1(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
+            if (ui->LuckyMetricsComboBox->currentText() != QString("Laplace"))
+            {
+                processing->blockProcessingGlobalGradients(currentROpenGLWidget->getRMatImageList());
+            }
+            else
+            {
+                processing->blockProcessingGlobalLaplace(currentROpenGLWidget->getRMatImageList());
+            }
         }
-        else
+        else // Batch processing off screen.
         {
             if (ui->treeWidget->getLightUrls().empty())
             {
@@ -995,33 +991,87 @@ void RMainWindow::blockProcessingSlot()
                 return;
             }
             processing->loadRMatLightList(ui->treeWidget->getLightUrls());
-            processing->blockProcessingGlobalStack1(processing->rMatLightList, blkSize, binning);
-        }
-        createNewImage(processing->getResultList());
-        autoScale();
-    }
 
-    if (ui->luckyGlobalS2RButton->isChecked())
-    {
-        if (currentROpenGLWidget != NULL)
-        {
-            processing->blockProcessingGlobalStack2(currentROpenGLWidget->getRMatImageList(), blkSize, binning);
-        }
-        else
-        {
-            if (ui->treeWidget->getLightUrls().empty())
+            if (ui->LuckyMetricsComboBox->currentText() != QString("Laplace"))
             {
-                tempMessageSignal(QString("Nothing to process"));
-                return;
+                processing->blockProcessingGlobalGradients(currentROpenGLWidget->getRMatImageList());
             }
-            processing->loadRMatLightList(ui->treeWidget->getLightUrls());
-            processing->blockProcessingGlobalStack2(processing->rMatLightList, blkSize, binning);
+            else
+            {
+                processing->blockProcessingGlobalLaplace(currentROpenGLWidget->getRMatImageList());
+            }
+
         }
+
+        // Display final result
         createNewImage(processing->getResultList());
         autoScale();
     }
 
+}
 
+void RMainWindow::extractLuckySampleSlot()
+{
+    /// This slot is called by the "Extract" button in the lucky image panel (ui).
+    /// It requires the selection of a square ROI using the "ROI" button next to it.
+    if (rect.isEmpty())
+    {
+
+        int x = ui->xROIBox->value();
+        int y = ui->yROIBox->value();
+
+        QList<RMat *> blockList2;
+        setupLuckyImaging();
+        processing->extractLuckySample2(currentROpenGLWidget->getRMatImageList(), blockList2, x, y, false);
+        // Display results
+        //    createNewImage(blockList1);
+        //    autoScale();
+        createNewImage(blockList2);
+        autoScale();
+
+    }
+    else
+    {
+        // Retrieve the mouse coordinates of the center of the ROI
+        int x = this->rect.center().x();
+        int y = this->rect.center().y();
+
+        setupLuckyImaging();
+
+        // Extract block using gradient-quality metric.
+//        QList<RMat *> blockList1;
+//        processing->extractLuckySample(currentROpenGLWidget->getRMatImageList(), blockList1, x, y, true);
+        /// Extract block using Laplacian-quality metric.
+        QList<RMat *> blockList2;
+        processing->extractLuckySample2(currentROpenGLWidget->getRMatImageList(), blockList2, x, y, true);
+        // Display results
+    //    createNewImage(blockList1);
+    //    autoScale();
+        createNewImage(blockList2);
+        autoScale();
+    }
+
+
+
+}
+
+void RMainWindow::luckyROISlot()
+{
+    int blkSize = ui->luckyBlkSizeSpinBox->value();
+    selectROI(true, blkSize);
+}
+
+void RMainWindow::setupLuckyImaging()
+{
+    /// Let's get the UI input parameters
+    int binning = 1* (int)ui->luckyBin0RButton->isChecked() + 2 * (int)ui->luckyBin2RButton->isChecked() + 4 * (int)ui->luckyBin4RButton->isChecked();
+    int blkSize = ui->luckyBlkSizeSpinBox->value();
+    int nBest = ui->nBestSpinBox->value();
+    QString qualityMetric = ui->LuckyMetricsComboBox->currentText();
+    processing->setBinning(binning);
+    processing->setBlkSize(blkSize);
+    processing->setNBest(nBest);
+    processing->setQualityMetric(qualityMetric);
 }
 
 void RMainWindow::showLimbFitStats()
@@ -1789,11 +1839,10 @@ void RMainWindow::exportFramesToJpeg()
         qDebug() << "RMainWindow::exportFrames():: filePath =" << filePath;
         QImage newQImage = currentROpenGLWidget->grabFramebuffer();
 
-        QPainter painter( &newQImage);
-        painter.setPen(QColor(255, 255, 255, 255));
-        painter.setFont( QFont("Arial", 16) );
-        painter.drawText( QPoint(10, 20), QString("USET / ROB ") + currentROpenGLWidget->getRMatImageList().at(i)->getDate_time() + QString(" UT"));
-//        painter.drawRect(QRect(QPoint(1,1), QPoint(200, 200)));
+//        QPainter painter( &newQImage);
+//        painter.setPen(QColor(255, 255, 255, 255));
+//        painter.setFont( QFont("Arial", 16) );
+//        painter.drawText( QPoint(10, 20), QString("USET / ROB ") + currentROpenGLWidget->getRMatImageList().at(i)->getDate_time() + QString(" UT"));
 
 //        createNewImage(newQImage);
         newQImage.save(filePath, "JPG", 100);
@@ -2048,6 +2097,7 @@ void RMainWindow::plotData(QVector<double> data, QString xLabel, QString yLabel)
 void RMainWindow::calibrateOffScreenSlot()
 {
     processing->calibrateOffScreen();
+    autoScale();
 }
 
 void RMainWindow::registerSlot()

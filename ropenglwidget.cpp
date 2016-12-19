@@ -115,6 +115,7 @@ void ROpenGLWidget::initialize()
     alpha = 1.0f/dataRange;
     beta = (float) (-dataMin / dataRange);
     gamma = 1.0;
+    limbGamma = 1.0;
 
     // White balance default
     wbRed = 1.0f;
@@ -453,8 +454,10 @@ void ROpenGLWidget::paintGL()
     /// Limb scaling
     int alphaLimbLocation = m_shader.uniformLocation("alphaLimb");
     int betaLimbLocation = m_shader.uniformLocation("betaLimb");
+    int limbGammaLocation = m_shader.uniformLocation("limbGamma");
     m_shader.setUniformValue(alphaLimbLocation, alphaLimb);
     m_shader.setUniformValue(betaLimbLocation, betaLimb);
+    m_shader.setUniformValue(limbGammaLocation, limbGamma);
 
 
     m_vao.bind();
@@ -946,6 +949,11 @@ float ROpenGLWidget::getLimbNewMin()
     return limbNewMin;
 }
 
+float ROpenGLWidget::getLimbGamma()
+{
+    return limbGamma;
+}
+
 float ROpenGLWidget::getAlpha()
 {
     return alpha;
@@ -1005,6 +1013,11 @@ void ROpenGLWidget::setLimbNewMax(float limbNewMax)
 void ROpenGLWidget::setLimbNewMin(float limbNewMin)
 {
     this->limbNewMin = limbNewMin;
+}
+
+void ROpenGLWidget::setLimbGamma(float limbGamma)
+{
+    this->limbGamma = limbGamma;
 }
 
 // Setters

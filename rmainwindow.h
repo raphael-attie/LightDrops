@@ -56,7 +56,7 @@ private slots:
     void displayQImage(QImage &image, RGraphicsScene *scene, QMdiSubWindow *subWindow, QString windowTitle = QString("Processing Window"));
     void initPreviewQImage(bool status);
 
-    void selectROI();
+    void selectROI(bool isSquare = false, int blkSize = 0);
     void setRect(QRect rect);
     void extractNewImageROI();
     void disableROIaction();
@@ -107,7 +107,14 @@ private slots:
     void normalizeCurrentSeries();
     void previewMatImageHPFSlot();
     void stackSlot();
+    void binningSlot();
+
+    // Lucky image
     void blockProcessingSlot();
+    void extractLuckySampleSlot();
+    void luckyROISlot();
+    void setupLuckyImaging();
+
 
     // Plots
     void showLimbFitStats();

@@ -13,7 +13,7 @@
 //using namespace cv;
 
 
-enum class instruments {USET, MAG, DSLR, generic};
+enum class instruments {generic, MAG, DSLR, USET};
 
 class RMat
 {

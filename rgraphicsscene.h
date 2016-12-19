@@ -16,6 +16,8 @@ class RGraphicsScene : public QGraphicsScene
 public:
     RGraphicsScene();
     RGraphicsScene(QObject* parent);
+    bool squareMode;
+    int blkSize;
 
 signals:
     void ROIsignal(QRect rect);
@@ -26,6 +28,7 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
     void keyPressEvent(QKeyEvent *event);
+    QRect convertRect(QRect &rect);
 
 private:
 
@@ -34,7 +37,6 @@ private:
 //    Mode sceneMode;
     QPointF origPoint;
     QGraphicsRectItem* rectItem;
-
 
 };
 

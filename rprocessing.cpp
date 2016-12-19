@@ -15,7 +15,7 @@
 RProcessing::RProcessing(QObject *parent): QObject(parent),
     masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useROI(false), useXCorr(false),
     radius(0), radius1(0), radius2(0), radius3(0), meanRadius(0), masterWithMean(true), masterWithSigmaClip(false), stackWithMean(true),
-    stackWithSigmaClip(false)
+    stackWithSigmaClip(false), blkSize(32), binning(2)
 {
     listImageManager = new RListImageManager();
 }
@@ -200,7 +200,7 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         char keyValueTelescop[] = "USET";
         fits_write_key(fptr, TSTRING, keyNameTelescop, keyValueTelescop, NULL, &status);
         char keyNameRadius[] = "SOLAR_R";
-        float keyValueRadius = meanRadius;
+        float keyValueRadius = rMatImage->getSOLAR_R();
         fits_write_key(fptr, TFLOAT, keyNameRadius, &keyValueRadius, NULL, &status);
 
     }
@@ -325,6 +325,46 @@ float RProcessing::calcMedian(std::vector<float> data, float width)
 af::array RProcessing::rMatMul(const af::array &lhs, const af::array &rhs)
 {
     return lhs * rhs;
+}
+
+void RProcessing::rebin(const af::array &a, af::array &b, int binning)
+{
+    if (binning == 1){b = a;}
+    if (binning == 2){rebin2(a, b);}
+    if (binning == 4){rebin4(a, b);}
+}
+
+void RProcessing::rebin2(const af::array &a, af::array &b2)
+{
+    int binning = 2;
+    af::array b1 = a(af::seq(0, af::end, binning), af::seq(0, af::end)) + a(af::seq(1, af::end, binning), af::seq(0, af::end));
+    b2  = b1(af::seq(0, af::end), af::seq(0, af::end, binning)) + b1(af::seq(0, af::end), af::seq(1, af::end, binning));
+}
+
+void RProcessing::rebin4(const af::array &a, af::array &b4)
+{
+    af::array b2;
+    rebin2(a, b2);
+    rebin2(b2, b4);
+}
+
+void RProcessing::rebin(RMat *rMatImage, RMat *binnedRMatImage, int binning)
+{
+    int naxis1 = rMatImage->matImage.rows;
+    int naxis2 = rMatImage->matImage.cols;
+    cv::Mat tempMat(naxis2, naxis1, CV_32F);
+    rMatImage->matImage.convertTo(tempMat, CV_32F);
+    af::array a(naxis2, naxis1, (float*) tempMat.data);
+    af::array b;
+    rebin(a, b, binning);
+
+    float *bH = b.host<float>();
+    cv::Mat matImage(naxis2/binning, naxis1/binning, CV_32F, bH);
+    matImage.convertTo(matImage, rMatImage->matImage.type());
+    binnedRMatImage->matImage = matImage;
+    //binnedRMatImage->setInstrument(rMatImage->getInstrument());
+    binnedRMatImage->setImageTitle(QString("binned"));
+    binnedRMatImage->calcStats();
 }
 
 void RProcessing::createMasters()
@@ -552,6 +592,8 @@ void RProcessing::stack(QList<RMat *> rMatImageList)
         return;
     }
 
+    stackedRMat->setInstrument(rMatImageList.at(0)->getInstrument());
+    stackedRMat->setSOLAR_R(rMatImageList.at(0)->getSOLAR_R());
     emit resultSignal(stackedRMat);
 
     return;
@@ -773,6 +815,9 @@ QList<RMat *> RProcessing::sharpenSeries(QList<RMat*> rMatImageList, float weigh
         RMat *rMatSharp = sharpenCurrentImage(rMatImageList.at(i), weight1, weight2);
         rMatSharpList << normalizeByStats(rMatSharp);
         rMatSharpList.at(i)->setImageTitle(QString("Sharpened image # %1").arg(i));
+        rMatSharpList.at(i)->setInstrument(rMatImageList.at(i)->getInstrument());
+        rMatSharpList.at(i)->setSOLAR_R(rMatImageList.at(i)->getSOLAR_R());
+
     }
 
     return rMatSharpList;
@@ -1166,36 +1211,27 @@ void RProcessing::sortBestBlocks(af::array & bestBlk, af::array & searchBlk, af:
     bestBlk = searchBlk(af::seq(blkSize, 2*blkSize -1), af::seq(blkSize, 2*blkSize -1));
 }
 
-void RProcessing::extractLuckySample(QList<RMat *> rMatImageList, const int &blkSize, const int &binning)
+void RProcessing::extractLuckySample(QList<RMat *> rMatImageList, QList<RMat *> & blockList, int x, int y, bool isCentered)
 {
-    if (!luckyBlkList.empty())
+
+    if (isCentered)
     {
-        qDeleteAll(luckyBlkList);
-        luckyBlkList.clear();
+        x -= blkSize/2;
+        y -= blkSize/2;
     }
+
+    af::array arDim = af::constant(blkSize, 2, nBest-1);
+    af::array coordRange = af::range(af::dim4(blkSize));
+    af::array xRange = coordRange + x;
+    af::array yRange = coordRange + y;
 
     af::array arfSeries;
     af::array qualityBinnedSeries;
-    blockProcessingSetup(rMatImageList, arfSeries, qualityBinnedSeries, binning);
-
-    int binnedBlkSize = blkSize/binning;
-
-    int nBest = 3;
-    int offsetX = 500;
-    int offsetY = 500;
-    int x = 0;
-    int y = 0;
-
-    int k = 0;
-    x = offsetX + (k*blkSize/2 % 1000);
-    y = offsetY + ((k*blkSize/2) / 1000)*blkSize/2;
-
-    int bufferSpace = 8;
+    blockProcessingGradient(rMatImageList, arfSeries, qualityBinnedSeries);
     af::array stackedBlks;
-    makeAlignedStack(stackedBlks, arfSeries, qualityBinnedSeries,
-                     nBest, blkSize, binnedBlkSize, x, y, bufferSpace, binning);
+    makeAlignedStackGradient(stackedBlks, arfSeries, qualityBinnedSeries, arDim, xRange, yRange, x, y);
 
-    /// Display one block series
+    /// Pack the blocks into a list of RMat.
     for ( int k=0; k < nBest; k++)
     {
         af::array resultSlice = stackedBlks(af::span, af::span, k);
@@ -1203,212 +1239,64 @@ void RProcessing::extractLuckySample(QList<RMat *> rMatImageList, const int &blk
         cv::Mat matImage(blkSize, blkSize, CV_32F, hostArf);
         matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
         RMat *blockRMat = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
-        blockRMat->setImageTitle("Blocks stack");
-        luckyBlkList << blockRMat;
+        blockRMat->setImageTitle("Block stack method 1 (gradient)");
+        blockList << blockRMat;
         delete[] hostArf;
     }
 }
 
-void RProcessing::blockProcessingGlobal(QList<RMat *> rMatImageList)
+void RProcessing::extractLuckySample2(QList<RMat *> rMatImageList, QList<RMat *> & blockList, int x, int y, bool isCentered)
 {
 
-    if (!resultList2.empty())
+    if (isCentered)
     {
-        qDeleteAll(resultList2);
-        resultList2.clear();
+        x -= blkSize/2;
+        y -= blkSize/2;
     }
 
-    af::setBackend(AF_BACKEND_OPENCL);
+    af::array arDim = af::constant(blkSize, 2, nBest-1);
+    af::array coordRange = af::range(af::dim4(blkSize));
+    af::array xRange = coordRange + x;
+    af::array yRange = coordRange + y;
 
-    int naxis2 = rMatImageList.at(0)->matImage.rows;
-    int naxis1 = rMatImageList.at(0)->matImage.cols;
-    int nFrames = rMatImageList.size();
+    af::array arfSeries;
+    af::array qualitySeries;
+    blockProcessingLaplace(rMatImageList, arfSeries, qualitySeries);
+    af::array globalRefImage = af::median(arfSeries, 2);
 
-    /// Initialize the GPU array series
-    int binning = 2;
-    int nBAxis1 = naxis1/binning;
-    int nBAxis2 = naxis2/binning;
-    int blkSize = 32;
-    int binnedBlkSize = blkSize/binning;
-    int bufferSpace = 10;
+    af::array stackedBlks;
+    makeAlignedStackLaplace(stackedBlks, arfSeries, qualitySeries, arDim, xRange, yRange, x, y);
+    /// Align the stackedBlks on the global reference image
+    /// Use the 1st slice of the stackedBlks
+    af::array blkSlice = stackedBlks.slice(0);
+    af::array refBlk = globalRefImage(xRange, yRange);
+    af::array arDim2 = af::constant(blkSize, 2);
+    af::array shift = af::constant(0, 2, f32);
+    phaseCorrelate(refBlk, blkSlice, arDim2, shift);
+    std::printf("Shift of stack block: \n");
+    af_print(shift);
+    /// The shifted position here are in the reference frame of the stacked block,
+    /// so we need to add the shift instead of subtracting it. We are indeed truly shifting
+    /// the position of the block.
 
-    af::array arfSeries(naxis2, naxis1, nFrames);
-    //af::array arfSeriesBinned(nBAxis2, nBAxis1, nFrames);
-    af::array gradientMagSeries(nBAxis2, nBAxis1, nFrames);
+    af::array xr = xRange + tile(shift(0), blkSize);
+    af::array yr = yRange + tile(shift(1), blkSize);
 
-    af::array kernel = af::constant(0, 7, 7);
-    kernel(af::seq(3,6), af::seq(3,6)) = 1;
-
-    cv::Mat tempMat(naxis2, naxis1, CV_32F);
-    for ( int k=0; k < nFrames; k++)
+    /// Pack the blocks into a list of RMat.
+    for ( int k=0; k < nBest; k++)
     {
-        rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
-        af::array tempArf(naxis2, naxis1, (float*) tempMat.data);
-        arfSeries(af::span, af::span, k) = tempArf;
-        af::array  arfTemp = convolve2(tempArf, kernel);
-        af::array binnedFrame = arfTemp(af::seq(0, af::end, binning), af::seq(0, af::end, binning));
-        af::array dx, dy;
-        af::grad(dx, dy, binnedFrame);
-        /// Sum of absolute of the X- and Y- gradient (look for a norm-L2 function in ArrayFire?)
-        af::array gradientMagnitude = af::abs(dx) + af::abs(dy);
-        gradientMagSeries(af::span, af::span, k) = gradientMagnitude;
-        /// Sobel gradient magnitude
-        ///gradientMagSeries(af::span, af::span, k) = af::sobel(binnedFrame);
+        af::array resultSlice = stackedBlks(af::span, af::span, k);
+        float *hostArf = resultSlice.host<float>();
+        cv::Mat matImage(blkSize, blkSize, CV_32F, hostArf);
+        matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
+        RMat *blockRMat = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
+        blockRMat->setImageTitle("Block stack method 2 (Laplace)");
+        blockList << blockRMat;
+        delete[] hostArf;
     }
-
-
-    //    af::array globalTemplate = arfSeries(af::span, af::span, 0); //af::median(arfSeries, 2);
-    af::array globalTemplate = af::median(arfSeries, 2);
-    qDebug("Median template ready...");
-
-    int nBest = 3;
-    //af::array canvas0 = af::constant(0, naxis1, naxis2, f32);
-    af::array canvas = af::constant(0, naxis1, naxis2, f32);
-    //af::array canvas2 = af::constant(0, naxis1, naxis2, nBest, f32);
-
-    //af::array weightsCanvas = af::constant(0, naxis1, naxis2, f32);
-
-    /// Loop over all the block series
-    ///
-//    int offsetX = blkSize;
-//    int offsetY = blkSize;
-    int offsetX = 500;
-    int offsetY = 500;
-    int k = 0;
-
-    af::array searchBlk;
-    af::array bestBlk; //, bestBlk2;
-
-    double timeA1 = 0;
-    double timeB1 = 0;
-    double timeA2 = 0;
-    double timeB2 = 0;
-    double timeC1 = 0;
-    double timeC2 = 0;
-    double timeC3 = 0;
-    double loopTime = 0;
-
-//    af::array arrOnes = af::constant(1, af::dim4(blkSize, blkSize));
-
-    QElapsedTimer timer;
-    timer.start();
-
-    int x = 0;
-    int y = 0;
-
-    bool processBlocks = true;
-
-    int nBlocks = 437;
-       for (int k = 0 ; k <= nBlocks; k++)
-       {
-
-
-//    for (int y = offsetY; y< naxis2 - 1 - blkSizeSeach; y += blkSize/2)
-//    {
-//        for (int x = offsetX; x< naxis1 - 1 - blkSizeSeach; x += blkSize/2)
-//        {
-//                for (int y = offsetY; y< 600; y += blkSize/2)
-//                {
-//                    for (int x = offsetX; x< 1500; x += blkSize/2)
-//                    {
-
-
-
-            af::sync();
-            af::timer afTimer4 = af::timer::start();
-
-            x = offsetX + (k*blkSize/2 % 1000);
-            y = offsetY + ((k*blkSize/2) / 1000)*blkSize/2;
-
-            qDebug("Block k = %d; [x, y] = [%d, %d]", k, x, y);
-
-
-            int xRef1 = x - bufferSpace/2;
-            int yRef1 = y - bufferSpace/2;
-            int xRef2 = xRef1 + blkSize + bufferSpace - 1;
-            int yRef2 = yRef1 + blkSize + bufferSpace - 1;
-
-
-            /// Extract the best block from the current block series
-
-            //            af::sync();
-            //            af::timer afTimerA2 = af::timer::start();
-            extractBestBlock(bestBlk, arfSeries, gradientMagSeries,
-                              blkSize, binnedBlkSize, x, y, nFrames, binning);
-            //            af::sync();
-            //            timeA2 += af::timer::stop(afTimerA2);
-
-            /// Need to extract the template block from the global template.
-            searchBlk  = globalTemplate(af::seq(xRef1, xRef2), af::seq(yRef1, yRef2));
-
-//            af::sync();
-//            af::timer afTimerC2 = af::timer::start();
-            af::array SAD;
-            matchTemplate2(SAD, searchBlk, bestBlk);
-//            af::sync();
-//            timeC2 += af::timer::stop(afTimerC2);
-            //qDebug("[dx2, dy2] = [%d, %d]", dx2, dy2);
-
-            int dx, dy, xShifted, yShifted;
-            fetchTMatch2Shifts(SAD, dx, dy, bestBlk.dims());
-            xShifted = x + (dx - bufferSpace/2);
-            yShifted = y + (dy - bufferSpace/2);
-            qDebug("[dx, dy] = [%d, %d]", dx, dy);
-
-            canvas(af::seq(xShifted, xShifted + blkSize -1), af::seq(yShifted, yShifted + blkSize -1)) = bestBlk;
-
-            af::sync();
-            loopTime += af::timer::stop(afTimer4);
-
-
-//        }
-//    }
-       }
-
-    qDebug("blockProcessingGlobal:: QTimer : total time: %f s", (float) timer.elapsed() /1000);
-
-
-    qDebug("blockProcessingGlobal:: Total blocks processed: %d", k);
-    qDebug("blockProcessingGlobal:: templateMatching time per block timeA1: %f ms", timeA1 / nBlocks * 1000);
-    qDebug("blockProcessingGlobal:: templateMatching time per block timeA2: %f ms", timeA2 / nBlocks * 1000);
-
-    qDebug("blockProcessingGlobal::  time per block timeB1: %f ms", timeB1 / nBlocks * 1000);
-    qDebug("blockProcessingGlobal::  time per block timeB2: %f ms", timeB2 / nBlocks * 1000);
-
-    qDebug("blockProcessingGlobal:: timeC1: %f ms", timeC1 / nBlocks * 1000);
-    qDebug("blockProcessingGlobal:: timeC2: %f ms", timeC2 / nBlocks * 1000);
-    qDebug("blockProcessingGlobal:: timeC3: %f ms", timeC3 / nBlocks *1000);
-
-    qDebug("blockProcessingGlobal:: Loop time per block: %f ms", loopTime/nBlocks * 1000);
-
-//    float *hostArf0 = canvas0.host<float>();
-//    cv::Mat matImage0(naxis2, naxis1, CV_32F, hostArf0);
-//    matImage0.convertTo(matImage0, rMatImageList.at(0)->matImage.type());
-//    RMat *blockRMat0 = new RMat(matImage0, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
-//    blockRMat0->setImageTitle("with global templates - matchTemplate");
-//    resultList2 << blockRMat0;
-//    delete[] hostArf0;
-
-
-    float *hostArf = canvas.host<float>();
-    cv::Mat matImage(naxis2, naxis1, CV_32F, hostArf);
-    matImage.convertTo(matImage, rMatImageList.at(0)->matImage.type());
-    RMat *blockRMat = new RMat(matImage, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
-    blockRMat->setImageTitle("with global templates (1 block)");
-    resultList2 << blockRMat;
-    delete[] hostArf;
-
-
-
-//    float *hostArf2 = bestBlk.host<float>();
-//    cv::Mat matImage2(blkSize, blkSize, CV_32F, hostArf2);
-//    matImage2.convertTo(matImage2, rMatImageList.at(0)->matImage.type());
-//    RMat *blockRMat2 = new RMat(matImage2, rMatImageList.at(0)->isBayer(), rMatImageList.at(0)->getInstrument());
-//    resultList2 << blockRMat2;
-    //    delete[] hostArf2;
 }
 
-void RProcessing::blockProcessingSetup(QList<RMat *> rMatImageList, af::array &arfSeries, af::array &qualityBinnedSeries, const int &binning)
+void RProcessing::blockProcessingGradient(QList<RMat *> rMatImageList, af::array &arfSeries, af::array &qualityBinnedSeries)
 {
 
     int naxis2 = rMatImageList.at(0)->matImage.rows;
@@ -1418,7 +1306,6 @@ void RProcessing::blockProcessingSetup(QList<RMat *> rMatImageList, af::array &a
     /// Initialize the GPU array series
     int nBAxis1 = naxis1/binning;
     int nBAxis2 = naxis2/binning;
-
     arfSeries = af::constant(0, naxis1, naxis2, nFrames);
     qualityBinnedSeries = af::constant(0, nBAxis1, nBAxis2, nFrames);
 
@@ -1429,177 +1316,116 @@ void RProcessing::blockProcessingSetup(QList<RMat *> rMatImageList, af::array &a
     for ( int k=0; k < nFrames; k++)
     {
         rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
-        af::array tempArf(naxis2, naxis1, (float*) tempMat.data);
+        af::array tempArf(naxis1, naxis2, (float*) tempMat.data);
         arfSeries(af::span, af::span, k) = tempArf;
-        af::array  arfTemp = convolve2(tempArf, kernel);
+        /// Rebin the data
+        af::array arfTemp = convolve2(tempArf, kernel);
         af::array binnedFrame = arfTemp(af::seq(0, af::end, binning), af::seq(0, af::end, binning));
         af::array dx, dy;
         af::grad(dx, dy, binnedFrame);
         /// Sum of absolute of the X- and Y- gradient (look for a norm-L2 function in ArrayFire?)
         af::array gradientMagnitude = af::abs(dx) + af::abs(dy);
         qualityBinnedSeries(af::span, af::span, k) = gradientMagnitude;
-        /// Sobel gradient magnitude
-        ///gradientMagSeries(af::span, af::span, k) = af::sobel(binnedFrame);
     }
-
-    //    af::array globalTemplate = arfSeries(af::span, af::span, 0); //af::median(arfSeries, 2);
-
-
 }
 
-void RProcessing::blockProcessingGlobalStack1(QList<RMat *> rMatImageList, const int &blkSize, const int &binning)
+
+
+void RProcessing::blockProcessingSobel(QList<RMat *> rMatImageList, af::array &arfSeries, af::array &qualitySeries)
 {
 
-    if (!luckyBlkList.empty())
+    int naxis2 = rMatImageList.at(0)->matImage.rows;
+    int naxis1 = rMatImageList.at(0)->matImage.cols;
+    int nFrames = rMatImageList.size();
+
+    /// Initialize the GPU array series
+    int nBAxis1 = naxis1/binning;
+    int nBAxis2 = naxis2/binning;
+    arfSeries = af::constant(0, naxis1, naxis2, nFrames);
+    qualitySeries = af::constant(0, nBAxis1, nBAxis2, nFrames);
+
+    af::array kernel = af::constant(0, 7, 7);
+    kernel(af::seq(3,6), af::seq(3,6)) = 1;
+
+    cv::Mat tempMat(naxis2, naxis1, CV_32F);
+    for ( int k=0; k < nFrames; k++)
     {
-        qDeleteAll(luckyBlkList);
-        luckyBlkList.clear();
+        rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
+        af::array tempArf(naxis1, naxis2, (float*) tempMat.data);
+        arfSeries(af::span, af::span, k) = tempArf;
+        /// Rebin the data
+        af::array arfTemp = convolve2(tempArf, kernel);
+        af::array binnedFrame = arfTemp(af::seq(0, af::end, binning), af::seq(0, af::end, binning));
+        af::array dx, dy;
+        //af::grad(dx, dy, binnedFrame);
+        af::sobel(dx, dy, binnedFrame);
+        /// Sum of absolute of the X- and Y- gradient (look for a norm-L2 function in ArrayFire?)
+        af::array gradientMagnitude = af::abs(dx) + af::abs(dy);
+        qualitySeries(af::span, af::span, k) = gradientMagnitude;
     }
-
-    af::setBackend(AF_BACKEND_OPENCL);
-    //af::setBackend(AF_BACKEND_CPU);
-
-    af::array arfSeries;
-    af::array qualityBinnedSeries;
-    blockProcessingSetup(rMatImageList, arfSeries, qualityBinnedSeries, binning);
-    af::array globalRefAr = af::median(arfSeries, 2);
-    qDebug("Median template ready...");
-    af::array canvas = af::constant(0, globalRefAr.dims(0), globalRefAr.dims(1), f32);
-    af::array canvas2 = af::constant(0, globalRefAr.dims(0), globalRefAr.dims(1), f32);
-    af::array weightsCanvas = af::constant(0, globalRefAr.dims(0), globalRefAr.dims(1), f32);
-    af::array checkBlks;
-
-    float radius = rMatImageList.at(0)->getSOLAR_R();
-    float radiusMargin = 200;
-    float radiusLimit = radius + radiusMargin;
-    int binnedBlkSize = blkSize/binning;
-    int bufferSpace = 8;
-
-    int nBest = 3;
-    int offsetX = blkSize;//500;
-    int offsetY = blkSize;//500;
-    int x = 0;
-    int y = 0;
-
-    int nBlocks = 8000;//437;
-    int naxis1 = arfSeries.dims(0);
-    int naxis2 = arfSeries.dims(1);
-    int naxis1End = naxis1 - 1 - 3*blkSize;
-    int naxis2End = naxis2 - 1 - 3*blkSize;
-
-    //af::array cropRange = tile(af::range(blkSize), 1, nBest) + bufferSpace/2;
-
-    int k = 0;
-    af::sync();
-    af::timer afTimer = af::timer::start();
-
-    //for (int k = 0 ; k <= nBlocks; k++)
-    //while ( (y < 500) || (x < naxis1End) )
-    while ( (y < naxis2End) || (x < naxis1End) )
-    {
-        x = offsetX + (k*blkSize/2 % naxis1End);
-        y = offsetY + ((k*blkSize/2) / naxis1End)*blkSize/2;
-
-        float distToCenter = sqrt( pow(x - naxis1/2, 2) + pow(y - naxis2/2, 2) );
-
-        if ( distToCenter + blkSize > radiusLimit)
-        {
-            canvas(af::seq(x, x + blkSize -1), af::seq(y, y + blkSize -1)) = globalRefAr(af::seq(x, x + blkSize -1), af::seq(y, y + blkSize -1));
-            weightsCanvas(af::seq(x, x + blkSize -1), af::seq(y, y + blkSize -1)) = 1;
-            k++;
-            continue;
-        }
-
-        //qDebug("[x, y] = [%d, %d]", x, y);
-
-        af::array stackedBlks;
-
-        makeAlignedStack(stackedBlks, arfSeries, qualityBinnedSeries, nBest,
-                         blkSize, binnedBlkSize, x, y, bufferSpace, binning);
-
-        af::array avgStackedBlk = median(stackedBlks, 2);
-        if (k == 1)
-        {
-            checkBlks = stackedBlks;
-        }
-
-        int xRef1 = x - bufferSpace/2;
-        int xRef2 = xRef1 + blkSize + bufferSpace - 1;
-        int yRef1 = y - bufferSpace/2;
-        int yRef2 = yRef1 + blkSize + bufferSpace - 1;
-        //        qDebug("[xRef1, xRef2] = [%d, %d]", xRef1, xRef2);
-        //        qDebug("[yRef1, yRef2] = [%d, %d]", yRef1, yRef2);
-
-
-        af::array searchBlk  = globalRefAr(af::seq(xRef1, xRef2), af::seq(yRef1, yRef2));
-
-        af::array SAD;
-        matchTemplate2(SAD, searchBlk, avgStackedBlk);
-
-        int dx, dy;
-        fetchTMatch2Shifts(SAD, dx, dy, avgStackedBlk.dims());
-        int xShifted1 = x + dx - bufferSpace/2;
-        int xShifted2 = xShifted1 + blkSize -1;
-        int yShifted1 = y + dy - bufferSpace/2;
-        int yShifted2 = yShifted1 + blkSize -1;
-
-        //        qDebug("[xShifted1, xShifted2] = [%d, %d]", xShifted1, xShifted2);
-        //        qDebug("[yShifted1, yShifted2] = [%d, %d]", yShifted1, yShifted2);
-
-        //canvas(af::seq(xShifted1, xShifted2), af::seq(yShifted1, yShifted2)) = avgStackedBlk;
-        canvas(af::seq(xShifted1, xShifted2), af::seq(yShifted1, yShifted2)) += avgStackedBlk;
-        weightsCanvas(af::seq(xShifted1, xShifted2), af::seq(yShifted1, yShifted2)) += 1;
-
-        /// Increment the block number.
-        k++;
-    }
-
-    af::array mask = weightsCanvas == 0;
-    weightsCanvas(mask) = 1;
-    canvas /= weightsCanvas;
-    // Fill in the borders of the canvas that were not populated with the stacked blocks.
-    // Left-hand side border
-    canvas(af::seq(0, offsetX + blkSize/2), af::span) = globalRefAr(af::seq(0, offsetX + blkSize/2), af::span);
-    // Bottom side border
-    canvas(af::span, af::seq(0, offsetY + blkSize/2)) = globalRefAr(af::span, af::seq(0, offsetY + blkSize/2));
-    // Right-hand side border
-    canvas(af::seq(naxis1End, af::end), af::span) = globalRefAr(af::seq(naxis1End, af::end), af::span);
-    // Top side border
-    canvas(af::span, af::seq(naxis2End, af::end)) = globalRefAr(af::span, af::seq(naxis2End, af::end));
-
-    af::sync();
-    double totalTime = af::timer::stop(afTimer);
-
-
-    int k2 = k -1;
-    qDebug("ProcessingGlobalStack1:: total time for %d loops = %f s", k2, totalTime);
-    qDebug("ProcessingGlobalStack1:: average time per loop = %f ms", totalTime / k2 * 1000.0);
-
-    if (!resultList.empty())
-    {
-        qDeleteAll(resultList);
-        resultList.clear();
-    }
-
-    /// Slice in the 1st original image
-    resultList << rMatImageList.at(0);
-    populateResultListWithAr(rMatImageList, canvas, QString("with averaged overlap"));
-
 }
 
-void RProcessing::blockProcessingGlobalStack2(QList<RMat *> rMatImageList, const int &blkSize, const int &binning)
+
+void RProcessing::blockProcessingLaplace(QList<RMat *> rMatImageList, af::array &arfSeries, af::array &qualitySeries)
+{
+    /// Prepare the Laplace metric for lucky imaging
+    /// function makeAlignedStackLaplace will then calculate the actual quality values
+    int naxis2 = rMatImageList.at(0)->matImage.rows;
+    int naxis1 = rMatImageList.at(0)->matImage.cols;
+    int nFrames = rMatImageList.size();
+
+    // Initialize the GPU array series
+    arfSeries = af::constant(0, naxis1, naxis2, nFrames);
+    qualitySeries = af::constant(0, naxis1/binning, naxis2/binning, nFrames);
+
+//    float ker[] = {0, 1, 0,
+//                   1,-4, 1,
+//                   0, 1, 0};
+
+    float ker[] = {1, 4, 1,
+                   4,-20,4,
+                   1, 4, 1};
+
+    af::array kernel(3, 3, ker);
+
+    cv::Mat tempMat(naxis2, naxis1, CV_32F);
+
+    for ( int k=0; k < nFrames; k++)
+    {
+        rMatImageList.at(k)->matImage.convertTo(tempMat, CV_32F);
+        af::array tempAr(naxis1, naxis2, (float*) tempMat.data);
+        arfSeries(af::span, af::span, k) = tempAr;
+        // Rebin the image. The image is in fact not rebinned if binning = 1.
+        af::array binnedAr;
+        rebin(tempAr, binnedAr, binning);
+        // Convolve the rebinned with Laplacian kernel
+        af::array arfTemp = convolve2(binnedAr, kernel);
+        // Store it in the 3D array
+        qualitySeries(af::span, af::span, k) = arfTemp;
+    }
+}
+
+void RProcessing::blockProcessingGlobalGradients(QList<RMat *> rMatImageList)
 {
     af::setBackend(AF_BACKEND_OPENCL);
     //af::setBackend(AF_BACKEND_CPU);
 
     af::array arfSeries;
     af::array qualityBinnedSeries;
-    blockProcessingSetup(rMatImageList, arfSeries, qualityBinnedSeries, binning);
+
+    if (this->qualityMetric == QString("gradient"))
+    {
+        blockProcessingGradient(rMatImageList, arfSeries, qualityBinnedSeries);
+    }
+    else if (this->qualityMetric == QString("Sobel"))
+    {
+        blockProcessingSobel(rMatImageList, arfSeries, qualityBinnedSeries);
+    }
+
     af::array globalRefImage = af::median(arfSeries, 2);
-    qDebug("Global Reference Image ready...");
+
     int naxis1 = arfSeries.dims(0);
     int naxis2 = arfSeries.dims(1);
-    int nBest = 9;
     af::array canvas3D = af::constant(0, naxis1, naxis2, nBest, f32);
     af::array weightCanvas = af::constant(0, naxis1, naxis2, nBest, f32);
     af::array canvas = af::constant(0, naxis1, naxis2, f32);
@@ -1607,18 +1433,10 @@ void RProcessing::blockProcessingGlobalStack2(QList<RMat *> rMatImageList, const
 
     af::array arDim = af::constant(blkSize, 2, nBest-1);
     af::array arDim2 = af::constant(blkSize, 2);
-
     af::array coordRange = af::range(af::dim4(blkSize));
 
-    float radius = rMatImageList.at(0)->getSOLAR_R();
-    float radiusMargin = 200;
-    float radiusLimit = radius + radiusMargin;
-    int binnedBlkSize = blkSize/binning;
-    int bufferSpace = 8;
-
-
-    int offsetX = blkSize;//500;
-    int offsetY = blkSize;//500;
+    int offsetX = blkSize;
+    int offsetY = blkSize;
 
 
     int naxis1End = naxis1 - 1 - 3*blkSize;
@@ -1636,42 +1454,27 @@ void RProcessing::blockProcessingGlobalStack2(QList<RMat *> rMatImageList, const
     {
         x = offsetX + (k*blkSize/2 % naxis1End);
         y = offsetY + ((k*blkSize/2) / naxis1End)*blkSize/2;
+        //qDebug("[x, y] = %d, %d", x, y);
         af::array xRange = coordRange + x;
         af::array yRange = coordRange + y;
 
-        float distToCenter = sqrt( pow(x - naxis1/2, 2) + pow(y - naxis2/2, 2) );
-
-        if ( distToCenter + blkSize > radiusLimit)
-        {
-            canvas(xRange, yRange) = globalRefImage(xRange, yRange);
-            weightCanvas(xRange, yRange, af::span) = 1;
-            k++;
-            continue;
-        }
-
-
-//        af::array stackedBlks2;
-//        makeAlignedStack2(stackedBlks2, arfSeries, qualityBinnedSeries, arDim, xRange, yRange, nBest, blkSize, binnedBlkSize, binning, x, y);
         af::array stackedBlks;
-        makeAlignedStack3(stackedBlks, arfSeries, qualityBinnedSeries, arDim, xRange, yRange, nBest, blkSize, binnedBlkSize, binning, x, y);
-
+        makeAlignedStackGradient(stackedBlks, arfSeries, qualityBinnedSeries, arDim, xRange, yRange, x, y);
         /// We should not use the median on the stackedBlks just yet...
 
         /// Align the stackedBlks on the global reference image
         /// Use the 1st slice of the stackedBlks
         af::array blkSlice = stackedBlks.slice(0);
         af::array refBlk = globalRefImage(xRange, yRange);
-        af::array shifts = af::constant(0, 2, f32);
-        phaseCorrelate(refBlk, blkSlice, arDim2, shifts);
-
-        // 17 ms
+        af::array shift = af::constant(0, 2, f32);
+        phaseCorrelate(refBlk, blkSlice, arDim2, shift);
 
         /// The shifted position here are in the reference frame of the stacked block,
         /// so we need to add the shift instead of subtracting it. We are indeed truly shifting
         /// the position of the block.
 
-        af::array xr = xRange + tile(shifts(0), blkSize);
-        af::array yr = yRange + tile(shifts(1), blkSize);
+        af::array xr = xRange + tile(shift(0), blkSize);
+        af::array yr = yRange + tile(shift(1), blkSize);
 
         canvas3D(xr, yr, af::span) += stackedBlks;
         weightCanvas(xr, yr, af::span) += 1;
@@ -1687,15 +1490,12 @@ void RProcessing::blockProcessingGlobalStack2(QList<RMat *> rMatImageList, const
 
     canvas = median(canvas3D, 2);
 
-    // Fill in the borders of the canvas that were not populated with the stacked blocks.
-    // Left-hand side border
-    canvas(af::seq(0, offsetX + blkSize/2), af::span) = globalRefImage(af::seq(0, offsetX + blkSize/2), af::span);
-    // Bottom side border
-    canvas(af::span, af::seq(0, offsetY + blkSize/2)) = globalRefImage(af::span, af::seq(0, offsetY + blkSize/2));
-    // Right-hand side border
-    canvas(af::seq(naxis1End, af::end), af::span) = globalRefImage(af::seq(naxis1End, af::end), af::span);
-    // Top side border
-    canvas(af::span, af::seq(naxis2End, af::end)) = globalRefImage(af::span, af::seq(naxis2End, af::end));
+    int axisStart  = 1.5 * blkSize;
+    canvas(af::seq(0,axisStart), af::span)   = globalRefImage(af::seq(0,axisStart), af::span);
+    canvas(af::span, af::seq(0,axisStart))   = globalRefImage(af::span, af::seq(0,axisStart));
+    canvas(af::seq(naxis2End, af::end), af::span)  = globalRefImage(af::seq(naxis2End, af::end), af::span);
+    canvas(af::span, af::seq(naxis1End, af::end))  = globalRefImage(af::span, af::seq(naxis1End, af::end));
+
 
     af::sync();
     double totalTime = af::timer::stop(afTimer);
@@ -1710,8 +1510,106 @@ void RProcessing::blockProcessingGlobalStack2(QList<RMat *> rMatImageList, const
     }
 
     /// Slice in the 1st original image
-    resultList << rMatImageList.at(0);
-    populateResultListWithAr(rMatImageList, canvas, QString("with averaged overlap"));
+    //resultList << rMatImageList.at(0);
+    populateResultListWithAr(rMatImageList, canvas, QString("with stacked blocks"));
+
+}
+
+void RProcessing::blockProcessingGlobalLaplace(QList<RMat *> rMatImageList)
+{
+    af::setBackend(AF_BACKEND_OPENCL);
+    //af::setBackend(AF_BACKEND_CPU);
+
+    af::array arfSeries;
+    af::array qualityBinnedSeries;
+    blockProcessingLaplace(rMatImageList, arfSeries, qualityBinnedSeries);
+    af_print(qualityBinnedSeries(af::seq(0, 10), af::seq(0, 10), af::seq(0, 0)))
+    af::array globalRefImage = af::median(arfSeries, 2);
+
+    int naxis1 = arfSeries.dims(0);
+    int naxis2 = arfSeries.dims(1);
+    af::array canvas3D = af::constant(0, naxis1, naxis2, nBest, f32);
+    af::array weightCanvas = af::constant(0, naxis1, naxis2, nBest, f32);
+    af::array canvas = af::constant(0, naxis1, naxis2, f32);
+    // Need an array tiled with the dimensions of the block, for the shift matrix.
+
+    af::array arDim = af::constant(blkSize, 2, nBest-1);
+    af::array arDim2 = af::constant(blkSize, 2);
+
+    af::array coordRange = af::range(af::dim4(blkSize));
+
+    int offsetX = blkSize;
+    int offsetY = blkSize;
+
+    int naxis1End = naxis1 - 1 - 3*blkSize;
+    int naxis2End = naxis2 - 1 - 3*blkSize;
+
+    int x = 0;
+    int y = 0;
+    int k = 0;
+
+    af::sync();
+    af::timer afTimer = af::timer::start();
+
+    while ( (y < naxis2End) || (x < naxis1End) )
+    {
+        x = offsetX + (k*blkSize/2 % naxis1End);
+        y = offsetY + ((k*blkSize/2) / naxis1End)*blkSize/2;
+        //qDebug("[x, y] = %d, %d", x, y);
+        af::array xRange = coordRange + x;
+        af::array yRange = coordRange + y;
+
+        af::array stackedBlks;
+        makeAlignedStackLaplace(stackedBlks, arfSeries, qualityBinnedSeries, arDim, xRange, yRange, x, y);
+
+        /// Align the stackedBlks on the global reference image
+        /// Use the 1st slice of the stackedBlks
+        af::array blkSlice = stackedBlks.slice(0);
+        af::array refBlk = globalRefImage(xRange, yRange);
+        af::array shift = af::constant(0, 2, f32);
+        phaseCorrelate(refBlk, blkSlice, arDim2, shift);
+
+        /// The shifted position here are in the reference frame of the stacked block,
+        /// so we need to add the shift instead of subtracting it. We are indeed truly shifting
+        /// the position of the block.
+
+        af::array xr = xRange + tile(shift(0), blkSize);
+        af::array yr = yRange + tile(shift(1), blkSize);
+
+        canvas3D(xr, yr, af::span) += stackedBlks;
+        weightCanvas(xr, yr, af::span) += 1;
+
+        k++;
+    }
+
+    af::array mask = weightCanvas == 0;
+    weightCanvas(mask) = 1;
+    canvas3D /= weightCanvas;
+
+    canvas = median(canvas3D, 2);
+
+    int axisStart  = 1.5 * blkSize;
+    canvas(af::seq(0,axisStart), af::span)   = globalRefImage(af::seq(0,axisStart), af::span);
+    canvas(af::span, af::seq(0,axisStart))   = globalRefImage(af::span, af::seq(0,axisStart));
+    canvas(af::seq(naxis2End, af::end), af::span)  = globalRefImage(af::seq(naxis2End, af::end), af::span);
+    canvas(af::span, af::seq(naxis1End, af::end))  = globalRefImage(af::span, af::seq(naxis1End, af::end));
+
+    af::sync();
+    double totalTime = af::timer::stop(afTimer);
+    int k2 = k-1;
+    qDebug("ProcessingGlobalStack2:: total time for %d loops = %f s", k2, totalTime);
+    qDebug("ProcessingGlobalStack2:: average time per loop = %f ms", totalTime / k2 * 1000.0);
+
+    if (!resultList.empty())
+    {
+        qDeleteAll(resultList);
+        resultList.clear();
+    }
+
+    /// Slice in the 1st original image
+    //resultList << rMatImageList.at(0);
+    populateResultListWithAr(rMatImageList, canvas, QString("with stacked blocks"));
+
 
 
 }
@@ -1850,6 +1748,8 @@ void RProcessing::matchTemplate3(af::array &res, af::array &A, af::array &k, af:
 void RProcessing::phaseCorrelate(af::array &refBlk, af::array &shiftedArray, const af::array &arDim, af::array &shifts)
 {
     /// Calculate the shifts necessary to to align the shiftedArray onto array.
+    /// See equivalent code at https://github.com/scikit-image/scikit-image/blob/master/skimage/feature/register_translation.py#L109
+
     af::array arrayProduct = fft2(refBlk) * conjg(fft2(shiftedArray));
     af::array cc = af::abs(ifft2(arrayProduct));
     findMaxLoc(cc, shifts);
@@ -1896,7 +1796,7 @@ void RProcessing::findMinLoc(af::array & a, af::array &dx, af::array &dy)
     /// Get the location of the minimum in each image or 2D array in a series.
     /// Works in 3D.
     af::array val, idx0;
-    af::min(val, idx0, moddims(a, a.dims(0)*a.dims(1), a.dims(2)));
+    af::min(val, idx0, af::moddims(a, a.dims(0)*a.dims(1), a.dims(2)));
     dx = idx0 % a.dims(0);
     dy = idx0 / a.dims(0);
 }
@@ -1906,7 +1806,7 @@ void RProcessing::findMaxLoc(af::array &a, af::array &locxy)
     /// Get the location of the maximum in each image or 2D array in a series.
     /// Works in 2D.
     af::array val, idx;
-    af::max(val, idx, moddims(a, a.dims(0)*a.dims(1), a.dims(2)));
+    af::max(val, idx, af::moddims(a, a.dims(0)*a.dims(1), a.dims(2)));
     locxy(0) = idx % a.dims(0);
     locxy(1) = idx / a.dims(0);
 }
@@ -1916,7 +1816,7 @@ void RProcessing::findMaxLoc2(af::array &a, af::array &locxy)
     /// Get the location of the minimum in each image or 2D array in a series.
     /// Works in 3D.
     af::array val, idx0;
-    af::max(val, idx0, moddims(a, a.dims(0)*a.dims(1), a.dims(2)));
+    af::max(val, idx0, af::moddims(a, a.dims(0)*a.dims(1), a.dims(2)));
     locxy(0, af::span) = idx0 % a.dims(0);
     locxy(1, af::span) = idx0 / a.dims(0);
 }
@@ -2033,7 +1933,7 @@ void RProcessing::calibrate()
 
         cv::subtract(lightMat, masterDark->matImage, matResult);
 
-        if (!masterFlatN->matImage.empty())
+        if (masterFlatN != NULL)
         {
             cv::divide(matResult, masterFlatN->matImage, matResult);
         }
@@ -2042,11 +1942,13 @@ void RProcessing::calibrate()
 
         /// Copy the result into the list.
         /// This may be an overkill. We could output directly into the elements of the list
-        resultList << new RMat(matResult, masterDark->isBayer());
+        resultList << new RMat(matResult, masterDark->isBayer(), lightManager.getRMatImage()->getInstrument());
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
-        resultList.at(i)->setBscale(masterFlatN->getDataMax()/masterFlat->getDataMax());
-        resultList.at(i)->setImageTitle(QString("Limb-registered image # %i").arg(i+1));
+        if (masterFlatN != NULL)
+        {
+            resultList.at(i)->setBscale(masterFlatN->getDataMax()/masterFlat->getDataMax());
+        }
     }
     /// We can assign the result as the rMatLightList since the processing is off-screen,
     /// and thus we do not overwrite anything.
@@ -2852,6 +2754,7 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
             circleOut2 = CircleFitByTaubin(cleanDataPoints);
         }
         /// End of 2nd pass
+        printf("[xc2, yc2, Rm2] = [%1.f, %1.f, %1.f] \n", circleOut2.a, circleOut2.b, circleOut2.r);
 
         /// 3rd pass
         cv::Point2f circleCenter2(circleOut2.a, circleOut2.b);
@@ -3047,7 +2950,7 @@ void RProcessing::raphFindLimb(cv::Mat matImage, Data *dat, int numDots, bool sm
     double minVal, maxVal;
     int naxis1 = matImage.cols;
     int naxis2 = matImage.rows;
-    /// Kernels for image gradients.
+    /// Kernels for image gradients
     /// Over x-axis, forward (from left edge) and backward (from right-edge) direction
     cv::Mat kernelXLeft = (cv::Mat_<float>(1,3)<<-0.5, 0, 0.5);
     cv::Mat kernelXRight = (cv::Mat_<float>(1,3)<<0.5, 0, -0.5);
@@ -3100,6 +3003,8 @@ QList<RMat *> RProcessing::normalizeSeriesByStats(QList<RMat*> rMatImageList)
     for (int i =0 ; i < rMatImageList.size() ; ++i)
     {
         normalizedRMatImageList << normalizeByStats(rMatImageList.at(i));
+        normalizedRMatImageList.at(i)->setInstrument(rMatImageList.at(i)->getInstrument());
+        normalizedRMatImageList.at(i)->setSOLAR_R(rMatImageList.at(i)->getSOLAR_R());
         normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("# %1").arg(i));
         normalizedRMatImageList.at(i)->setDate_time(rMatImageList.at(i)->getDate_time());
     }
@@ -3347,6 +3252,26 @@ void RProcessing::setStackWithMean(bool status)
 void RProcessing::setStackWithSigmaClip(bool status)
 {
     this->stackWithSigmaClip = status;
+}
+
+void RProcessing::setBinning(int binning)
+{
+    this->binning = binning;
+}
+
+void RProcessing::setBlkSize(int blkSize)
+{
+    this->blkSize = blkSize;
+}
+
+void RProcessing::setNBest(int nBest)
+{
+    this->nBest = nBest;
+}
+
+void RProcessing::setQualityMetric(QString qualityMetric)
+{
+    this->qualityMetric = qualityMetric;
 }
 
 void RProcessing::setupMasterWithSigmaClip(bool enabled)
@@ -3640,7 +3565,7 @@ cv::Mat RProcessing::scalePreviewImage(float sunX,float sunY,float sunR, cv::Mat
 
 void RProcessing::printArDims(af::array &ar)
 {
-    qDebug("ar.dims() = [%d, %d, %d]", ar.dims(0), ar.dims(1), ar.dims(2));
+    qDebug("ar.dims() = [%d, %d, %d, %d]", ar.dims(0), ar.dims(1), ar.dims(2), ar.dims(3));
 }
 
 cv::Mat RProcessing::wSolarColorize(cv::Mat matImage, char filter)
@@ -3741,24 +3666,42 @@ void RProcessing::makeAlignedStack2(af::array &stackedBlks, const af::array &arf
 
 }
 
-void RProcessing::makeAlignedStack3(af::array &stackedBlks, const af::array &arfSeries, const af::array &qualityBinnedSeries, const af::array & arDim, const af::array &xRange, const af::array &yRange, const int nBest, const int &blkSize, const int &binnedBlkSize, const int &binning, int &x, int &y)
+void RProcessing::makeAlignedStackGradient(af::array &stackedBlks, const af::array &arfSeries, const af::array &qualityBinnedSeries, const af::array & arDim, const af::array &xRange, const af::array &yRange, int &x, int &y)
 {
+    /// Assumes qualitySeries as the sum of absolute gradient components |dx| + |dy| from blockProcessingGradient()
+    /// Need to check if valid for blockProcessingSobel() as well...
+
     int xB = x/binning;
     int yB = y/binning;
+    int binnedBlkSize = blkSize/binning;
 
-    af::array binnedCube = qualityBinnedSeries(af::seq(xB, xB + binnedBlkSize -1), af::seq(yB, yB + binnedBlkSize -1), af::span);
-    af::array gradSum = flat(sum(sum(binnedCube, 0), 1));
+    af::array qualityBlk = qualityBinnedSeries(af::seq(xB, xB + binnedBlkSize -1), af::seq(yB, yB + binnedBlkSize -1), af::span);
+    af::array qualityBlk2 = af::moddims(qualityBlk, qualityBlk.dims(0)*qualityBlk.dims(1), qualityBlk.dims(2));
+    // Quality set to total sum of (|dx| + |dy|)
+    //af::array quality = af::flat(af::sum(qualityBlk2, 0));
+
+    // Quality set to max of (|dx| + |dy|)
+    af::array quality = af::flat(af::max(qualityBlk2, 0));
 
     /// Sort the sum of the gradient-norm. Sorted Array is the array ordered in decreasing quality
     af::array sortedArray;
     af::array sortIndices;
-    af::sort(sortedArray, sortIndices, gradSum, 0, false);
+    af::sort(sortedArray, sortIndices, quality, 0, false);
     af::array bestInds = sortIndices(af::seq(0, nBest-1));
     unsigned int *bestIndsH = bestInds.host<unsigned int>();
 
     stackedBlks = arfSeries(xRange, yRange, bestInds);
+//    std::cout << "Block values" << std::endl;
+//    af_print(stackedBlks(af::seq(0, 9), af::seq(0,9), 1))
+
+    if (nBest == 1)
+    {
+        return;
+    }
+
     af::array shifts = af::constant(0, 2, nBest-1);
     phaseCorrelate2(stackedBlks, shifts, arDim);
+
 
     for (int i = 1; i < nBest; i++)
     {
@@ -3766,6 +3709,51 @@ void RProcessing::makeAlignedStack3(af::array &stackedBlks, const af::array &arf
         af::array yShift = tile(shifts(1, i-1), blkSize);
         /// Need to check these values... some of them are not physically accurate
         /// although they are precise in a correlation sense.
+
+        af::array xr = xRange - xShift;
+        af::array yr = yRange - yShift;
+        stackedBlks(af::span, af::span, i) = arfSeries(xr, yr, bestIndsH[i]);
+    }
+}
+
+void RProcessing::makeAlignedStackLaplace(af::array &stackedBlks, const af::array &arfSeries, const af::array &qualitySeries, const af::array &arDim, const af::array &xRange, const af::array &yRange, int &x, int &y)
+{
+    /// Same as makeAlignedStackGradient but assumes the Laplacian metric in the qualitySeries.
+    int xB = x/binning;
+    int yB = y/binning;
+    int binnedBlkSize = blkSize/binning;
+
+    af::array qualityBlk = qualitySeries(af::seq(xB, xB + binnedBlkSize -1), af::seq(yB, yB + binnedBlkSize -1), af::span);
+    af::array qualityBlk2 = af::abs(af::moddims(qualityBlk, qualityBlk.dims(0)*qualityBlk.dims(1), qualityBlk.dims(2)));
+    af::array quality = af::flat(af::var(qualityBlk2, false, 0));
+    //af::array quality = af::flat(af::max(qualityBlk2, 0));
+    //af::array quality = af::flat(af::sum(qualityBlk2, 0));
+
+    /// Sort the quality in descending order
+    af::array sortedArray;
+    af::array sortIndices;
+    af::sort(sortedArray, sortIndices, quality, 0, false);
+    af::array bestInds = sortIndices(af::seq(0, nBest-1));
+    af_print(bestInds);
+    af_print(xRange);
+    af_print(yRange);
+    unsigned int *bestIndsH = bestInds.host<unsigned int>();
+
+    stackedBlks = arfSeries(xRange, yRange, bestInds);
+
+    if (nBest == 1)
+    {
+        return;
+    }
+
+    af::array shifts = af::constant(0, 2, nBest-1);
+    phaseCorrelate2(stackedBlks, shifts, arDim);
+    //af_print(shifts);
+
+    for (int i = 1; i < nBest; i++)
+    {
+        af::array xShift = tile(shifts(0, i-1), blkSize);
+        af::array yShift = tile(shifts(1, i-1), blkSize);
 
         af::array xr = xRange - xShift;
         af::array yr = yRange - yShift;
