@@ -5,7 +5,7 @@
 #include <QApplication>
 #include <QtCore>
 
-// Arrayfire
+
 #include <arrayfire.h>
 
 

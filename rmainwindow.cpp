@@ -835,41 +835,40 @@ void RMainWindow::solarLimbFit()
     processing->setHPFSigma(ui->hpfSpinBox->value());
 
 
-    if (!ui->treeWidget->rMatLightList.isEmpty())
+    if (ui->treeWidget->rMatLightList.isEmpty())
     {
-       processing->setShowContours(ui->contoursCheckBox->isChecked());
-
-       /// test limb fitting without smooth
-       bool success2 = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), false);
-       fittedLimbList2 = processing->getCircleOutList();
-
-       /// With smooth
-       int blurSize = ui->blurSizeSpinBox->value();      
-       bool success = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), true, blurSize);
-       fittedLimbList  = processing->getCircleOutList();
-
-        if (!success)
-        {
-            return;
-        }
-        /// Results need to be displayed as ROpenGLWidget as we will, de facto,
-        /// deal with time series
-        //createNewImage(processing->getContoursRMatList());
-
-        currentROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
-        addImage(currentROpenGLWidget);
-        setupSliders(currentROpenGLWidget);
-
-        autoScale(currentROpenGLWidget);
-        currentSubWindow->show();
-        displayPlotWidget(currentROpenGLWidget);
-
-    }
-    else
-    {
-            return;
+        return;
     }
 
+    processing->setShowContours(ui->contoursCheckBox->isChecked());
+
+    /// test limb fitting without smooth
+    //bool success2 = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), false);
+    //fittedLimbList2 = processing->getCircleOutList();
+
+    /// With smooth
+    int blurSize = ui->blurSizeSpinBox->value();
+    bool success = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), true, blurSize);
+    fittedLimbList  = processing->getCircleOutList();
+
+    if (!success)
+    {
+        return;
+    }
+    /// Results need to be displayed as ROpenGLWidget as we will, de facto,
+    /// deal with time series
+    //createNewImage(processing->getContoursRMatList());
+
+    // Display results in UI
+    updateLimbResults();
+
+    currentROpenGLWidget = new ROpenGLWidget(processing->getContoursRMatList(), this);
+    addImage(currentROpenGLWidget);
+    setupSliders(currentROpenGLWidget);
+
+    autoScale(currentROpenGLWidget);
+    currentSubWindow->show();
+    displayPlotWidget(currentROpenGLWidget);
 
 
 }
@@ -886,12 +885,26 @@ void RMainWindow::solarLimbRegisterSlot()
         return;
     }
 
+
     createNewImage(processing->getLimbFitResultList1());
 
     //rangeScale();
     autoScale();
     currentROpenGLWidget->setRadius(processing->getMeanRadius());
 
+}
+
+void RMainWindow::updateLimbResults()
+{
+    if (fittedLimbList.empty())
+    {
+        tempMessageSignal("No limb fit data available");
+        return;
+    }
+
+    ui->centerXLabel->setText(QString::number(fittedLimbList.at(0).a, 'f', 2));
+    ui->centerYLabel->setText(QString::number(fittedLimbList.at(0).b, 'f', 2));
+    ui->radiusLabel->setText(QString::number(processing->getMeanRadius(), 'f', 2));
 }
 
 

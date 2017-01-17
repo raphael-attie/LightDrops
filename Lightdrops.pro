@@ -10,26 +10,26 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = Lightdrops
 TEMPLATE = app
-# Fix for xcode 8
-QMAKE_MAC_SDK = macosx10.12
+CONFIG += console #only for debug
 
 win32 {
     DEFINES += WIN32
-    INCLUDEPATH += C:/dev/cfitsio_64
-    INCLUDEPATH += C:/dev/libraw
-    INCLUDEPATH += C:/dev/opencv/include
-    INCLUDEPATH += C:/dev/ArrayFire/v3/include
-    INCLUDEPATH += C:/dev/exiv2/include
+    INCLUDEPATH += C:/Dev/cfitsio_64
+    INCLUDEPATH += C:/Dev/libraw
+    INCLUDEPATH += C:\Dev\opencv\build\include
+    INCLUDEPATH += "C:\Program Files\ArrayFire\v3\include"
+    #INCLUDEPATH += C:/dev/exiv2/include
 
-    LIBS += -LC:/dev/exiv2/x64/Debug -llibexiv2
-    LIBS += -LC:/dev/cfitsio_64 -lcfitsio
-    LIBS += -LC:/dev/libraw/lib -llibraw
-    LIBS += -LC:/dev/ArrayFire/v3/lib -lafopencl
-    LIBS += -LC:/dev/opencv/lib -lopencv_world310
+    #LIBS += -LC:/Dev/exiv2/x64/Debug -llibexiv2
+    LIBS += -LC:/Dev/cfitsio_64 -lcfitsio
+    LIBS += -LC:/Dev/libraw/lib -llibraw
+    LIBS += -L"C:\Program Files\ArrayFire\v3\lib" -lafopencl
+    LIBS += -LC:\Dev\opencv\build\x64\vc14\lib -lopencv_world320
 }
 
 macx {
-
+    # Fix for xcode 8
+    QMAKE_MAC_SDK = macosx10.12
     INCLUDEPATH += /usr/local/include
 # Exiv2
     #INCLUDEPATH += /opt/local/include

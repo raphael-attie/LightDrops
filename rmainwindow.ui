@@ -78,7 +78,7 @@
      <x>0</x>
      <y>0</y>
      <width>1557</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -1975,7 +1975,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -1983,7 +1983,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>330</height>
+          <height>365</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2088,7 +2088,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>330</height>
+          <height>365</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2232,7 +2232,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>330</height>
+          <height>365</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2245,7 +2245,13 @@
          <string>Registration</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_7">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
          <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
           <number>0</number>
          </property>
          <property name="bottomMargin">
@@ -2253,6 +2259,12 @@
          </property>
          <item>
           <widget class="QTabWidget" name="registrationTabWidget">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>250</height>
+            </size>
+           </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
@@ -2337,21 +2349,6 @@
              <string>Limb</string>
             </attribute>
             <layout class="QVBoxLayout" name="verticalLayout_9">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>10</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>10</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
              <item>
               <spacer name="verticalSpacer_5">
                <property name="orientation">
@@ -2447,6 +2444,45 @@
                </property>
               </widget>
              </item>
+             <item>
+              <layout class="QGridLayout" name="gridLayout_13">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_27">
+                 <property name="text">
+                  <string>Center: </string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLabel" name="centerXLabel">
+                 <property name="text">
+                  <string>0</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QLabel" name="centerYLabel">
+                 <property name="text">
+                  <string>0</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_30">
+                 <property name="text">
+                  <string>Radius:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLabel" name="radiusLabel">
+                 <property name="text">
+                  <string>0</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
             </layout>
            </widget>
            <widget class="QWidget" name="phaseCorrTab">
@@ -2473,7 +2509,7 @@
           <x>0</x>
           <y>0</y>
           <width>210</width>
-          <height>330</height>
+          <height>365</height>
          </rect>
         </property>
         <attribute name="label">
@@ -2530,8 +2566,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>230</width>
-          <height>330</height>
+          <width>210</width>
+          <height>365</height>
          </rect>
         </property>
         <attribute name="label">
@@ -2928,8 +2964,8 @@
    <slot>exportMastersToFits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1543</x>
-     <y>634</y>
+     <x>1539</x>
+     <y>665</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2960,8 +2996,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>996</x>
-     <y>906</y>
+     <x>1102</x>
+     <y>909</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -2976,8 +3012,8 @@
    <slot>calibrateOffScreenSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1506</x>
-     <y>664</y>
+     <x>1510</x>
+     <y>692</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -3056,12 +3092,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>418</x>
-     <y>895</y>
+     <x>471</x>
+     <y>888</y>
     </hint>
     <hint type="destinationlabel">
-     <x>574</x>
-     <y>896</y>
+     <x>520</x>
+     <y>887</y>
     </hint>
    </hints>
   </connection>
@@ -3072,7 +3108,7 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1458</x>
+     <x>1461</x>
      <y>473</y>
     </hint>
     <hint type="destinationlabel">
@@ -3088,8 +3124,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1467</x>
-     <y>471</y>
+     <x>1462</x>
+     <y>469</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3104,12 +3140,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>510</x>
-     <y>933</y>
+     <x>471</x>
+     <y>927</y>
     </hint>
     <hint type="destinationlabel">
-     <x>574</x>
-     <y>934</y>
+     <x>520</x>
+     <y>926</y>
     </hint>
    </hints>
   </connection>
@@ -3120,8 +3156,8 @@
    <slot>previewMatImageHPFSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>672</x>
-     <y>938</y>
+     <x>601</x>
+     <y>928</y>
     </hint>
     <hint type="destinationlabel">
      <x>701</x>
@@ -3136,12 +3172,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>574</x>
-     <y>934</y>
+     <x>520</x>
+     <y>926</y>
     </hint>
     <hint type="destinationlabel">
-     <x>510</x>
-     <y>933</y>
+     <x>471</x>
+     <y>927</y>
     </hint>
    </hints>
   </connection>
@@ -3152,12 +3188,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>574</x>
-     <y>896</y>
+     <x>520</x>
+     <y>887</y>
     </hint>
     <hint type="destinationlabel">
-     <x>418</x>
-     <y>895</y>
+     <x>471</x>
+     <y>888</y>
     </hint>
    </hints>
   </connection>
@@ -3200,8 +3236,8 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>350</x>
-     <y>895</y>
+     <x>520</x>
+     <y>906</y>
     </hint>
     <hint type="destinationlabel">
      <x>524</x>
@@ -3220,8 +3256,8 @@
      <y>870</y>
     </hint>
     <hint type="destinationlabel">
-     <x>721</x>
-     <y>870</y>
+     <x>895</x>
+     <y>874</y>
     </hint>
    </hints>
   </connection>
@@ -3236,8 +3272,8 @@
      <y>902</y>
     </hint>
     <hint type="destinationlabel">
-     <x>721</x>
-     <y>902</y>
+     <x>895</x>
+     <y>908</y>
     </hint>
    </hints>
   </connection>
@@ -3252,8 +3288,8 @@
      <y>934</y>
     </hint>
     <hint type="destinationlabel">
-     <x>721</x>
-     <y>934</y>
+     <x>895</x>
+     <y>942</y>
     </hint>
    </hints>
   </connection>
@@ -3280,8 +3316,8 @@
    <slot>blockProcessingSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1567</x>
-     <y>778</y>
+     <x>1541</x>
+     <y>774</y>
     </hint>
     <hint type="destinationlabel">
      <x>1119</x>
@@ -3296,8 +3332,8 @@
    <slot>luckyROISlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1454</x>
-     <y>721</y>
+     <x>1441</x>
+     <y>734</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3312,8 +3348,8 @@
    <slot>extractLuckySampleSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1540</x>
-     <y>721</y>
+     <x>1528</x>
+     <y>734</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3344,8 +3380,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1114</x>
-     <y>921</y>
+     <x>1175</x>
+     <y>932</y>
     </hint>
     <hint type="destinationlabel">
      <x>1160</x>

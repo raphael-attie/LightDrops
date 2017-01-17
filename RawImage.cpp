@@ -277,17 +277,17 @@ RawImage::~RawImage()
 void RawImage::extractExif()
 {
     /// Extract exif data
-    image = Exiv2::ImageFactory::open(filePath_.toStdString());
-    assert(image.get() != 0);
-    image->readMetadata();
-    Exiv2::ExifData &exifData = image->exifData();
-    if (exifData.empty())
-    {
-        std::string error(filePath_.toStdString());
-        error += ": No Exif data found in the file";
-        throw Exiv2::Error(1, error);
-    }
-    Exiv2::Exifdatum temperatureData = exifData["Exif.CanonSi.CameraTemperature"];
+//    image = Exiv2::ImageFactory::open(filePath_.toStdString());
+//    assert(image.get() != 0);
+//    image->readMetadata();
+//    Exiv2::ExifData &exifData = image->exifData();
+//    if (exifData.empty())
+//    {
+//        std::string error(filePath_.toStdString());
+//        error += ": No Exif data found in the file";
+//        throw Exiv2::Error(1, error);
+//    }
+//    Exiv2::Exifdatum temperatureData = exifData["Exif.CanonSi.CameraTemperature"];
 
     QDateTime dt = QDateTime::fromTime_t( rawProcess.imgdata.other.timestamp );
 
@@ -302,7 +302,7 @@ void RawImage::extractExif()
     dispatchMetaDatum("Order", QString::number(rawProcess.imgdata.other.shot_order), "Shot ordered number");
     dispatchMetaDatum("ISO", QString::number(rawProcess.imgdata.other.iso_speed));
     dispatchMetaDatum("XPOSURE", QString::number(rawProcess.imgdata.other.shutter), "Exposure time (s)");
-    dispatchMetaDatum("Temperature", QString::fromStdString(temperatureData.print()), "Temperature of camera sensor in degrees Celsius");
+    //dispatchMetaDatum("Temperature", QString::fromStdString(temperatureData.print()), "Temperature of camera sensor in degrees Celsius");
 
 }
 

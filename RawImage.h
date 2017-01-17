@@ -18,7 +18,7 @@
 
 // Exiv2
 //#include <exiv2/exiv2.hpp>
-#include "exiv2/exiv2.hpp"
+//#include "exiv2/exiv2.hpp"
 
 class RawImage
 {
@@ -97,7 +97,7 @@ private:
     QVector<QString> keyValues;
     QVector<QString> keyComments;
 
-    Exiv2::Image::AutoPtr image;
+    //Exiv2::Image::AutoPtr image;
 
 
 

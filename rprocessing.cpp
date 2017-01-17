@@ -2694,7 +2694,7 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
             matImage0.convertTo(matImage, CV_16U);
         }
 
-        int numDots = 64;
+        int numDots = 128;
 
         Data wernerPoints = Data(numDots*4);
         raphFindLimb( matImage, &wernerPoints, numDots, smooth, smoothSize);
@@ -2724,15 +2724,19 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
 
         }
         /// documentation: void meanStdDev(InputArray src, OutputArray mean, OutputArray stddev, InputArray mask=noArray())
+        cv::Mat matDistances(distances, false);
         cv::Scalar mean, stddev;
-        cv::meanStdDev(distances, mean, stddev);
+        cv::meanStdDev(matDistances, mean, stddev);
+        double meand = mean.val[0];
+        qDebug("mean = %f", meand);
+
         float median = calcMedian(distances, 0.1);
 
         std::vector<cv::Point> newPoints;
         for (int j = 0; j < wernerPoints.n; j++)
         {
 //            if ( abs(distances[j] - mean[0] ) <  stddev[0] )
-            if ( abs(distances[j] - median ) <  stddev[0] )
+            if ( abs(distances[j] - median ) <  stddev.val[0] )
             {
                 cv::Point2f point( (float) wernerPoints.X[j], (float) wernerPoints.Y[j]);
                 newPoints.push_back(point);
@@ -2754,7 +2758,7 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
             circleOut2 = CircleFitByTaubin(cleanDataPoints);
         }
         /// End of 2nd pass
-        printf("[xc2, yc2, Rm2] = [%1.f, %1.f, %1.f] \n", circleOut2.a, circleOut2.b, circleOut2.r);
+        qDebug("[xc2, yc2, Rm2] = [%.2f, %.2f, %.2f]", circleOut2.a, circleOut2.b, circleOut2.r);
 
         /// 3rd pass
         cv::Point2f circleCenter2(circleOut2.a, circleOut2.b);
@@ -2765,14 +2769,15 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
             float distance = cv::norm(point-circleCenter2);
             distances2[j] = distance;
         }
-        cv::meanStdDev(distances2, mean, stddev);
+        cv::Mat matDistances2(distances2, false);
+        cv::meanStdDev(matDistances2, mean, stddev);
         median = calcMedian(distances2, 0.1);
 
         std::vector<cv::Point> newPoints2;
         for (int j = 0; j < cleanDataPoints.n; j++)
         {
             //if ( abs(distances2[j] - mean[0] ) <  stddev[0] )
-            if ( abs(distances2[j] - median ) <  stddev[0] )
+            if ( abs(distances2[j] - median ) <  stddev.val[0] )
             {
                 cv::Point2f point( (float) cleanDataPoints.X[j], (float) cleanDataPoints.Y[j]);
                 newPoints2.push_back(point);
@@ -2842,14 +2847,16 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
             cv::Scalar green = cv::Scalar(0, 255, 0);
             cv::Scalar red = cv::Scalar(255, 0, 0);
             cv::Scalar orange = cv::Scalar(255, 128, 0);
-            // draw the 1st fitted circle in green
-            cv::circle(contoursMat, circleCenter, circleOut.r, green, 2, 8);
-
-            if (!newPoints2.empty())
+            if (newPoints2.empty())
             {
-                // draw the 2nd fitted circle in orange
+                // draw the 1st fitted circle in green
+                cv::circle(contoursMat, circleCenter, circleOut.r, green, 2, 8);
+            }
+            else
+            {
+                // draw the 3rd fitted circle in orange
                 cv::Point2f circleCenter3(circleOut3.a, circleOut3.b);
-                cv::circle(contoursMat, circleCenter3, circleOut3.r, orange, 2, 8);
+                cv::circle(contoursMat, circleCenter3, circleOut3.r, red, 1, 8);
             }
 
         }
@@ -2874,8 +2881,9 @@ bool RProcessing::wernerLimbFit(QList<RMat*> rMatImageList, bool smooth, int smo
         qDebug("radius = %f", circleOutList.at(i).r);
     }
     std::vector<double> radii = radius.toStdVector();
-    cv::Scalar tempRadius = cv::mean(radii);
-    meanRadius = (float) tempRadius[0];
+    cv::Mat matRadii(radii, false);
+    cv::Scalar tempRadius = cv::mean(matRadii);
+    meanRadius = (float) tempRadius.val[0];
     qDebug() << "vector radius = " << radius;
     qDebug("meanRadius() = %f", meanRadius);
 
@@ -2944,51 +2952,88 @@ void RProcessing::raphFindLimb(cv::Mat matImage, Data *dat, int numDots, bool sm
     /// This fix won't be needed after using Emil's updated version
     /// of Suncap, but still needed for the older files in the USET database.
     fixUset(matImage);
+    cv::Mat matImageF;
+    matImage.convertTo(matImageF, CV_32F);
     cv::Mat matSlice;
     cv::Mat gradXLeft, gradXRight, gradYBottom, gradYTop;
+    cv::Mat gradX, gradY;
     cv::Point minLoc, maxLoc;
     double minVal, maxVal;
     int naxis1 = matImage.cols;
     int naxis2 = matImage.rows;
-    /// Kernels for image gradients
-    /// Over x-axis, forward (from left edge) and backward (from right-edge) direction
-    cv::Mat kernelXLeft = (cv::Mat_<float>(1,3)<<-0.5, 0, 0.5);
-    cv::Mat kernelXRight = (cv::Mat_<float>(1,3)<<0.5, 0, -0.5);
+    // 1D smoothing kernels
+    cv::Mat smoothKerX = cv::Mat::ones(1, 3, CV_32F);
+    smoothKerX /= smoothSize;
+    cv::Mat smoothKerY = cv::Mat::ones(3, 1, CV_32F);
+    smoothKerY /= smoothSize;
+    /// Kernels for central derivatives
+    cv::Mat kernelXCentDeriv = (cv::Mat_<float>(1,3)<<-0.5, 0, 0.5);
     /// Over y-axis, forward and backward direction
-    cv::Mat kernelYBottom = (cv::Mat_<float>(3,1)<<-0.5, 0, 0.5);
-    cv::Mat kernelYTop = (cv::Mat_<float>(3,1)<<0.5, 0, -0.5);
-    cv::Size kernelSize(smoothSize, smoothSize);
+    cv::Mat kernelYCentDeriv = (cv::Mat_<float>(3,1)<<-0.5, 0, 0.5);
+    //cv::Size kernelSize(smoothSize, smoothSize);
     if (smoothSize == 0) { smooth = false; }
 
     for (int ii = 0; ii < numDots; ii++)
     {
         int X = naxis1/4 + ii*naxis1/(2*numDots);
         int Y = naxis2/4 + ii*naxis2/(2*numDots);
+
         /// Left-hand slices (no copy)
-        matSlice = matImage(cv::Range(Y, Y+1), cv::Range(0, naxis1/4));
-        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
-        cv::filter2D(matSlice, gradXLeft, -1, kernelXLeft, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        matSlice = matImageF.rowRange(Y, Y+1);
+
+        if (ii == 0)
+        {
+            std::cout << "x , y =" << X << ", " << Y << std::endl;
+            std::cout << "matSlice = " << std::endl;
+            std::cout << matSlice(cv::Range(0, 1), cv::Range(0, 10)) << std::endl;
+        }
+
+        if (smooth)
+        {
+            cv::filter2D(matSlice, matSlice, -1, smoothKerX, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        }
+
+        if (ii == 0)
+        {
+            std::cout << "matSlice (smoothed)= " << std::endl;
+            std::cout << matSlice(cv::Range(0, 1), cv::Range(0, 10)) << std::endl;
+        }
+
+        cv::filter2D(matSlice, gradX, -1, kernelXCentDeriv, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        gradXLeft = cv::abs(gradX(cv::Range(0, 1), cv::Range(0, naxis1/4)));
+
+        if (ii == 0)
+        {
+            std::cout << "gradXLeft = " << endl;
+            std::cout << gradXLeft(cv::Range(0, 1), cv::Range(0, 10)) << std::endl;
+        }
+
+
         cv::minMaxLoc(gradXLeft, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii] = maxLoc.x;
         dat->Y[ii] = Y;
+
         /// Right-hand slices (no copy)
-        matSlice = matImage(cv::Range(Y, Y+1), cv::Range(3*naxis1/4, naxis1));
-        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
-        cv::filter2D(matSlice, gradXRight, -1, kernelXRight, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        gradXRight = cv::abs(gradX(cv::Range(0, 1), cv::Range(3*naxis1/4, naxis1)));
         cv::minMaxLoc(gradXRight, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii + numDots] = maxLoc.x + 3*naxis1/4;
         dat->Y[ii + numDots] = Y;
+
         ///Bottom slices (no copy)
-        matSlice = matImage(cv::Range(0, naxis2/4), cv::Range(X, X+1));
-        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
-        cv::filter2D(matSlice, gradYBottom, -1, kernelYBottom, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        matSlice = matImageF.colRange(X, X+1);
+
+        if (smooth)
+        {
+            cv::filter2D(matSlice, matSlice, -1, smoothKerX, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        }
+        cv::filter2D(matSlice, gradY, -1, kernelYCentDeriv, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        gradYBottom = cv::abs(gradY(cv::Range(0, naxis2/4), cv::Range(0, 1)));
         cv::minMaxLoc(gradYBottom, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii + 2*numDots] = X;
         dat->Y[ii + 2*numDots] = maxLoc.y;
+
         ///Top slices (no copy)
-        matSlice = matImage(cv::Range(3*naxis2/4, naxis2), cv::Range(X, X+1));
-        if (smooth){ cv::blur(matSlice, matSlice, kernelSize); }
-        cv::filter2D(matSlice, gradYTop, -1, kernelYTop, cv::Point(-1, -1), 0, cv::BORDER_REPLICATE);
+        gradYTop = cv::abs(gradY(cv::Range(3*naxis2/4, naxis2), cv::Range(0, 1)));
         cv::minMaxLoc(gradYTop, &minVal, &maxVal, &minLoc, &maxLoc);
         dat->X[ii + 3*numDots] = X;
         dat->Y[ii + 3*numDots] = maxLoc.y + 3*naxis2/4;
@@ -3105,58 +3150,27 @@ cv::Mat RProcessing::normalizeClipByThresh(cv::Mat matImage, float newMin, float
 
 void RProcessing::fixUset(cv::Mat matImage)
 {
-    if (matImage.type() == CV_8U)
-    {
-        for (int x = 0; x < matImage.cols; x++)
-        {   /// 1st rows
-            matImage.at<uchar>(0, x) = matImage.at<uchar>(4, x);
-            matImage.at<uchar>(1, x) = matImage.at<uchar>(4, x);
-            matImage.at<uchar>(2, x) = matImage.at<uchar>(4, x);
-            matImage.at<uchar>(3, x) = matImage.at<uchar>(4, x);
-            /// 1st column
-        }
-        for (int y = 0; y < matImage.rows; y++)
-        {   /// 1st rows
-            matImage.at<uchar>(y, 0) = matImage.at<uchar>(y, 4);
-            matImage.at<uchar>(y, 1) = matImage.at<uchar>(y, 4);
-            matImage.at<uchar>(y, 2) = matImage.at<uchar>(y, 4);
-            matImage.at<uchar>(y, 3) = matImage.at<uchar>(y, 4);
-            /// 1st column
-        }
-    }
-    else if (matImage.type() == CV_16U)
-    {
-        for (int x = 0; x < matImage.cols; x++)
-        {   /// 1st rows
-            matImage.at<ushort>(0, x) = matImage.at<ushort>(4, x);
-            matImage.at<ushort>(1, x) = matImage.at<ushort>(4, x);
-            matImage.at<ushort>(2, x) = matImage.at<ushort>(4, x);
-            matImage.at<ushort>(3, x) = matImage.at<ushort>(4, x);
-        }
-        for (int y = 0; y < matImage.rows; y++)
-        {   /// 1st rows
-            matImage.at<ushort>(y, 0) = matImage.at<ushort>(y, 4);
-            matImage.at<ushort>(y, 1) = matImage.at<ushort>(y, 4);
-            matImage.at<ushort>(y, 2) = matImage.at<ushort>(y, 4);
-            matImage.at<ushort>(y, 3) = matImage.at<ushort>(y, 4);
-        }
-    }
 
+    if (matImage.type() == CV_16U)
+    {
+        for (int x = 0; x < matImage.cols; x++)
+        {   /// 1st rows
+            matImage.at<ushort>(0, x) = matImage.at<ushort>(1, x);
+        }
+        for (int y = 0; y < matImage.rows; y++)
+        {   /// 1st rows
+            matImage.at<ushort>(y, 0) = matImage.at<ushort>(y, 1);
+        }
+    }
     else if (matImage.type() == CV_32F)
     {
         for (int x = 0; x < matImage.cols; x++)
         {   /// 1st rows
-            matImage.at<float>(0, x) = matImage.at<float>(4, x);
-            matImage.at<float>(1, x) = matImage.at<float>(4, x);
-            matImage.at<float>(2, x) = matImage.at<float>(4, x);
-            matImage.at<float>(3, x) = matImage.at<float>(4, x);
+            matImage.at<float>(0, x) = matImage.at<float>(1, x);
         }
         for (int y = 0; y < matImage.rows; y++)
         {   /// 1st rows
-            matImage.at<float>(y, 0) = matImage.at<float>(y, 4);
-            matImage.at<float>(y, 1) = matImage.at<float>(y, 4);
-            matImage.at<float>(y, 2) = matImage.at<float>(y, 4);
-            matImage.at<float>(y, 3) = matImage.at<float>(y, 4);
+            matImage.at<float>(y, 0) = matImage.at<float>(y, 1);
         }
     }
 

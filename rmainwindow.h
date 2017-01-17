@@ -104,6 +104,7 @@ private slots:
     void registerSlot();
     void solarLimbFit();
     void solarLimbRegisterSlot();
+    void updateLimbResults();
     void normalizeCurrentSeries();
     void previewMatImageHPFSlot();
     void stackSlot();
@@ -132,6 +133,8 @@ private slots:
     void playForward();
     void increaseFps();
     void decreaseFps();
+
+
 
     void stopButtonPressed();
 
