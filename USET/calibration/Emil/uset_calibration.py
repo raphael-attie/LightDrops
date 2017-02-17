@@ -451,10 +451,9 @@ def write_uset_fits(image, header, fname):
     rImage = np.rint(image)
     intImage = np.int16(image)
     try:
-        fits.writeto(fname, intImage, header=header, output_verify='exception', overwrite=True)
-    except TypeError:
+        fits.writeto(fname, intImage, header=header, output_verify='exception', checksum=True, overwrite=True)
+    except TypeError, e:
         fits.writeto(fname, intImage, header=header, output_verify='exception', checksum=True, clobber=True)
-
 
 def get_basename(filepath):
     """
@@ -464,7 +463,7 @@ def get_basename(filepath):
     :return: file basename without exension
 
     :Example:
-    basename('/Users/blah/blahblah/USET/Data/HA\\UCH20160311105740.FTS')
+    >>> basename('/Users/blah/blahblah/USET/Data/HA\\UCH20160311105740.FTS')
     'UCH20160311105740'
 
     """
@@ -540,17 +539,22 @@ def export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname):
     naxis1 = image.shape[1]
     naxis2 = image.shape[0]
 
-    # Width and height [px] of the close-up of each quadrant
+    # Width and height of the close-up of each quadrant
     width  = 500
     height = 200
 
-    xgrid_tb = np.arange(width) + (naxis1/2 - width/2)
-    ygrid_bot = np.arange(height)
-    ygrid_top = ygrid_bot + (naxis2 - height)
+    xgrid_bot = np.arange(width) + 3*naxis1/8
+    ygrid_bot = np.arange(height) + 100
+
+    xgrid_top = np.arange(width) + 3 * naxis1 / 8
+    ygrid_top = np.arange(height) + 7*naxis1/8
 
     xgrid_east = np.arange(height)
-    xgrid_west = xgrid_east + (naxis1 - height)
-    ygrid_ew = np.arange(width) + (naxis2/2 - width/2)
+    ygrid_east = np.arange(width) + 3 * naxis1 / 8
+
+    xgrid_west = np.arange(height) + 7*naxis1/8
+    ygrid_west = np.arange(width) + 3 * naxis1 / 8
+
 
     fig = plt.figure(1)
     fig.clear()
@@ -561,8 +565,8 @@ def export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname):
     # South limb
     # ax = plt.axes([x0, y0, width, height])
     ax = plt.axes([0.175, 0.06, 0.75, 0.3])
-    plt.imshow(image, cmap='gray', origin='lower')
-    plt.axis([xgrid_tb[0], xgrid_tb[-1], ygrid_bot[0], ygrid_bot[-1]])
+    plt.imshow(image, cmap = 'gray', origin='lower')
+    plt.axis([xgrid_bot[0], xgrid_bot[-1], ygrid_bot[0], ygrid_bot[-1]])
     for i in range(0, pts.shape[0]):
        plt.plot(pts[i,0], pts[i,1], sym1, ms=2)
     for i in range(0, pts3.shape[0]):
@@ -578,7 +582,7 @@ def export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname):
     # ax = plt.axes([x0, y0, width, height])
     ax = plt.axes([0.175, 0.41, 0.75, 0.3])
     plt.imshow(image, cmap='gray', origin='lower')
-    plt.axis([xgrid_tb[0], xgrid_tb[-1], ygrid_top[0], ygrid_top[-1]])
+    plt.axis([xgrid_top[0], xgrid_top[-1], ygrid_top[0], ygrid_top[-1]])
     for i in range(0, pts.shape[0]):
         plt.plot(pts[i, 0], pts[i, 1], sym1, ms=2)
     for i in range(0, pts3.shape[0]):
@@ -595,7 +599,7 @@ def export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname):
     # ax = plt.axes([x0, y0, width, height])
     ax = plt.axes([0, 0, 0.3, 0.75])
     plt.imshow(image, cmap = 'gray', origin='lower')
-    plt.axis([xgrid_east[0], xgrid_east[-1], ygrid_ew[0], ygrid_ew[-1]])
+    plt.axis([xgrid_east[0], xgrid_east[-1], ygrid_east[0], ygrid_east[-1]])
     for i in range(0, pts.shape[0]):
        plt.plot(pts[i,0], pts[i,1], sym1, ms=2)
     for i in range(0, pts3.shape[0]):
@@ -612,7 +616,7 @@ def export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname):
     # ax = plt.axes([x0, y0, width, height])
     ax = plt.axes([0.8, 0, 0.3, 0.75])
     plt.imshow(image, cmap='gray', origin='lower')
-    plt.axis([xgrid_west[0], xgrid_west[-1], ygrid_ew[0], ygrid_ew[-1]])
+    plt.axis([xgrid_west[0], xgrid_west[-1], ygrid_west[0], ygrid_west[-1]])
     for i in range(0, pts.shape[0]):
         plt.plot(pts[i, 0], pts[i, 1], sym1, ms=2)
     for i in range(0, pts3.shape[0]):
@@ -624,6 +628,7 @@ def export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname):
     # Draw the fitted circle
     circle1 = plt.Circle((xc, yc), Rm, color=ccolor, fill=False, linewidth=1)
     ax.add_artist(circle1)
+
 
     plt.savefig(fname, dpi=180, bbox_inches='tight')
 

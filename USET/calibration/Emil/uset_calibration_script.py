@@ -11,19 +11,18 @@ Refer to it for more detailed documentation of what each function do
 import os
 import glob
 from astropy.io import fits
-import matplotlib
-matplotlib.use('Agg')
+import numpy as np
 import matplotlib.pyplot as plt
 import uset_calibration as uset
-
 
 # Disable interactive mode so figure goes directory to a file and does not show up on screen
 plt.ioff()
 
 # Get the list of files, change it according to where your data files are
-file_list   = glob.glob("/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp/*.FTS")
+#file_list   = glob.glob("/Users/attie/Dropbox/USET/Data/HA/*.FTS")
+file_list   = glob.glob("C:/ludicrous_1x_4x_gain/1/*.FTS")
 # Output parent directory
-outdir = '/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp'
+outdir = 'C:/ludicrous_1x_4x_gain/1_OUTPUT'
 # Two different subdirectories for different configuration levels.
 outdir_10  = outdir + '/calibrated_level1.0/'
 outdir_11  = outdir + '/calibrated_level1.1/'
@@ -46,7 +45,7 @@ write_fits_level_11         = True
 
 num_files = len(file_list)
 # Loop through all the files
-for i in range(0, 1):
+for i in range(0, num_files):
 
     file = file_list[i]
     hdu = fits.open(file, ignore_missing_end=True)
