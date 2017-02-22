@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 This script demonstrates the calibration pipeline for USET.
+This script produces also jpeg for a quick check of the limb fitting, can be disabled for faster execution.
 The actual functions doing the processing are in the "uset_calibration" module.
-Refer to it for more detailed documentation of what each function do
+Refer to it for more detailed documentation of what each function do.
 
 @author: Raphael Attie
 """
@@ -21,16 +22,21 @@ import uset_calibration as uset
 plt.ioff()
 
 # Get the list of files, change it according to where your data files are
-file_list   = glob.glob("/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp/*.FTS")
+file_list = glob.glob("/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp/*.FTS")
 # Output parent directory
 outdir = '/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp'
-# Two different subdirectories for different configuration levels.
-outdir_10  = outdir + '/calibrated_level1.0/'
-outdir_11  = outdir + '/calibrated_level1.1/'
+# Two directories for two configuration levels (1.0 & 1.1), and 1 directory for jpeg image to check limb-fit.
+# Calibration level 1.0
+outdir_10       = outdir + '/calibrated_level1.0/'
+outdir_10_jpeg  = outdir_10 + '/limb_fit_jpeg/'
+# Calibration level 1.1
+outdir_11       = outdir + '/calibrated_level1.1/'
 
 # Check if output directories exist. Create if not.
 if not os.path.isdir(outdir_10):
     os.makedirs(outdir_10)
+if not os.path.isdir(outdir_10_jpeg):
+    os.makedirs(outdir_10_jpeg)
 if not os.path.isdir(outdir_11):
     os.makedirs(outdir_11)
 
@@ -46,10 +52,11 @@ write_fits_level_11         = True
 
 num_files = len(file_list)
 # Loop through all the files
-for i in range(0, 1):
+for i in range(0, 2):
 
     file = file_list[i]
     hdu = fits.open(file, ignore_missing_end=True)
+    print(file)
 
     # Load header and image data from the 1st data unit: hdu[0]
     header = hdu[0].header
@@ -80,13 +87,13 @@ for i in range(0, 1):
 
     if print_preview_quadrants:
         fname_png = uset.get_basename(file) + '_level1.0_quadrants.jpeg'
-        fname = os.path.join(outdir_10, fname_png)
+        fname = os.path.join(outdir_10_jpeg, fname_png)
         # Plot and export preview of limb fitting results
         uset.export_limbfit_preview_quadrants(image, xc, yc, Rm, pts, pts3, fname)
 
     if print_preview_fullsun:
         fname_png = uset.get_basename(file) + '_level1.0_fullsun.jpeg'
-        fname = os.path.join(outdir_10, fname_png)
+        fname = os.path.join(outdir_10_jpeg, fname_png)
         # Plot and export preview of limb fitting results
         uset.export_limbfit_preview_fullsun(image, xc, yc, Rm, pts, pts3, fname)
 
