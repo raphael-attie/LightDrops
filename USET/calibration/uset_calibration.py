@@ -266,7 +266,7 @@ def center_disk(image, xc, yc):
 
 def uset_limbfit_align(image, limb_cleanup):
     """
-    Wrapper around the circle-fitting algorith to fit the limb of USET images.
+    Wrapper around the circle-fitting algorithm to fit the limb of USET images.
 
     :param image: input image to fit. The solar disk may partially lies outside the FOV.
     :return: image centered at the middle of each axis (image.shape / 2), coordinates of disk center,
@@ -473,16 +473,45 @@ def get_basename(filepath):
     return os.path.basename(path_basename)
 
 
-def export_limbfit_preview_fullsun(image, xc, yc, Rm, pts, pts3, fname):
+def export_preview(image, fname, colormap='gray'):
     """
-    Plot and save preview of the results of limb fitting to an image file.
+    Print preview of the given image with axis labels into an image file
+
+    :param image: image to be written to disk
+    :param fname: full path of image file with extension (.png, .jpeg, ...)
+    :param colormap: color map for plotting the image. Default is 'gray'.
+
+    :return: figure written on disk
+    """
+
+    # Image dimension
+    naxis1 = image.shape[1]
+    naxis2 = image.shape[0]
+
+    fig = plt.figure(1)
+    fig.clear()
+    # Plot image
+    plt.imshow(image, cmap = colormap, origin='lower')
+    plt.xlabel('X [px]')
+    plt.ylabel('Y [px]')
+    plt.axis([0, naxis1, 0, naxis2])
+
+    plt.savefig(fname, dpi=180, bbox_inches='tight')
+
+
+def export_limbfit_preview_fullsun(image, xc, yc, Rm, pts, pts3, fname, overlay_pts=False):
+    """
+    Print preview of the results of limb fitting into an image file. No screen display.
 
     :param image: limb-fitted image
     :param xc: x-coordinate of disk center [pixels]
     :param yc: y-coordinate of disk center [pixels]
-    :param Rm: disk radius
-    :param pts: Series of points coordinates that were fitted. Dimensions: [# of points, 2]
+    :param Rm: disk radius (mean)
+    :param pts: 1st pass series of points coordinates that were fitted. Dimensions: [# of points, 2]
+    :param pts3: 3rd pass series of points coordinates that were fitted. Dimensions: [# of points, 2]
     :param fname: full path of image file with extension (.png, .jpeg, ...)
+    :param overlay_pts: toggle overplotting the detected limb points (use supplied pts and pts3).
+
     :return: figure written on disk
     """
 
@@ -500,11 +529,12 @@ def export_limbfit_preview_fullsun(image, xc, yc, Rm, pts, pts3, fname):
     fig.clear()
     # Plot image
     plt.imshow(image, cmap = 'gray', origin='lower')
-    ## overlay limb points, after 1st pass (sym1) and 3rd pass (sym2)
-    # for i in range(0, pts.shape[0]):
-    #    plt.plot(pts[i,0], pts[i,1], sym1, ms=2)
-    # for i in range(0, pts3.shape[0]):
-    #    plt.plot(pts3[i,0], pts3[i,1], sym3, ms=2)
+    if overlay_pts:
+        # overlay limb points, after 1st pass (sym1) and 3rd pass (sym2)
+        for i in range(0, pts.shape[0]):
+           plt.plot(pts[i,0], pts[i,1], sym1, ms=2)
+        for i in range(0, pts3.shape[0]):
+           plt.plot(pts3[i,0], pts3[i,1], sym3, ms=2)
 
     ax = plt.gca()
     plt.xlabel('X [px]')
