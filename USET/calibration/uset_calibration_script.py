@@ -52,7 +52,7 @@ write_fits_level_11         = True
 
 num_files = len(file_list)
 # Loop through all the files
-for i in range(0, 2):
+for i in range(0, num_files):
 
     file = file_list[i]
     hdu = fits.open(file, ignore_missing_end=True)
