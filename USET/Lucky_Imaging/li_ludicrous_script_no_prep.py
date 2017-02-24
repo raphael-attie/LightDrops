@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Thu Oct 20 18:52:35 2016
+Script testing the lucky imaging. Assumes already co-aligned images
 
 @author: raphaela
 """

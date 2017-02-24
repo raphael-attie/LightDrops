@@ -15,6 +15,7 @@ from scipy.signal import convolve2d
 #from astropy.convolution import convolve
 #from astropy.convolution.kernels import CustomKernel
 #from scipy.ndimage.filters import laplace
+from scipy.ndimage.morphology import distance_transform_edt
 
 
 # Notes on vocabulary: frame ~ image ~ array (all synonyms)
@@ -106,6 +107,14 @@ def rebin_nd(ndarray, new_shape, operation='sum'):
 
 
 def block_processing_setup(arrays, binning):
+    """
+    Create a binned version of the full sun image, filled with values of sharpness metrics
+    Uses a custom kernel, 2nd-degree, Laplacian-like
+
+    :param arrays: image series (data cube)
+    :param binning: binning factor.
+    :return: Binned array of size = arrays size / binning.
+    """
     # dimensions of the binned array
     naxis1, naxis2, nframes = arrays.shape
     nbaxis1 = naxis1 / binning
@@ -134,8 +143,7 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     # Position of the block in the qbinned_arrays
     xB = x / binning
     yB = y / binning
-
-    # Extract a whole series of small block from the qbinned_arrays
+    # Extract a series of small block from the quality arrays
     binned_blks = qbinned_arrays[yB: yB + binned_blk_size, xB: xB + binned_blk_size, :]
     binned_blks = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], binned_blks.shape[2])
     # Quality metric is variance of laplacian, unbiased.
@@ -148,12 +156,9 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     offset = 4
 
     # Extract best blocks and reference blocks 
-    bestBlks0 = arrays[y - offset: y + blk_size + offset, x - offset: x + blk_size + offset, bestIndices]
-    bestBlks  = arrays[y: y + blk_size, x: x + blk_size, bestIndices]
-    # print("Block values")
-    # print(bestBlks[0:10, 0:10, 1].transpose())
-
-    refBlk = bestBlks0[:, :, 0]
+    bestBlks0   = arrays[y - offset: y + blk_size + offset, x - offset: x + blk_size + offset, bestIndices]
+    bestBlks    = arrays[y: y + blk_size, x: x + blk_size, bestIndices]
+    refBlk      = bestBlks0[:, :, 0]
     # Get the misalignment of each block to the reference block using phase correlation in Fourier space
     shifts = np.zeros([2, nbest-1])
     for i in range(1, nbest):
@@ -175,6 +180,8 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
 
     return bestBlks, shifts, bestIndices
 
+def gaussian(x, mu, sig):
+    return np.exp(-np.power(x - mu, 2.) / (2 * sig**2))
 
 def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
 
@@ -198,18 +205,26 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
     offsetY = blk_size
     naxis1End = naxis1 - 1 - 3 * blk_size
     naxis2End = naxis2 - 1 - 3 * blk_size
-    # Step 1 of block processing: Get the binned matrix of the quality metrics
+    # Step 1 of block processing: Get the binned matrix of the quality 2nd order metrics
     qBinnedArrays = block_processing_setup(images, binning)
     # qBinnedArrays is identical as its alternate in Lightdrops / C++
 
     # Initialize the canvas and weights that will contain the lucky-imaged array and weights
     canvas3D = np.zeros([naxis2, naxis1, nbest])
     weightCanvas = np.zeros([naxis2, naxis1, nbest])
+    # Distance-based blending curves
+    shape = np.array([blk_size, blk_size], dtype=int)
+    weights = np.zeros(shape)
+    weights[1:-1, 1:-1] = 1
+    dist_weights = distance_transform_edt(weights)
+    gauss_dist_weights = gaussian(dist_weights, shape[0] / 2, shape[0] / 8)
+
 
     shift_list = []
 
     ## Start main loop. Account for 50% overlap between consecutive blocks
     while y < naxis2End or x < naxis1End:
+        # Coordinates of the current block
         x = offsetX + (k * blk_size / 2 % naxis1End)
         y = offsetY + ((k * blk_size / 2) / naxis1End) * blk_size / 2
 
@@ -239,8 +254,12 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
         ys = int(y + round(shift[0]))
 
         # Fill the canvas with the stackedBlk, at the shifted position
+        # With arithmetic average
         canvas3D[ys: ys + blk_size, xs: xs + blk_size, :] += stackedBlks
         weightCanvas[ys: ys + blk_size, xs: xs + blk_size, :] += 1
+        # With distance-based weighted average (blending)
+        # canvas3D[ys: ys + blk_size, xs: xs + blk_size, :] += stackedBlks * gauss_dist_weights
+        # weightCanvas[ys: ys + blk_size, xs: xs + blk_size, :] += gauss_dist_weights
 
         # if abs(shift[0]) > 1 or abs(shift[1]) > 1:
         #      print "[k, x, y] = [%d, %d, %d] ; shift= [%.2f, %.2f]" % (k, x, y, shift[1], shift[0])
