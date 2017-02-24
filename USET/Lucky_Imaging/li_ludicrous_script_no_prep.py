@@ -15,10 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.feature import register_translation
 
-import ra_graphics as ra
 import ra_lucky_imaging as li
-from uset_calibration import *
-
 
 
 # Number of images to consider in the list of files
