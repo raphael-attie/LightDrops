@@ -117,8 +117,8 @@ def block_processing_setup(arrays, binning):
     """
     # dimensions of the binned array
     naxis1, naxis2, nframes = arrays.shape
-    nbaxis1 = naxis1 / binning
-    nbaxis2 = naxis2 / binning
+    nbaxis1 = int(naxis1 / binning)
+    nbaxis2 = int(naxis2 / binning)
 
     kernel = np.array([[1, 4, 1],
                       [4, -20, 4],
@@ -141,8 +141,8 @@ def block_processing_setup(arrays, binning):
 
 def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size, binning, x, y):
     # Position of the block in the qbinned_arrays
-    xB = x / binning
-    yB = y / binning
+    xB = int(x / binning)
+    yB = int(y / binning)
     # Extract a series of small block from the quality arrays
     binned_blks = qbinned_arrays[yB: yB + binned_blk_size, xB: xB + binned_blk_size, :]
     binned_blks = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], binned_blks.shape[2])
@@ -185,7 +185,7 @@ def gaussian(x, mu, sig):
 
 def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
 
-    binnedBlkSize = blk_size / binning
+    binnedBlkSize = int(blk_size / binning)
     # Define some starting coordinates where the block processing will start
     x = 0
     y = 0
@@ -225,8 +225,8 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
     ## Start main loop. Account for 50% overlap between consecutive blocks
     while y < naxis2End or x < naxis1End:
         # Coordinates of the current block
-        x = offsetX + (k * blk_size / 2 % naxis1End)
-        y = offsetY + ((k * blk_size / 2) / naxis1End) * blk_size / 2
+        x = int(offsetX + (k * blk_size / 2 % naxis1End))
+        y = int(offsetY + ((k * blk_size / 2) / naxis1End) * blk_size / 2)
 
         stackedBlks, shifts, best_indices = make_aligned_stack(images, qBinnedArrays, nbest, blk_size, binnedBlkSize, binning, x, y)
         blkSlice = stackedBlks[:, :, 0]

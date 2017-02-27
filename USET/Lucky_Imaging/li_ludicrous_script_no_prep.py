@@ -6,23 +6,36 @@ Script testing the lucky imaging. Assumes already co-aligned images
 @author: raphaela
 """
 
+import os
+import sys
+sys.path.append('/Users/rattie/Dev/LightDrops/USET/calibration')
+import matplotlib
+matplotlib.use('Agg')
+import uset_calibration as uset
 import glob
-from math import sqrt
 from astropy.io import fits
 import numpy as np
-#import matplotlib
-#matplotlib.use('Qt4Agg')
-import matplotlib.pyplot as plt
-from skimage.feature import register_translation
-
+import scipy
+import sunpy.cm as cm
 import ra_lucky_imaging as li
 
 
-# Number of images to consider in the list of files
-nImages = 20
-# Get the list of files    
-files   = glob.glob("/Users/raphaela/Data/USET/HAlpha/ludicrous/s2/aligned_normalized/selection_1fps/*.fits")
 
+# Get the list of files
+data_dir    = '/Volumes/SDobo-A/Raphael/USET/H_Alpha/UPH20161215_short_exp/calibrated_level1.1/'
+files       = glob.glob(os.path.join(data_dir, '*.fits'))
+outdir      = os.path.join(data_dir, 'lucky')
+outdir_jpeg = os.path.join(outdir , 'jpeg')
+# Check if output directory exists. Create if not.
+if not os.path.isdir(outdir):
+    os.makedirs(outdir)
+if not os.path.isdir(outdir_jpeg):
+    os.makedirs(outdir_jpeg)
+
+print_preview_fullsun = True
+
+# Number of images to consider in the list of files
+nImages = 80
 ## Get general information from one sample
 hdu     = fits.open(files[0])
 # Image header 
@@ -49,8 +62,6 @@ blk_size         = 32
 # and the values are simply copied from the global averaged image.
 # This is a radius assuming the center of the disk is at the center of the array
 # radiusOffset    = 100
-
-outdir          = '/Users/raphaela/Data/USET/HAlpha/ludicrous/s2/aligned_normalized/selection_1fps/python/'
 
 i = 0
 
@@ -81,5 +92,21 @@ new_image, shifts = li.lucky_imaging(images, globalRefImage, blk_size, nbest, bi
 rImage      = np.rint(new_image)
 intImage    = np.int16(rImage)
 hdu         = fits.PrimaryHDU(intImage)
-fname       = outdir + 'python_lucky_NEW_' + strIndex + '.fits'
-fits.writeto(fname, intImage, header)
+fname       = outdir + '/python_lucky_NEW_' + strIndex + '.fits'
+uset.write_uset_fits(intImage, header, fname)
+
+if print_preview_fullsun:
+    # load a colormap
+    cmap = cm.get_cmap('irissjiFUV')
+    basename_jpg = uset.get_basename(fname) + '_lucky.jpeg'
+    fname = os.path.join(outdir_jpeg, basename_jpg)
+    # Plot and export preview of limb fitting results
+    #uset.export_preview(new_image, fname, cmap)
+    scipy.misc.imsave(fname, new_image)
+    # Sample from original
+    sample = images[:, :, 0]
+    basename_jpg = 'sample.jpeg'
+    fname = os.path.join(outdir_jpeg, basename_jpg)
+    scipy.misc.imsave(fname, sample)
+
+
