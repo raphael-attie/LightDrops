@@ -6,6 +6,7 @@ Created on Mon Oct 24 13:43:46 2016
 @author: raphaela
 """
 
+import os
 from math import sqrt
 from astropy.io import fits
 import numpy as np
@@ -16,7 +17,8 @@ from scipy.signal import convolve2d
 #from astropy.convolution.kernels import CustomKernel
 #from scipy.ndimage.filters import laplace
 from scipy.ndimage.morphology import distance_transform_edt
-
+import cv2
+import uset_calibration as uset
 
 # Notes on vocabulary: frame ~ image ~ array (all synonyms)
 # When written with plural: arrays, frames, images ~ they designate 3D data cube.
@@ -183,7 +185,7 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
 def gaussian(x, mu, sig):
     return np.exp(-np.power(x - mu, 2.) / (2 * sig**2))
 
-def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
+def lucky_imaging(images, globalRefImage, blk_size, nbest, binning, blend_mode='aavg'):
 
     binnedBlkSize = int(blk_size / binning)
     # Define some starting coordinates where the block processing will start
@@ -218,6 +220,7 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
     weights[1:-1, 1:-1] = 1
     dist_weights = distance_transform_edt(weights)
     gauss_dist_weights = gaussian(dist_weights, shape[0] / 2, shape[0] / 8)
+    gauss_dist_weights_3D = np.tile(gauss_dist_weights.reshape(blk_size, blk_size, 1), (1, 1, nbest))
 
 
     shift_list = []
@@ -253,13 +256,15 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning):
         xs = int(x + round(shift[1]))
         ys = int(y + round(shift[0]))
 
-        # Fill the canvas with the stackedBlk, at the shifted position
-        # With arithmetic average
-        canvas3D[ys: ys + blk_size, xs: xs + blk_size, :] += stackedBlks
-        weightCanvas[ys: ys + blk_size, xs: xs + blk_size, :] += 1
-        # With distance-based weighted average (blending)
-        # canvas3D[ys: ys + blk_size, xs: xs + blk_size, :] += stackedBlks * gauss_dist_weights
-        # weightCanvas[ys: ys + blk_size, xs: xs + blk_size, :] += gauss_dist_weights
+        if blend_mode == 'aavg':
+            # Fill the canvas with the stackedBlk, at the shifted position
+            # With arithmetic average
+            canvas3D[ys: ys + blk_size, xs: xs + blk_size, :] += stackedBlks
+            weightCanvas[ys: ys + blk_size, xs: xs + blk_size, :] += 1
+        elif blend_mode == 'gblend':
+            # With distance-based weighted average (blending)
+            canvas3D[ys: ys + blk_size, xs: xs + blk_size, :] += stackedBlks * gauss_dist_weights_3D
+            weightCanvas[ys: ys + blk_size, xs: xs + blk_size, :] += gauss_dist_weights_3D
 
         # if abs(shift[0]) > 1 or abs(shift[1]) > 1:
         #      print "[k, x, y] = [%d, %d, %d] ; shift= [%.2f, %.2f]" % (k, x, y, shift[1], shift[0])
@@ -313,3 +318,85 @@ def lucky_imaging_single_block(images, globalRefImage, blk_size, nbest, binning,
     print('done')
 
     return stacked_blk, shift, best_indices, xs, ys
+
+def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, binning, blk_size, blend_mode, preview=True):
+
+    print('interval = ' + str(interval))
+    print('blend_mode = ' + blend_mode)
+
+    ## Get general information from one sample
+    hdu = fits.open(files[0])
+    # Image header
+    header = hdu[0].header
+    # Get image dimensions
+    naxis1 = header['NAXIS1']
+    naxis2 = header['NAXIS2']
+
+    # In case we loop, we'd iterate over this "i", from 0 to the total number of images
+    # for i in range(0, nImages / interval):
+    i = 0
+
+    # index in the file list
+    strIndex = '%02d' % i
+    # Range of files in the list
+    fileRange = np.arange(0, interval) + interval * i
+    # Select the file in that range
+    sFiles = np.take(files, fileRange)
+
+    ## Import the fits files into an image series
+    # First get some info from the 1st fits file header
+    hdu = fits.open(sFiles[0])
+    # Get image header
+    header = hdu[0].header
+    # Initialize the numpy array
+    images = np.zeros([naxis2, naxis1, interval])
+    # Load exactly a series of size "interval" of fits files into the 3D array "images"
+    for ii in range(0, interval):
+        hdu = fits.open(sFiles[ii])
+        images[:, :, ii] = hdu[0].data
+
+    globalRefImage = np.median(images, 2)
+    new_image, shifts = lucky_imaging(images, globalRefImage, blk_size, nbest, binning, blend_mode=blend_mode)
+
+    # Export the canvas to fits files. Rount to integers. Float is useless here.
+    rImage = np.rint(new_image)
+    intImage = np.int16(rImage)
+    hdu = fits.PrimaryHDU(intImage)
+    fname = outdir + '/lucky_' + str(interval) + '_best' + str(nbest) + '_' + strIndex + '_' + blend_mode +'.fits'
+    uset.write_uset_fits(intImage, header, fname)
+
+    if preview:
+        # load a colormap
+        #cmap = cm.get_cmap('irissjiFUV')
+
+        fov = 512
+        fovx1 = 100
+        fovx2 = fovx1 + fov
+        fovy1 = 100
+        fovy2 = fovy1 + fov
+
+        # Export to jpeg2000
+        # Normalize
+        new_image *= 255.0 / new_image.max()
+        basename_jp2 = uset.get_basename(fname) + '.jp2'
+        fname = os.path.join(outdir_jpeg, basename_jp2)
+        cv2.imwrite(fname, new_image[fovy1:fovy2, fovx1:fovx2])
+
+        # Sample from original
+        sample = images[fovy1:fovy2, fovx1:fovx2, 0]
+        # Export to jpeg2000
+        # Normalize
+        sample *= 255.0 / sample.max()
+        fname = os.path.join(outdir_jpeg, 'sample.jp2')
+        cv2.imwrite(fname, sample)
+
+        # median over first nbest images
+        samples = images[fovy1:fovy2, fovx1:fovx2, 0:nbest]
+        median_sample = np.median(samples, 2)
+        # Export to jpeg2000
+        # Normalize
+        median_sample *= 255.0 / median_sample.max()
+        basename_jp2 = 'median_' + str(nbest) + '.jp2'
+        fname = os.path.join(outdir_jpeg, basename_jp2)
+        cv2.imwrite(fname, median_sample)
+
