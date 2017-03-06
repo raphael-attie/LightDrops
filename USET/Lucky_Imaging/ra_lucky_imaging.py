@@ -3,12 +3,10 @@
 """
 Created on Mon Oct 24 13:43:46 2016
 
-@author: raphaela
+@author: Raphael Attie
 """
 import sys
-sys.path.append('/Users/rattie/Dev/LightDrops/USET/calibration')
 import os
-from math import sqrt
 from astropy.io import fits
 import numpy as np
 from skimage.feature import register_translation
@@ -16,12 +14,11 @@ from skimage.measure import block_reduce
 from scipy.ndimage import fourier_shift
 import scipy.ndimage as ndimage
 from scipy.signal import convolve2d
-#from astropy.convolution import convolve
-#from astropy.convolution.kernels import CustomKernel
-#from scipy.ndimage.filters import laplace
 from scipy.ndimage.morphology import distance_transform_edt
 import cv2
-import uset_calibration as uset
+from skimage.filters.rank import entropy
+from skimage.morphology import disk
+import calibration.uset_calibration as uset
 
 # Notes on vocabulary: frame ~ image ~ array (all synonyms)
 # When written with plural: arrays, frames, images ~ they designate 3D data cube.
@@ -65,8 +62,15 @@ def block_processing_setup(arrays, binning):
         frame           = np.squeeze(arrays[:, :, k])
         # binnedFrame     = rebin(frame, new_shape=(nbaxis2, nbaxis1), operation='sum')
         #frame = ndimage.gaussian_filter(frame, sigma=(3, 3), order=0)
-        binned_frame = rebin(frame, 2)
-        qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
+        binned_frame = frame
+        if binning != 1:
+            binned_frame = rebin(frame, binning)
+
+        #qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
+        # Entropy-based quality array
+        binned_frame /= np.max(np.abs(binned_frame)) * 65535
+        binned_frame = binned_frame.astype(np.uint16)
+        qframe = entropy(binned_frame, disk(32))
         # print 'qualityFrame ='
         # print qualityFrame[0:10, 0:10]
         qBinnedArrays[:, :, k] = qframe
@@ -97,7 +101,8 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     binned_blks = qbinned_arrays[yB: yB + binned_blk_size, xB: xB + binned_blk_size, :]
     binned_blks = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], binned_blks.shape[2])
     # Quality metric is variance of laplacian, unbiased.
-    quality = np.var(binned_blks, 0, ddof=1)
+    #quality = np.var(binned_blks, 0, ddof=1)
+    quality = np.sum(binned_blks, 0)
 
     # Get the sorting indices that sort the quality in descending order (use ::-1 for flipping the vector)
     sort_idx = np.argsort(quality)[::-1]
