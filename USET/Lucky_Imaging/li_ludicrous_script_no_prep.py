@@ -8,11 +8,10 @@ Script testing the lucky imaging. Assumes already co-aligned images
 
 import os
 import sys
-sys.path.append('/Users/rattie/Dev/LightDrops/USET/calibration')
+#sys.path.append('/Users/rattie/Dev/LightDrops/USET/calibration')
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import uset_calibration as uset
 import glob
 from astropy.io import fits
 import numpy as np
@@ -55,29 +54,37 @@ intervals        = [20, 40, 60]
 # Number of best images to keep in the block processing.
 nbest           = 5
 
-for interval in intervals:
-
-    blend_mode = 'aavg'
-    li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-                            interval, nbest, binning, blk_size, blend_mode,
-                            print_preview_fullsun)
-    blend_mode = 'gblend'
-    li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-                             interval, nbest, binning, blk_size, blend_mode,
-                             print_preview_fullsun)
+# for interval in intervals:
+#
+#     blend_mode = 'aavg'
+#     li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+#                             interval, nbest, binning, blk_size, blend_mode,
+#                             print_preview_fullsun)
+    # blend_mode = 'gblend'
+    # li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+    #                          interval, nbest, binning, blk_size, blend_mode,
+    #                          print_preview_fullsun)
 
 # Change the number of best images
-nbest           = 10
 
-for interval in intervals:
+# nbest           = 10
+# for interval in intervals:
+#
+#     blend_mode = 'aavg'
+#     li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+#                             interval, nbest, binning, blk_size, blend_mode,
+#                             print_preview_fullsun)
+#     blend_mode = 'gblend'
+#     li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+#                              interval, nbest, binning, blk_size, blend_mode,
+#                              print_preview_fullsun)
 
-    blend_mode = 'aavg'
-    li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-                            interval, nbest, binning, blk_size, blend_mode,
-                            print_preview_fullsun)
-    blend_mode = 'gblend'
-    li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-                             interval, nbest, binning, blk_size, blend_mode,
-                             print_preview_fullsun)
+blend_mode = 'aavg'
+interval = 20
+shifts = li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+                                  interval, nbest, binning, blk_size, blend_mode,
+                                  print_preview_fullsun)
+
+
 
 print('done')
