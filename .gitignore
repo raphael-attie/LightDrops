@@ -4,3 +4,5 @@ ui_rmainwindow.h
 Makefile
 Makefile.Debug
 Makefile.Release
+*.iml
+*.xml
