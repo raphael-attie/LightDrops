@@ -44,7 +44,7 @@ binning         = 1
 blk_size        = 32
 
 # nb of images between each final processed image = nb of images that get sorted in the quality matrix
-intervals        = [20, 40, 60]
+intervals        = [20, 60]
 # Number of best images to keep in the block processing.
 nbest           = 5
 

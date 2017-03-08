@@ -62,18 +62,19 @@ def block_processing_setup(arrays, binning):
         frame           = np.squeeze(arrays[:, :, k])
         # binnedFrame     = rebin(frame, new_shape=(nbaxis2, nbaxis1), operation='sum')
         #frame = ndimage.gaussian_filter(frame, sigma=(3, 3), order=0)
-        binned_frame = frame
+        binned_frame = frame.copy()
         if binning != 1:
             binned_frame = rebin(frame, binning)
-
-        #qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
-        # Entropy-based quality array
-        binned_frame /= np.max(np.abs(binned_frame)) * 65535
-        binned_frame = binned_frame.astype(np.uint16)
-        qframe = entropy(binned_frame, disk(32))
-        # print 'qualityFrame ='
-        # print qualityFrame[0:10, 0:10]
-        qBinnedArrays[:, :, k] = qframe
+        #
+        # #qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
+        # # Entropy-based quality array
+        # binned_frame /= np.max(np.abs(binned_frame))
+        # binned_frame *= 65535
+        # binned_frame = binned_frame.astype(np.uint16) #binned_frame.astype(np.uint16)
+        # qframe = entropy(binned_frame, disk(16))
+        # # print 'qualityFrame ='
+        # # print qualityFrame[0:10, 0:10]
+        qBinnedArrays[:, :, k] = binned_frame #qframe
 
     return qBinnedArrays
 
@@ -102,7 +103,11 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     binned_blks = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], binned_blks.shape[2])
     # Quality metric is variance of laplacian, unbiased.
     #quality = np.var(binned_blks, 0, ddof=1)
-    quality = np.sum(binned_blks, 0)
+    #quality = np.sum(binned_blks, 0)
+    nframes = arrays.shape[2]
+    quality = np.zeros(nframes)
+    for i in range(0, nframes):
+        quality[i] = array_entropy(binned_blks[:, i], 256)
 
     # Get the sorting indices that sort the quality in descending order (use ::-1 for flipping the vector)
     sort_idx = np.argsort(quality)[::-1]
@@ -363,4 +368,20 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
         cv2.imwrite(fname, median_sample)
 
     return shifts
+
+
+def array_entropy(array, bins):
+    """
+    Calculate the Shannon entropy of an image
+
+    :param array: input image (2D)
+    :param bins: number of bins when doing the histogram
+    :return: scalar value of entropy
+    """
+
+    pdf, bins = np.histogram(array, bins=bins, density=True)
+    pdf[pdf == 0] = 1
+    e = -np.sum(pdf * np.log2(pdf))
+
+    return e
 
