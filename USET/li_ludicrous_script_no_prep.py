@@ -48,12 +48,12 @@ intervals        = [20, 60]
 # Number of best images to keep in the block processing.
 nbest           = 5
 
-for interval in intervals:
-
-    blend_mode = 'aavg'
-    li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-                            interval, nbest, binning, blk_size, blend_mode,
-                            print_preview_fullsun)
+# for interval in intervals:
+#
+#     blend_mode = 'aavg'
+#     li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+#                             interval, nbest, binning, blk_size, blend_mode,
+#                             print_preview_fullsun)
     # blend_mode = 'gblend'
     # li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
     #                          interval, nbest, binning, blk_size, blend_mode,
@@ -73,11 +73,11 @@ for interval in intervals:
 #                              interval, nbest, binning, blk_size, blend_mode,
 #                              print_preview_fullsun)
 
-# blend_mode = 'aavg'
-# interval = 20
-# shifts = li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-#                                   interval, nbest, binning, blk_size, blend_mode,
-#                                   print_preview_fullsun)
+blend_mode = 'aavg'
+interval = 40
+shifts = li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+                                  interval, nbest, binning, blk_size, blend_mode,
+                                  print_preview_fullsun)
 
 
 

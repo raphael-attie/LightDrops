@@ -65,23 +65,27 @@ def block_processing_setup(arrays, binning):
         binned_frame = frame.copy()
         if binning != 1:
             binned_frame = rebin(frame, binning)
-        #
-        # #qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
-        # # Entropy-based quality array
-        # binned_frame /= np.max(np.abs(binned_frame))
-        # binned_frame *= 65535
-        # binned_frame = binned_frame.astype(np.uint16) #binned_frame.astype(np.uint16)
-        # qframe = entropy(binned_frame, disk(16))
-        # # print 'qualityFrame ='
-        # # print qualityFrame[0:10, 0:10]
-        qBinnedArrays[:, :, k] = binned_frame #qframe
+        # Custom "Laplace-like" quality array
+        #qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
+        # Entropy-based quality array
+        binned_frame[binned_frame < 700] = 700
+        gy, gx = np.gradient(binned_frame)
+        binned_frame = np.sqrt(gx ** 2 + gy ** 2)
+        binned_frame *= 255.0 / np.max(binned_frame)
+        binned_frame = binned_frame.astype(np.uint8) #binned_frame.astype(np.uint16)
+        qframe = entropy(binned_frame, disk(32))
+        # for gradient entropy
+        # gy, gx = np.gradient(binned_frame)
+        # binned_frame = np.sqrt(gx ** 2 + gy ** 2)
+
+        qBinnedArrays[:, :, k] = qframe
 
     return qBinnedArrays
 
 
 def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size, binning, x, y):
     """
-    Create a co-aligned series block (aka subfield) of sorted images.
+    Create a co-aligned series of quality-sorted blocks (aka subfields).
     Sorting uses the variance of the quality matrix.
     Alignment of the subfield uses phase correlation
 
@@ -93,7 +97,7 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     :param binning: amount of binning (typically 2 or 4)
     :param x: x-coordinate of the bottom left corner of the subfield
     :param y: y-coordinate of the bottom left corner of the subfield
-    :return:
+    :return: arrays of quality-sorted subfields
     """
     # Position of the block in the qbinned_arrays
     xB = int(x / binning)
@@ -103,7 +107,9 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     binned_blks = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], binned_blks.shape[2])
     # Quality metric is variance of laplacian, unbiased.
     #quality = np.var(binned_blks, 0, ddof=1)
+    # If using skimage entropy
     #quality = np.sum(binned_blks, 0)
+    # If using Shannon entropy
     nframes = arrays.shape[2]
     quality = np.zeros(nframes)
     for i in range(0, nframes):
@@ -332,9 +338,15 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
     fname = outdir + '/lucky_' + str(interval) + '_best' + str(nbest) + '_' + strIndex + '_' + blend_mode +'.fits'
     uset.write_uset_fits(intImage, header, fname)
 
+    # Rescale the image for preview using the percentile-thresholds.
+    new_image = uset.rescale_image_by_histmax(new_image)
+
     if preview:
         # load a colormap
         #cmap = cm.get_cmap('irissjiFUV')
+
+        for i in range(0, nbest):
+            images[:,:,i] = uset.rescale_image_by_histmax(images[:,:,i])
 
         fov = 512
         fovx1 = 100
@@ -350,6 +362,7 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
         cv2.imwrite(fname, new_image[fovy1:fovy2, fovx1:fovx2])
 
         # Sample from original
+
         sample = images[fovy1:fovy2, fovx1:fovx2, 0]
         # Export to jpeg2000
         # Normalize
@@ -385,3 +398,18 @@ def array_entropy(array, bins):
 
     return e
 
+
+def gradient_entropy(array, bins):
+    """
+    Calculate the Shannon entropy of an image using the neighbouring pixels
+
+    :param array: input image (2D)
+    :param bins: number of bins when doing the histogram
+    :return: scalar value of entropy
+    """
+    gy, gx = np.gradient(array)
+    g = np.sqrt(gx**2 + gy**2)
+
+    e= array_entropy(g, bins)
+
+    return e
