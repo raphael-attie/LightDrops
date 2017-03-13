@@ -37,7 +37,7 @@ def rebin(image, binning):
     r_image = block_reduce(image, block_size =(binning, binning), func=np.mean)
     return r_image
 
-def block_processing_setup(arrays, binning):
+def block_processing_setup(arrays, binning, blk_size, qmetric):
     """
     Create a binned version of the full sun image, filled with values of sharpness metrics
     Uses a custom kernel, 2nd-degree, Laplacian-like
@@ -56,31 +56,37 @@ def block_processing_setup(arrays, binning):
                       [1, 4, 1]])
 
     # Initialize quality array - "q" for quality
-    qBinnedArrays = np.zeros([nbaxis2, nbaxis1, nframes])
+    qbinned_arrays = np.zeros([nbaxis2, nbaxis1, nframes])
     for k in range(0, nframes):
         # Get a binned version of the arrays
         frame           = np.squeeze(arrays[:, :, k])
         # binnedFrame     = rebin(frame, new_shape=(nbaxis2, nbaxis1), operation='sum')
         #frame = ndimage.gaussian_filter(frame, sigma=(3, 3), order=0)
+
         binned_frame = frame.copy()
-        if binning != 1:
-            binned_frame = rebin(frame, binning)
+
+        if qmetric.lower() == 'laplace':
+            if binning != 1:
+                binned_frame = rebin(frame, binning)
         # Custom "Laplace-like" quality array
-        #qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
-        # Entropy-based quality array
-        binned_frame[binned_frame < 700] = 700
-        gy, gx = np.gradient(binned_frame)
-        binned_frame = np.sqrt(gx ** 2 + gy ** 2)
-        binned_frame *= 255.0 / np.max(binned_frame)
-        binned_frame = binned_frame.astype(np.uint8) #binned_frame.astype(np.uint16)
-        qframe = entropy(binned_frame, disk(32))
-        # for gradient entropy
-        # gy, gx = np.gradient(binned_frame)
-        # binned_frame = np.sqrt(gx ** 2 + gy ** 2)
+            qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
 
-        qBinnedArrays[:, :, k] = qframe
+        # If using Gradient-entropy
+        if qmetric.lower() == 'entropy':
+            # Clip background values so they do not contaminate too much the entropy at the limb
+            binned_frame[binned_frame < 700] = 700
+            if binning != 1:
+                binned_frame = rebin(frame, binning)
 
-    return qBinnedArrays
+            gy, gx = np.gradient(binned_frame)
+            binned_frame = np.sqrt(gx ** 2 + gy ** 2)
+            binned_frame *= 255.0 / np.max(binned_frame)
+            binned_frame = binned_frame.astype(np.uint8) #binned_frame.astype(np.uint16)
+            qframe = entropy(binned_frame, disk(blk_size))
+
+        qbinned_arrays[:, :, k] = qframe
+
+    return qbinned_arrays
 
 
 def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size, binning, x, y):
@@ -108,12 +114,12 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     # Quality metric is variance of laplacian, unbiased.
     #quality = np.var(binned_blks, 0, ddof=1)
     # If using skimage entropy
-    #quality = np.sum(binned_blks, 0)
-    # If using Shannon entropy
-    nframes = arrays.shape[2]
-    quality = np.zeros(nframes)
-    for i in range(0, nframes):
-        quality[i] = array_entropy(binned_blks[:, i], 256)
+    quality = np.sum(binned_blks, 0)
+    # If using custom Shannon entropy and not skimage entropy
+    # nframes = arrays.shape[2]
+    # quality = np.zeros(nframes)
+    # for i in range(0, nframes):
+    #     quality[i] = array_entropy(binned_blks[:, i], 256)
 
     # Get the sorting indices that sort the quality in descending order (use ::-1 for flipping the vector)
     sort_idx = np.argsort(quality)[::-1]
@@ -157,7 +163,7 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
 def gaussian(x, mu, sig):
     return np.exp(-np.power(x - mu, 2.) / (2 * sig**2))
 
-def lucky_imaging(images, globalRefImage, blk_size, nbest, binning, blend_mode='aavg'):
+def lucky_imaging(images, globalRefImage, blk_size, nbest, binning, qmetric, blend_mode='aavg'):
 
     binnedBlkSize = int(blk_size / binning)
     # Define some starting coordinates where the block processing will start
@@ -180,7 +186,7 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning, blend_mode='
     naxis1End = naxis1 - 1 - 3 * blk_size
     naxis2End = naxis2 - 1 - 3 * blk_size
     # Step 1 of block processing: Get the binned matrix of the quality 2nd order metrics
-    qBinnedArrays = block_processing_setup(images, binning)
+    qBinnedArrays = block_processing_setup(images, binning, blk_size, qmetric)
     # qBinnedArrays is identical as its alternate in Lightdrops / C++
 
     # Initialize the canvas and weights that will contain the lucky-imaged array and weights
@@ -292,7 +298,7 @@ def lucky_imaging_single_block(images, globalRefImage, blk_size, nbest, binning,
 
     return stacked_blk, shift, best_indices, xs, ys
 
-def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, binning, blk_size, blend_mode, preview=True):
+def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, binning, blk_size, qmetric, blend_mode, preview=True):
 
     print('interval = ' + str(interval))
     print('blend_mode = ' + blend_mode)
@@ -329,7 +335,7 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
         images[:, :, ii] = hdu[0].data
 
     globalRefImage = np.median(images, 2)
-    new_image, shifts = lucky_imaging(images, globalRefImage, blk_size, nbest, binning, blend_mode=blend_mode)
+    new_image, shifts = lucky_imaging(images, globalRefImage, blk_size, nbest, binning, qmetric, blend_mode=blend_mode)
 
     # Export the canvas to fits files. Rount to integers. Float is useless here.
     rImage = np.rint(new_image)

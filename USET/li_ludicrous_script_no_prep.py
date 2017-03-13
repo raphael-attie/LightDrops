@@ -8,6 +8,7 @@ Script testing the lucky imaging. Assumes already co-aligned images
 
 import os
 import sys
+import time
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -19,7 +20,8 @@ import Lucky_Imaging.ra_lucky_imaging as li
 plt.ioff()
 
 # Get the list of files
-data_dir    = '/Volumes/SDobo-A/Raphael/USET/H_Alpha/UPH20161215_short_exp/calibrated_level1.1/'
+#data_dir    = '/Volumes/SDobo-A/Raphael/USET/H_Alpha/UPH20161215_short_exp/calibrated_level1.1/'
+data_dir    = '/Users/rattie/Data/USET/H_Alpha/UPH20161215_short_exp/calibrated_level1.1/'
 files       = glob.glob(os.path.join(data_dir, '*.fits'))
 outdir      = os.path.join(data_dir, 'lucky')
 outdir_jpeg = os.path.join(outdir , 'jpeg')
@@ -42,6 +44,8 @@ binning         = 1
 # bufferSpace   = 8
 # Block size and binned block size
 blk_size        = 32
+# Quality metric
+qmetric = 'entropy'
 
 # nb of images between each final processed image = nb of images that get sorted in the quality matrix
 intervals        = [20, 60]
@@ -75,10 +79,13 @@ nbest           = 5
 
 blend_mode = 'aavg'
 interval = 40
-shifts = li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
-                                  interval, nbest, binning, blk_size, blend_mode,
-                                  print_preview_fullsun)
 
+time1 = time.time()
+shifts = li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
+                                  interval, nbest, binning, blk_size, qmetric, blend_mode,
+                                  print_preview_fullsun)
+time2 = time.time()
+print('Elapsed time %0.1f s' % (time2-time1))
 
 
 print('done')
