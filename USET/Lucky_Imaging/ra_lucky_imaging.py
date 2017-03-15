@@ -7,6 +7,8 @@ Created on Mon Oct 24 13:43:46 2016
 """
 import sys
 import os
+import time
+import math
 from astropy.io import fits
 import numpy as np
 from skimage.feature import register_translation
@@ -67,29 +69,41 @@ def block_processing_setup(arrays, binning, blk_size, qmetric):
 
         if qmetric.lower() == 'laplace':
             if binning != 1:
-                binned_frame = rebin(frame, binning)
+                binned_frame = rebin(binned_frame, binning)
         # Custom "Laplace-like" quality array
             qframe = convolve2d(binned_frame, kernel, mode='same', boundary='symm')  # laplace(binnedFrame)
-
         # If using Gradient-entropy
-        if qmetric.lower() == 'entropy':
+        elif qmetric.lower() == 'entropy':
             # Clip background values so they do not contaminate too much the entropy at the limb
             binned_frame[binned_frame < 700] = 700
             if binning != 1:
-                binned_frame = rebin(frame, binning)
+                binned_frame = rebin(binned_frame, binning)
 
             gy, gx = np.gradient(binned_frame)
             binned_frame = np.sqrt(gx ** 2 + gy ** 2)
             binned_frame *= 255.0 / np.max(binned_frame)
             binned_frame = binned_frame.astype(np.uint8) #binned_frame.astype(np.uint16)
-            qframe = entropy(binned_frame, disk(blk_size))
+            qframe = entropy(binned_frame, disk(blk_size/binning))
+        elif qmetric.lower() == 'rentropy':
+            # Clip background values so they do not contaminate too much the entropy at the limb
+            binned_frame[binned_frame < 700] = 700
+            if binning != 1:
+                binned_frame = rebin(binned_frame, binning)
+
+            gy, gx = np.gradient(binned_frame)
+            binned_frame = np.sqrt(gx ** 2 + gy ** 2)
+            binned_frame *= 255.0 / np.max(binned_frame)
+            binned_frame = binned_frame.astype(np.uint8)  # binned_frame.astype(np.uint16)
+            # Do not calculate entropy here. This is done later for each block
+            qframe = binned_frame
+
 
         qbinned_arrays[:, :, k] = qframe
 
     return qbinned_arrays
 
 
-def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size, binning, x, y):
+def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size, binning, qmetric, x, y):
     """
     Create a co-aligned series of quality-sorted blocks (aka subfields).
     Sorting uses the variance of the quality matrix.
@@ -101,6 +115,7 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     :param blk_size: size of the subfield (px)
     :param binned_blk_size: (size of the rebinned subfield)
     :param binning: amount of binning (typically 2 or 4)
+    :param qmetric: quality metric
     :param x: x-coordinate of the bottom left corner of the subfield
     :param y: y-coordinate of the bottom left corner of the subfield
     :return: arrays of quality-sorted subfields
@@ -108,18 +123,23 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
     # Position of the block in the qbinned_arrays
     xB = int(x / binning)
     yB = int(y / binning)
+    nframes = arrays.shape[2]
     # Extract a series of small block from the quality arrays
     binned_blks = qbinned_arrays[yB: yB + binned_blk_size, xB: xB + binned_blk_size, :]
-    binned_blks = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], binned_blks.shape[2])
+    binned_blks1D = binned_blks.reshape(binned_blks.shape[0]*binned_blks.shape[1], nframes)
+
+
+    quality = np.arange(nframes)
+    if qmetric.lower() == 'laplace':
     # Quality metric is variance of laplacian, unbiased.
-    #quality = np.var(binned_blks, 0, ddof=1)
+        quality = np.var(binned_blks1D, 0, ddof=1)
+    elif qmetric.lower() == 'entropy':
     # If using skimage entropy
-    quality = np.sum(binned_blks, 0)
-    # If using custom Shannon entropy and not skimage entropy
-    # nframes = arrays.shape[2]
-    # quality = np.zeros(nframes)
-    # for i in range(0, nframes):
-    #     quality[i] = array_entropy(binned_blks[:, i], 256)
+        quality = np.sum(binned_blks1D, 0)
+    elif qmetric.lower() == 'rentropy':
+        # If using custom Shannon entropy and not skimage entropy
+        for i in range(0, nframes):
+            quality[i] = array_entropy(binned_blks1D[:, i], 256)
 
     # Get the sorting indices that sort the quality in descending order (use ::-1 for flipping the vector)
     sort_idx = np.argsort(quality)[::-1]
@@ -186,8 +206,11 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning, qmetric, ble
     naxis1End = naxis1 - 1 - 3 * blk_size
     naxis2End = naxis2 - 1 - 3 * blk_size
     # Step 1 of block processing: Get the binned matrix of the quality 2nd order metrics
+    time1 = time.time()
     qBinnedArrays = block_processing_setup(images, binning, blk_size, qmetric)
     # qBinnedArrays is identical as its alternate in Lightdrops / C++
+    time2 = time.time()
+    print('block_processing_setup() time: %0.1f s' % (time2 - time1))
 
     # Initialize the canvas and weights that will contain the lucky-imaged array and weights
     canvas3D = np.zeros([naxis2, naxis1, nbest])
@@ -209,7 +232,7 @@ def lucky_imaging(images, globalRefImage, blk_size, nbest, binning, qmetric, ble
         x = int(offsetX + (k * blk_size / 2 % naxis1End))
         y = int(offsetY + ((k * blk_size / 2) / naxis1End) * blk_size / 2)
 
-        stackedBlks, shifts, best_indices = make_aligned_stack(images, qBinnedArrays, nbest, blk_size, binnedBlkSize, binning, x, y)
+        stackedBlks, shifts, best_indices = make_aligned_stack(images, qBinnedArrays, nbest, blk_size, binnedBlkSize, binning, qmetric, x, y)
         blkSlice = stackedBlks[:, :, 0]
 
         ## Find the best alignment of the stacked Block onto the global reference image
@@ -304,7 +327,7 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
     print('blend_mode = ' + blend_mode)
 
     ## Get general information from one sample
-    hdu = fits.open(files[0])
+    hdu = fits.open(files[0], ignore_missing_end=True)
     # Image header
     header = hdu[0].header
     # Get image dimensions
@@ -315,8 +338,6 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
     # for i in range(0, nImages / interval):
     i = 0
 
-    # index in the file list
-    strIndex = '%02d' % i
     # Range of files in the list
     fileRange = np.arange(0, interval) + interval * i
     # Select the file in that range
@@ -324,14 +345,14 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
 
     ## Import the fits files into an image series
     # First get some info from the 1st fits file header
-    hdu = fits.open(sFiles[0])
+    hdu = fits.open(sFiles[0], ignore_missing_end=True)
     # Get image header
     header = hdu[0].header
     # Initialize the numpy array
     images = np.zeros([naxis2, naxis1, interval])
     # Load exactly a series of size "interval" of fits files into the 3D array "images"
     for ii in range(0, interval):
-        hdu = fits.open(sFiles[ii])
+        hdu = fits.open(sFiles[ii], ignore_missing_end=True)
         images[:, :, ii] = hdu[0].data
 
     globalRefImage = np.median(images, 2)
@@ -341,7 +362,11 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
     rImage = np.rint(new_image)
     intImage = np.int16(rImage)
     hdu = fits.PrimaryHDU(intImage)
-    fname = outdir + '/lucky_' + str(interval) + '_best' + str(nbest) + '_' + strIndex + '_' + blend_mode +'.fits'
+    # Build file names
+    basename = 'lucky_%d_total%d_best%d_blk%d_binning%d_blend_%s_qmetric_%s' % \
+               (i, interval, nbest, blk_size, binning, blend_mode, qmetric)
+    basename_fits = basename + '.fits'
+    fname = os.path.join(outdir, basename_fits)
     uset.write_uset_fits(intImage, header, fname)
 
     # Rescale the image for preview using the percentile-thresholds.
@@ -363,7 +388,7 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
         # Export to jpeg2000
         # Normalize
         new_image *= 255.0 / new_image.max()
-        basename_jp2 = uset.get_basename(fname) + '.jp2'
+        basename_jp2 = basename + '.jp2'
         fname = os.path.join(outdir_jpeg, basename_jp2)
         cv2.imwrite(fname, new_image[fovy1:fovy2, fovx1:fovx2])
 

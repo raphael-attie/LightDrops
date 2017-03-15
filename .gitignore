@@ -6,3 +6,4 @@ Makefile.Debug
 Makefile.Release
 *.iml
 *.xml
+*.pyc

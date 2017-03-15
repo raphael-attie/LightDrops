@@ -27,24 +27,27 @@ from astropy.io import fits
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import uset_calibration as uset
+import calibration.uset_calibration as uset
 import sunpy.cm as cm
 
 
 # Disable interactive mode so figure goes directory to a file and does not show up on screen
 plt.ioff()
 
-# Get the list of files, change it according to where your data files are
-file_list = glob.glob("/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp/*.FTS")
-# Output parent directory
-outdir = '/Volumes/SDobo-A/Raphael/USET/USET/H_Alpha/UPH20161215_short_exp'
-# Two directories for two configuration levels (1.0 & 1.1), and 1 directory for jpeg image to check limb-fit.
+# Set the directory where the FITS are. Here USETDATA is an environment variable. data_dir can be set to a string
+# with a more explicit path if it is not possible to set an environment variable.
+data_dir    =  os.path.join(os.environ.get('USETDATA'), 'UPH20161215111606.060_Short_Exp')
+# Get the list of files, change it according to where your data files are and how are they are named.
+file_list   = glob.glob(os.path.join(data_dir, '*.FTS'))
+# Two output directories for two configuration levels (1.0 & 1.1), and 1 directory for jpeg image to check limb-fit.
+# Beware of how to use os.path.join() to create paths of subdirectories. Do not use "/" or "\" at the
+# Alternative: use explicit path. (e.g 'C:\USET\blah1\blah2 etc...) instead of os.path.join(...)
 # Calibration level 1.0
-outdir_10       = outdir + '/calibrated_level1.0/'
-outdir_10_jpeg  = outdir_10 + '/limb_fit_jpeg/'
+outdir_10       = os.path.join(data_dir, 'calibrated_level1.0')
+outdir_10_jpeg  = os.path.join(outdir_10, 'limb_fit_jpeg')
 # Calibration level 1.1
-outdir_11       = outdir + '/calibrated_level1.1/'
-outdir_11_jpeg  = outdir_11 + '/preview_jpeg/'
+outdir_11       = os.path.join(data_dir, 'calibrated_level1.1')
+outdir_11_jpeg  = os.path.join(outdir_11, 'preview_jpeg')
 
 # Check if output directories exist. Create if not.
 if not os.path.isdir(outdir_10):
