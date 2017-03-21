@@ -359,18 +359,23 @@ def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, 
     new_image, shifts = lucky_imaging(images, globalRefImage, blk_size, nbest, binning, qmetric, blend_mode=blend_mode)
 
     # Export the canvas to fits files. Rount to integers. Float is useless here.
-    rImage = np.rint(new_image)
-    intImage = np.int16(rImage)
-    hdu = fits.PrimaryHDU(intImage)
     # Build file names
     basename = 'lucky_%d_total%d_best%d_blk%d_binning%d_blend_%s_qmetric_%s' % \
                (i, interval, nbest, blk_size, binning, blend_mode, qmetric)
     basename_fits = basename + '.fits'
     fname = os.path.join(outdir, basename_fits)
-    uset.write_uset_fits(intImage, header, fname)
+    uset.write_uset_fits(new_image, header, fname)
 
-    # Rescale the image for preview using the percentile-thresholds.
-    new_image = uset.rescale_image_by_histmax(new_image)
+    # For writing RICE_compressed FITS files, uncomment.
+    # rImage = np.rint(new_image)
+    # intImage = np.int16(rImage)
+    # basename = 'lucky_%d_total%d_best%d_blk%d_binning%d_blend_%s_qmetric_%s_COMPRESSED' % \
+    #            (i, interval, nbest, blk_size, binning, blend_mode, qmetric)
+    # basename_fits = basename + '.fits'
+    # fname = os.path.join(outdir, basename_fits)
+    # hdu = fits.CompImageHDU(intImage, header, compression_type='RICE_1')
+    # hdu.writeto(fname)
+
 
     if preview:
         # load a colormap

@@ -22,7 +22,7 @@ plt.ioff()
 # Set the directory where the FITS are. Here USETDATA is an environment variable of a parent directory of all USET data
 # In my case it's either D:\USET\DATA on my windows PC or /Users/blah/USET/DATA on my Mac.
 # data_dir can be set to a string with a more explicit path if it is not possible to set an environment variable.
-data_dir    =  os.path.join(os.environ.get('USETDATA'), 'UPH20161215111606.060_Short_Exp', 'calibrated_level1.1')
+data_dir    =  os.path.join(os.environ.get('USETDATA'), 'HAlpha', 'UPH20161215_Short_Exp', 'calibrated_level1.1')
 # Set the output directories (calibrated FITS, jpeg, ...)
 outdir      = os.path.join(data_dir, 'lucky')
 outdir_jpeg = os.path.join(outdir , 'jpeg')
@@ -34,7 +34,7 @@ if not os.path.isdir(outdir):
 if not os.path.isdir(outdir_jpeg):
     os.makedirs(outdir_jpeg)
 
-print_preview_fullsun = True
+print_preview_fullsun = False
 
 # [IGNORED FOR NOW] Number of images to consider in the list of files. Total lucky images = nImages/interval
 ### IGNORED AT THE MOMENT. THIS SCRIPT ONLY USES "INTERVAL" FOR THE NUMBER OF IMAGES TO CONSIDER
@@ -58,6 +58,7 @@ blend_mode = 'aavg'
 # Nb of images out of which the nbest subfields are taken. Typically, nbest << interval
 interval = 40
 
+print('Running lucky imaging...')
 time1 = time.time()
 shifts = li.lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages,
                                   interval, nbest, binning, blk_size, qmetric, blend_mode,

@@ -425,7 +425,7 @@ def set_header_calibrated(header, xc, yc, Rm):
     # Standard FITS keywords with WCS
     new_header.append(('WCSNAME', 'Helioprojective-cartesian'))
     new_header.append(('CRPIX1', xc, '[px] Sun center x-coordinate'))
-    new_header.append(('CRPIX2', yc, '[px] Sun center x-coordinate'))
+    new_header.append(('CRPIX2', yc, '[px] Sun center y-coordinate'))
     new_header.append(('CRVAL1', 0))
     new_header.append(('CRVAL2', 0))
     new_header.append(('CDELT1', pixel_size, '[arcsec] plate scale'))
@@ -448,12 +448,14 @@ def set_header_calibrated(header, xc, yc, Rm):
 def write_uset_fits(image, header, fname):
     """Export the USET image to a fits file. Intensity is rounded back to original type."""
 
-    rImage = np.rint(image)
-    intImage = np.int16(image)
+    rimage = np.rint(image)
+    int_image = np.int16(rimage)
     try:
-        fits.writeto(fname, intImage, header=header, output_verify='exception', overwrite=True)
+        fits.writeto(fname, int_image, header=header, output_verify='exception', overwrite=True)
     except TypeError:
-        fits.writeto(fname, intImage, header=header, output_verify='exception', checksum=True, clobber=True)
+        fits.writeto(fname, int_image, header=header, output_verify='exception', checksum=True, clobber=True)
+
+
 
 
 def get_basename(filepath):
