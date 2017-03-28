@@ -3,8 +3,10 @@
 This module contains all the functions related to the alignment of USET images using limb-fitting.
 - uset_limbfit_align() is a convenience function that applies the limb-fitting and align the images.
   It outputs the centered image, sun center coordinates, radius and other output of the limb-fitting algorithm.
+  The image is centered such that the limb-fitted disk center is at the middle of the image axes (naxis*/2)
 - set_header_calibrated() updates the header with WCS keywords
 - See the documentation on "detectLimbPoints()" for more information on how the limb points are detected
+
 
 @author: Raphael Attie (attie.raphael@gmail.com)
 """
@@ -15,6 +17,9 @@ import numpy as np
 from astropy.convolution import convolve, Box1DKernel
 from sunpy.sun import solar_north
 from scipy import optimize
+from skimage.transform import warp
+from skimage.transform import SimilarityTransform
+from skimage.transform import rotate
 import matplotlib.pyplot as plt
 
 
@@ -239,29 +244,33 @@ def center_disk(image, xc, yc):
     """
     naxis1 = image.shape[1]
     naxis2 = image.shape[0]
-    x0 = naxis1 / 2
-    y0 = naxis2 / 2
-    dx = int(round(xc - x0))
-    dy = int(round(yc - y0))
+    x0 = naxis1 / 2 - 0.5
+    y0 = naxis2 / 2 - 0.5
+    dx = xc - x0
+    dy = yc - y0
 
-    canvas = np.zeros([naxis2, naxis1])
-    # Size of cropped axis
-    newAxis1 = naxis1 - abs(dx)
-    newAxis2 = naxis2 - abs(dy)
+    # canvas = np.zeros([naxis2, naxis1])
+    # # Size of cropped axis
+    # newAxis1 = naxis1 - abs(dx)
+    # newAxis2 = naxis2 - abs(dy)
+    #
+    # if (dx >= 0) and (dy >= 0):
+    #     canvas[0:newAxis2, 0:newAxis1] = image[dy:, dx:]
+    #
+    # if (dx >= 0) and (dy < 0):
+    #     canvas[abs(dy):, 0:newAxis1] = image[0:newAxis2, dx:]
+    #
+    # if (dx < 0) and (dy > 0):
+    #     canvas[0:newAxis2, abs(dx):] = image[dy:, 0:newAxis1]
+    #
+    # if (dx < 0) and (dy < 0):
+    #     canvas[abs(dy):, abs(dx):] = image[0:newAxis2, 0:newAxis1]
 
-    if (dx >= 0) and (dy >= 0):
-        canvas[0:newAxis2, 0:newAxis1] = image[dy:, dx:]
+    # define the translation using skimage warp transform
+    tform = SimilarityTransform(translation=(dx, dy))
+    centered_image = warp(image.astype(np.float), tform, order=3)
 
-    if (dx >= 0) and (dy < 0):
-        canvas[abs(dy):, 0:newAxis1] = image[0:newAxis2, dx:]
-
-    if (dx < 0) and (dy > 0):
-        canvas[0:newAxis2, abs(dx):] = image[dy:, 0:newAxis1]
-
-    if (dx < 0) and (dy < 0):
-        canvas[abs(dy):, abs(dx):] = image[0:newAxis2, 0:newAxis1]
-
-    return canvas
+    return centered_image
 
 
 def uset_limbfit_align(image, limb_cleanup):
@@ -269,6 +278,7 @@ def uset_limbfit_align(image, limb_cleanup):
     Wrapper around the circle-fitting algorithm to fit the limb of USET images.
 
     :param image: input image to fit. The solar disk may partially lies outside the FOV.
+    :param limb_cleanup: Enable/Disable agressive clean-up of limb points
     :return: image centered at the middle of each axis (image.shape / 2), coordinates of disk center,
              radius of the third pad, limb points used at each of the three passes.
              See function circle_fit() for more information.
@@ -296,16 +306,35 @@ def uset_limbfit_align(image, limb_cleanup):
     xc3, yc3, Rm3, xc2, yc2, Rm2, xc, yc, Rm, limbPts2, limbPts3 = circle_fit(limbX, limbY, method)
 
     # Create a new image with the solar disk centered in the image.
-    centeredImage = center_disk(image, xc3, yc3)
+    centered_image = center_disk(image, xc3, yc3)
 
-    return centeredImage, xc3, yc3, Rm3, limbPts, limbPts2, limbPts3
+    return centered_image, xc3, yc3, Rm3, limbPts, limbPts2, limbPts3
+
+
+def align_to_solar_north(image, header):
+    """
+    Rotate image by CROTA1 = -solar P angle (from the P B0 L0 solar ephemerids) so the Y-axis (top) aligns to solar north
+    CROTA1 must be in the header.
+    Rotation is around the center of the image: [naxis1, naxis2] / 2 - 0.5
+
+    :param image: image to be rotated by CROTA1
+    :param header: header of the image as produced by set_header_calibrated()
+    :return: rotated image using bi-cubic interpolation
+    """
+
+    CROTA1 = header['CROTA1']
+    rotated_image = rotate(image, CROTA1, order=3)
+
+    return rotated_image
+
 
 def compute_intensity_percentile(image, percentile):
     """
-    Compute the image percentile-based high intensity threshold up to which we stretch (rescale) the intensity.
+    Compute the image percentile-based intensity
 
     :param image: input image
-    :return: maximum thresholding intensity
+    :param percentile: percentile of the histogram [e.g: 0, 1, ... , 99.5, ..., 100]
+    :return: intensity at given percentile
     """
     nbins = 256
     im_hist, bin_edges = np.histogram(image, nbins)
@@ -406,7 +435,7 @@ def set_header_calibrated(header, xc, yc, Rm):
     pixel_size = 1.09  # arcsec
     # DATE-OBS	The date of the observation, in the format specified in the FITS Standard.
     # Format: 'yyyy-mm-ddTHH:MM:SS[.sss]'.
-    if (len(header['DATE-OBS']) < 19): # quick and dirty way to check if the date-obs field only contains a date (before January 2017, USET produced this metadata)
+    if len(header['DATE-OBS']) < 19: # quick and dirty way to check if the date-obs field only contains a date (before January 2017, USET produced this metadata)
         date = header['DATE-OBS']
         time = header['TIME']
         date_obs = date[6:10] + '-' + date[3:5] + '-' + date[0:2] + 'T' + time
@@ -445,15 +474,21 @@ def set_header_calibrated(header, xc, yc, Rm):
     return new_header
 
 
-def write_uset_fits(image, header, fname):
+def write_uset_fits(image, header, fname, compressed=False):
     """Export the USET image to a fits file. Intensity is rounded back to original type."""
 
     rimage = np.rint(image)
     int_image = np.int16(rimage)
-    try:
-        fits.writeto(fname, int_image, header=header, output_verify='exception', overwrite=True)
-    except TypeError:
-        fits.writeto(fname, int_image, header=header, output_verify='exception', checksum=True, clobber=True)
+
+    if not compressed:
+        try:
+            fits.writeto(fname, int_image, header=header, output_verify='exception', overwrite=True)
+        except TypeError:
+            fits.writeto(fname, int_image, header=header, output_verify='exception', checksum=True, clobber=True)
+    else:
+        chdu = fits.CompImageHDU(data=image, header=header, compression_type='RICE_1')
+        chdu.writeto(fname, overwrite=True)
+
 
 
 
