@@ -8,6 +8,7 @@ import sunpy.cm as cm
 from skimage.transform import warp
 from skimage.transform import SimilarityTransform
 from skimage.transform import rotate
+import numpy as np
 
 
 # Set the directory where the FITS are. Here USETDATA is an environment variable. data_dir can be set to a string
@@ -30,13 +31,14 @@ rimage = rotate(image, 30, order=3)
 rimage2 = rotate(image, -30, order=3)
 
 # Display
-plt.figure(0)
-plt.subplot(131)
-plt.imshow(image, cmap='gray', origin='lower')
-plt.subplot(132)
-plt.imshow(rimage, cmap='gray', origin='lower')
-plt.subplot(133)
-plt.imshow(rimage2, cmap='gray', origin='lower')
+# plt.figure(0)
+# plt.subplot(131)
+# plt.imshow(image, cmap='gray', origin='lower')
+# plt.subplot(132)
+# plt.imshow(rimage, cmap='gray', origin='lower')
+# plt.subplot(133)
+# plt.imshow(rimage2, cmap='gray', origin='lower')
+
 
 
 

@@ -490,9 +490,6 @@ def write_uset_fits(image, header, fname, compressed=False):
         chdu.writeto(fname, overwrite=True)
 
 
-
-
-
 def get_basename(filepath):
     """
     return the basename (without file extension) of a file from its full path.

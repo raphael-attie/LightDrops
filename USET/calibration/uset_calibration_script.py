@@ -32,8 +32,7 @@ import sunpy.cm as cm
 # Disable interactive mode so figure goes directory to a file and does not show up on screen
 plt.ioff()
 
-# Set the directory where the FITS are. Here USETDATA is an environment variable. data_dir can be set to a string
-# with a more explicit path if it is not possible to set an environment variable.
+# Set the directory where the FITS are.
 data_dir    =  '/Users/rattie/Data/USET/campaign/calibration/HALPHA'
 # Get the list of files, change it according to where your data files are and how are they are named.
 file_list   = glob.glob(os.path.join(data_dir, '*.FTS'))
@@ -142,6 +141,8 @@ for i in range(0, 1):
         fname = os.path.join(outdir_1_jpeg, basename_jpg)
         # Plot and export preview of limb fitting results
         uset.export_preview(image, fname, cmap)
+
+
 
 
 print('done')
