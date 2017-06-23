@@ -820,3 +820,40 @@ def circle_fit_by_Taubin(data_x, data_y):
 
     return a, b, r, sigma, n_iter
 
+
+def emil_circle_fit(x, y, debug, num_clipping_passes=1, clipping_sigma=2):
+    """
+    Fit a circle with data points (x,y) using a 3-pass least-square fit with sigma-clipping
+    Uses method 2 from http://scipy-cookbook.readthedocs.io/items/Least_Squares_Circle.html
+
+    :param x: numpy 1D array of the x-coordinates of points to fit
+    :param y: numpy 1D array of the y-coordinates of points to fit
+    :return: coordinates and radius of fitted circle for final pass
+
+    Edit Emil: got rid of the Taubin method (it didn't seem to do any iterations ever, I think there is an implementation error; the breaks didn't make sense )
+    Edit Emil: nicer sigma clipping
+    """
+    xc, yc, Rm, numDatapoints = np.nan, np.nan, np.nan, 0
+
+    if (len(x) > 0) and (len(x) == len(y)):
+        # coordinates of the barycenter used as initial estimate
+        for clipping_pass in range(num_clipping_passes):
+            numDatapoints = len(x)
+            center_estimate = np.array([np.mean(x), np.mean(y)])
+            center = optimize.leastsq(f_2, center_estimate, (x, y))[0]
+            xc, yc = center
+            R_dist = calc_R(x, y, xc, yc)
+            Rm = np.mean(R_dist)
+            if debug:
+                print
+                "pass %d Circle found!: %f %f radius %f (%d points)" % (clipping_pass, xc, yc, Rm, len(x))
+
+            if clipping_pass < num_clipping_passes:
+                Rmedian = np.median(R_dist)
+                keep_mask = np.abs(R_dist - Rmedian) < R_dist.std() * clipping_sigma
+                x = x[keep_mask]
+                y = y[keep_mask]
+                if len(keep_mask) == len(x):  # if we didn't throw away any datapoints, we can stop doing passes...
+                    break
+
+    return xc, yc, Rm, numDatapoints
