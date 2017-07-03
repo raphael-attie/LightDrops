@@ -19,6 +19,7 @@ public:
 
     //getters
     QList<QUrl> getUrlList();
+    QList<ImageManager*> getImageManagerList() const;
     QList<QTableWidget*> getTableWidgetList() const;
     QList<RMat*> getRMatImageList();
 

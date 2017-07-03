@@ -78,7 +78,7 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(0), SOLAR_R(0), item(NULL)
+    bzero(0), expTime(0), XPOSURE(0), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);

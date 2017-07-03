@@ -15,6 +15,8 @@
 #include <QElapsedTimer>
 #include <QTimer>
 
+#include <QOpenGLFunctions_3_3_Core>
+
 /// opencv
 #include <opencv2/world.hpp>
 
@@ -170,6 +172,14 @@ void ROpenGLWidget::prepImage()
             //cv::Mat tempMat16;
             //rMatImageList.at(ii)->matImage.convertTo(tempMat16, CV_16U);
             cv::cvtColor(rMatImageList.at(ii)->matImage, tempMatRGB, CV_BayerBG2RGB);
+            // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
+            // Since FITS images uses the same coordinate frame as the openGL viewport,
+            // it is necessary to flip the DSLR images up-side down.
+            if (rListImageManager->getImageManagerList().at(0)->getRMatImage()->getInstrument() == instruments::DSLR)
+            {
+                cv::flip(tempMatRGB, tempMatRGB, 0);
+            }
+
         }
         else
         {
@@ -331,7 +341,6 @@ void ROpenGLWidget::loadGLTexture()
     {
         cv::Mat tempImageRGB = matImageListRGB.at(ii);
 
-
         QOpenGLTexture *oglt = new QOpenGLTexture(QOpenGLTexture::Target2D);
         oglt->setSize(naxis1, naxis2);
 
@@ -477,8 +486,10 @@ void ROpenGLWidget::resizeGL(int w, int h)
 {
 //    const qreal retinaScale = devicePixelRatio();
 //    glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+
       glViewport( 0, 0, w, qMax( h, 1 ) );
       qDebug("resizeGL size = (%i, %i)", w, h);
+
 }
 
 bool ROpenGLWidget::prepareShaderProgram(const QString vertexShaderPath, const QString fragmentShaderPath)

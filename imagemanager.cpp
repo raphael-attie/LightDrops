@@ -65,6 +65,7 @@ ImageManager::~ImageManager()
     delete rMatImage;
 //    delete newFitsImage;
 //    delete newRawImage;
+
 }
 
 bool ImageManager::getError()
@@ -155,11 +156,12 @@ void ImageManager::loadFits()
 void ImageManager::loadRaw()
 {
     newRawImage = new RawImage(filePathQStr);
-    rMatImage = new RMat(newRawImage->matCFA, true, instruments::DSLR);
+    //newRawImage = new RawImage2();
+    rMatImage = new RMat(newRawImage->getMatCFA(), true, instruments::DSLR);
 
-    rMatImage->setWbRed(newRawImage->getWbRed());
-    rMatImage->setWbGreen(newRawImage->getWbGreen());
-    rMatImage->setWbBlue(newRawImage->getWbBlue());
+//    rMatImage->setWbRed(newRawImage->getWbRed());
+//    rMatImage->setWbGreen(newRawImage->getWbGreen());
+//    rMatImage->setWbBlue(newRawImage->getWbBlue());
 }
 
 void ImageManager::createTableWidget()

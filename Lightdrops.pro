@@ -15,16 +15,22 @@ CONFIG += console #only for debug
 win32 {
     DEFINES += WIN32
     INCLUDEPATH += C:/Dev/cfitsio_64
-    INCLUDEPATH += C:/Dev/libraw
+    INCLUDEPATH += "C:\Dev\temp\LibRaw-0.18.2\libraw"
+    #INCLUDEPATH += C:/Dev/libraw
     INCLUDEPATH += C:\Dev\opencv\build\include
     INCLUDEPATH += "C:\Program Files\ArrayFire\v3\include"
     #INCLUDEPATH += C:/dev/exiv2/include
+    INCLUDEPATH += C:\gnu\exiv2\exiv2-master\include
 
+    #C:\gnu\exiv2\exiv2-master\msvc\bin\x64\DebugDLL
+    LIBS += -LC:\gnu\exiv2\exiv2-master\msvc\bin\x64\DebugDLL -llibexiv2
     #LIBS += -LC:/Dev/exiv2/x64/Debug -llibexiv2
     LIBS += -LC:/Dev/cfitsio_64 -lcfitsio
-    LIBS += -LC:/Dev/libraw/lib -llibraw
+    LIBS += -L"C:\Dev\temp\LibRaw-0.18.2\dll" -llibraw
+    #LIBS += -LC:/Dev/libraw/lib -llibraw
     LIBS += -L"C:\Program Files\ArrayFire\v3\lib" -lafopencl
     LIBS += -LC:\Dev\opencv\build\x64\vc14\lib -lopencv_world320
+
 }
 
 macx {
@@ -96,7 +102,8 @@ SOURCES += main.cpp\
     circle.cpp \
     utilities.cpp \
     rgraphicsscene.cpp \
-    rscrollarea.cpp
+    rscrollarea.cpp \
+    RawImage2.cpp
 
 HEADERS  += winsockwrapper.h \
     rmainwindow.h \
@@ -121,7 +128,8 @@ HEADERS  += winsockwrapper.h \
     rgraphicsscene.h \
     werner/circle.h \
     werner/mystuff.h \
-    rscrollarea.h
+    rscrollarea.h \
+    RawImage2.h
 
 
 FORMS    += rmainwindow.ui \

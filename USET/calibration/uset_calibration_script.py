@@ -4,10 +4,10 @@
 This script demonstrates the calibration pipeline for USET.
 It produces two levels of calibration:
 
-- Level 0 with only headers filled with the results of limb fitting and WCS-related keywords.
+- Level 0: only headers filled with the results of limb fitting and WCS-related keywords.
 The latter can be used to register (co-align) the image with user's own method.
 
-- Level 1 have center of disk into center of FOV, and optionnally rotate by P angle.
+- Level 1: center of disk into center of FOV, and optionnally rotate by P angle.
 
 This script produces also jpeg for a quick check of the limb fitting, can be disabled for faster execution.
 The actual functions doing the processing are in the "uset_calibration" module.
@@ -46,19 +46,7 @@ outdir_0_jpeg  = os.path.join(outdir_0, 'limb_fit_jpeg')
 outdir_1       = os.path.join(data_dir, 'calibrated_lev1')
 outdir_1_jpeg  = os.path.join(outdir_1, 'preview_jpeg')
 
-
-
-# Check if output directories exist. Create if not.
-if not os.path.isdir(outdir_0):
-    os.makedirs(outdir_0)
-if not os.path.isdir(outdir_0_jpeg):
-    os.makedirs(outdir_0_jpeg)
-if not os.path.isdir(outdir_1):
-    os.makedirs(outdir_1)
-if not os.path.isdir(outdir_1_jpeg):
-    os.makedirs(outdir_1_jpeg)
-
-# Enable/Disable agressive clean-up of limb points
+# Enable / Disable agressive clean-up of limb points
 limb_cleanup                    = True
 # Enable / disable rotation to align images to solar north
 rotate_to_solar_north           = True
@@ -75,6 +63,16 @@ print_preview_fullsun_lev_0   = False
 # Toggle preview of centered image over full disk
 print_preview_fullsun_lev_1   = False
 
+# Check if output directories exist. Create if not.
+if not os.path.isdir(outdir_0):
+    os.makedirs(outdir_0)
+if not os.path.isdir(outdir_0_jpeg):
+    os.makedirs(outdir_0_jpeg)
+if not os.path.isdir(outdir_1):
+    os.makedirs(outdir_1)
+if not os.path.isdir(outdir_1_jpeg):
+    os.makedirs(outdir_1_jpeg)
+
 num_files = len(file_list)
 # Loop through all the files
 # for i in range(0, num_files):
@@ -88,6 +86,7 @@ for i in range(0, 1):
     header = hdu[0].header
     image = hdu[0].data
 
+    # TODO: subtract master dark
     centered_image, xc, yc, Rm, pts, pts2, pts3 = uset.uset_limbfit_align(image, limb_cleanup)
 
 

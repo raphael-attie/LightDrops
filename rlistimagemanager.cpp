@@ -86,6 +86,11 @@ QList<QUrl> RListImageManager::getUrlList()
     return urlList;
 }
 
+QList<ImageManager*> RListImageManager::getImageManagerList() const
+{
+    return imageManagerList;
+}
+
 QList<QTableWidget*> RListImageManager::getTableWidgetList() const
 {
     return tableWidgetList;

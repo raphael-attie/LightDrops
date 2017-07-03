@@ -8,17 +8,18 @@
 #include <QColor>
 
 //opencv
-#include <opencv2/core.hpp>
-#include <opencv2/core/ocl.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/core.hpp>
+//#include <opencv2/core/ocl.hpp>
+//#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/world.hpp>
 
 // libraw
-#include <libraw/libraw.h>
+#include <libraw.h>
 
 // Exiv2
-//#include <exiv2/exiv2.hpp>
 //#include "exiv2/exiv2.hpp"
+#include <exiv2/exiv2.hpp>
 
 class RawImage
 {
@@ -29,28 +30,24 @@ public:
 
     void extractExif();
 
-    LibRaw getRawProcess() const;
+    LibRaw* getRawProcess() const;
 
-    cv::Mat matCFA;
-
-    cv::Mat getImRed() const;
-    cv::Mat getImGreen() const;
-    cv::Mat getImBlue() const;
+    cv::Mat getMatCFA() const;
+//    cv::Mat getImRed() const;
+//    cv::Mat getImGreen() const;
+//    cv::Mat getImBlue() const;
 
     qint32 getNaxis1() const;
     qint32 getNaxis2() const;
 
     int getNPixels() const;
 
-    float getDataMinRed() const;
-    float getDataMaxRed() const;
-
-    float getDataMinGreen() const;
-    float getDataMaxGreen() const;
-
-    float getDataMinBlue() const;
-    float getDataMaxBlue() const;
-
+//    float getDataMinRed() const;
+//    float getDataMaxRed() const;
+//    float getDataMinGreen() const;
+//    float getDataMaxGreen() const;
+//    float getDataMinBlue() const;
+//    float getDataMaxBlue() const;
     float getWbRed() const;
     float getWbGreen() const;
     float getWbBlue() const;
@@ -65,8 +62,8 @@ public:
 private:
 
     QString filePath_;
-    LibRaw rawProcess;
-    libraw_processed_image_t* imageProcessed;
+
+    //libraw_processed_image_t* imageProcessed;
 
 
     // dimensions
@@ -74,30 +71,32 @@ private:
     int naxis2;
     int nPixels;
 
-    float dataMinRed;
-    float dataMaxRed;
+//    float dataMinRed;
+//    float dataMaxRed;
 
-    float dataMinGreen;
-    float dataMaxGreen;
+//    float dataMinGreen;
+//    float dataMaxGreen;
 
-    float dataMinBlue;
-    float dataMaxBlue;
+//    float dataMinBlue;
+//    float dataMaxBlue;
 
     // White balance values from camera
     float wbRed;
     float wbGreen;
     float wbBlue;
 
-    cv::Mat imRed;
-    cv::Mat imGreen;
-    cv::Mat imBlue;
-    cv::Mat imGreen2;
+    cv::Mat matCFA;
+//    cv::Mat imRed;
+//    cv::Mat imGreen;
+//    cv::Mat imBlue;
+//    cv::Mat imGreen2;
 
     QVector<QString> keyNames;
     QVector<QString> keyValues;
     QVector<QString> keyComments;
 
-    //Exiv2::Image::AutoPtr image;
+    LibRaw *rawProcess;
+    Exiv2::Image::AutoPtr image;
 
 
 

@@ -20,7 +20,7 @@
 #include <opencv2/world.hpp>
 
 #include "rlistimagemanager.h"
-#include "RawImage.h"
+//#include "RawImage2.h"
 #include "rmat.h"
 #include "rsubwindow.h"
 

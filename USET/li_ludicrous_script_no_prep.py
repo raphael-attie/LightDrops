@@ -48,13 +48,13 @@ binning         = 2
 # Buffer space: extra marging around a reference block when aligning a template block
 # bufferSpace   = 8
 # Block size and binned block size
-blk_size        = 32
+blk_size        = 64
 # Nb of best images to keep the stack of subfields
 nbest           = 5
 # Quality metric
 qmetric = 'Laplace'
-# blend mode
-blend_mode = 'aavg'
+# blend mode: 'aavg' (arithmetic average), 'gblend' (distance-transform + gaussian).
+blend_mode = 'gblend'
 # Nb of images out of which the nbest subfields are taken. Typically, nbest << interval
 interval = 40
 

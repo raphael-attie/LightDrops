@@ -1,14 +1,5 @@
 #include "RawImage.h"
 
-// libraw
-#include <libraw/libraw.h>
-
-// opencv
-#include <opencv2/core.hpp>
-#include <opencv2/core/ocl.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
 // Qt
 #include <iostream>
 #include <QObject>
@@ -19,7 +10,7 @@
 #include <QElapsedTimer>
 #include <QDateTime>
 
-using namespace cv;
+//using namespace cv;
 using namespace std;
 
 RawImage::RawImage()
@@ -27,9 +18,14 @@ RawImage::RawImage()
 
 }
 
-RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
+RawImage::RawImage(QString filePath):
+    filePath_(filePath), naxis1(0), naxis2(0), nPixels(0),
+    wbRed(1.0), wbGreen(1.0), wbBlue(1.0), rawProcess(NULL)
 {
-    QElapsedTimer timer1, timer2;
+
+    matCFA.create(10, 10, CV_16U);
+
+    QElapsedTimer timer1;//, timer2;
 
     int error = 0;
 
@@ -107,36 +103,37 @@ RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
 //       qDebug() << keyName << " : ";
 //    }
 
-
-    error = rawProcess.open_file(filePath_.toStdString().c_str());
+    rawProcess = new LibRaw();
+    error = rawProcess->open_file(filePath_.toStdString().c_str());
 
     if (error !=0)
     {
         qDebug() << "error on open_file = " << error;
     }
 
-    //rawProcess.imgdata.params.use_camera_matrix = 0;
-    rawProcess.imgdata.params.use_camera_wb = 0;
-    rawProcess.imgdata.params.no_auto_bright = 1;
-    //rawProcess.imgdata.params.user_qual = -1;
+    //rawProcess->imgdata.params.use_camera_matrix = 0;
+    rawProcess->imgdata.params.use_camera_wb = 0;
+    rawProcess->imgdata.params.no_auto_bright = 1;
+    //rawProcess->imgdata.params.user_qual = -1;
 
     extractExif();
 
     timer1.start();
 
-    error = rawProcess.unpack();
+    error = rawProcess->unpack();
     if (error!=0)
     {
         qDebug() << "unpack() error =" << error;
     }
-    qDebug()<<"Time for rawProcess.unpack()=" <<  timer1.elapsed() << "ms";
-    qDebug() << "Bayer Pattern: rawProcess.imgdata.idata.cdesc=" << rawProcess.imgdata.idata.cdesc;
+    qDebug()<<"Time for rawProcess->unpack()=" <<  timer1.elapsed() << "ms";
+    qDebug() << "Bayer Pattern: rawProcess->imgdata.idata.cdesc=" << rawProcess->imgdata.idata.cdesc;
 
-    naxis1 = rawProcess.imgdata.sizes.iwidth;
-    naxis2 = rawProcess.imgdata.sizes.iheight;
+    naxis1 = rawProcess->imgdata.sizes.iwidth;
+    naxis2 = rawProcess->imgdata.sizes.iheight;
     nPixels = naxis1 * naxis2;
 
-    //    rawProcess.subtract_black();
+
+    //    rawProcess->subtract_black();
 
     // Advised by lexa (Author of Libraw):
     //    Each row contains non-visible pixels on both ends:
@@ -145,10 +142,10 @@ RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
     //    Also, rows may be aligned for efficient SSE/AVX access. LibRaw internal code do not align rows, but if you use LibRaw+RawSpeed, RawSpeed will align rows on 16 bytes.
     //    So, it is better to use imgdata.sizes.raw_pitch (it is in bytes, so divide /2 for bayer data) instead of raw_width.
 
-    //    int raw_width = (int) rawProcess.imgdata.sizes.raw_width;
-    int raw_width = (int) rawProcess.imgdata.sizes.raw_pitch/2;
-    int top_margin = (int) rawProcess.imgdata.sizes.top_margin;
-    int left_margin = (int) rawProcess.imgdata.sizes.left_margin;
+    //    int raw_width = (int) rawProcess->imgdata.sizes.raw_width;
+    int raw_width = (int) rawProcess->imgdata.sizes.raw_pitch/2;
+    int top_margin = (int) rawProcess->imgdata.sizes.top_margin;
+    int left_margin = (int) rawProcess->imgdata.sizes.left_margin;
     int first_visible_pixel = (int) (raw_width * top_margin + left_margin);
 
     qDebug() << "first_visible_pixel =" << first_visible_pixel;
@@ -162,24 +159,31 @@ RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
     // Hence the dimension of this new buffer (rawP) match the final image size of the camera.
     // We convert them afterwards to float.
     // These steps cost about 150 ms at most on a 22 MP DSLR, core i5 macbook Pro Retina 2013.
-    // Without parallelization (QThread or alike), this is about 5-10% of the total time to load and display the image.
+    // This is about 5-10% of the total time to load and display the image.
     long j=0;
     for(int r = 0; r < naxis2; r++)
     {
         for(int c=0; c < naxis1; c++)
         {
-            rawP[j] = rawProcess.imgdata.rawdata.raw_image[(r + top_margin)*raw_width + left_margin + c];
+            rawP[j] = rawProcess->imgdata.rawdata.raw_image[(r + top_margin)*raw_width + left_margin + c];
             j++;
         }
     }
+
+
    //matCFA.convertTo(matCFA, CV_32F);
     matCFA.convertTo(matCFA, CV_16U);
 
+//    if (rawProcess->imgdata.sizes.flip == 3)
+//    {
+
+//    }
+
 
     // White balance
-    wbRed = rawProcess.imgdata.color.cam_mul[0] /1000.0f;
-    wbGreen = rawProcess.imgdata.color.cam_mul[1]/1000.0f;
-    wbBlue = rawProcess.imgdata.color.cam_mul[2]/1000.0f;
+    wbRed = rawProcess->imgdata.color.cam_mul[0] /1000.0f;
+    wbGreen = rawProcess->imgdata.color.cam_mul[1]/1000.0f;
+    wbBlue = rawProcess->imgdata.color.cam_mul[2]/1000.0f;
 
     qDebug("white balance cam_mul =%f , %f , %f" , wbRed, wbGreen, wbBlue);
 
@@ -206,31 +210,31 @@ RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
 
     // raw2image()
     //    timer2.start();
-    //    error = rawProcess.raw2image();
+    //    error = rawProcess->raw2image();
     //    if (error !=0)
     //    {
     //        qDebug() << "error on raw2image()";
     //    }
-    //    qDebug()<<"Time for rawProcess.raw2image()" <<  timer2.elapsed() << "ms";
+    //    qDebug()<<"Time for rawProcess->raw2image()" <<  timer2.elapsed() << "ms";
 
 
     //    for(int i = 0;i < nPixels; i++)
     //    {
     //        qDebug("i=%d R=%d G=%d B=%d G2=%d\n", i,
-    //                     rawProcess.imgdata.image[i][0],
-    //                     rawProcess.imgdata.image[i][1],
-    //                     rawProcess.imgdata.image[i][2],
-    //                     rawProcess.imgdata.image[i][3]
+    //                     rawProcess->imgdata.image[i][0],
+    //                     rawProcess->imgdata.image[i][1],
+    //                     rawProcess->imgdata.image[i][2],
+    //                     rawProcess->imgdata.image[i][3]
     //             );
     //    }
 
     //    timer2.restart();
-    //    error = rawProcess.dcraw_process();
+    //    error = rawProcess->dcraw_process();
     //    if (error !=0)
     //    {
     //        qDebug() << "error on dcraw_process()";
     //    }
-    ////    qDebug()<<"Time for rawProcess.dcraw_process()" <<  timer2.elapsed() << "ms";
+    ////    qDebug()<<"Time for rawProcess->dcraw_process()" <<  timer2.elapsed() << "ms";
 
     //    ushort *redP = imRed.ptr<ushort>(0);
     //    ushort *greenP = imGreen.ptr<ushort>(0);
@@ -239,9 +243,9 @@ RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
     //    for (int i = 0; i < nPixels; i++)
     //    {
 
-    //        redP[i] = rawProcess.imgdata.image[i][0];
-    //        greenP[i] = rawProcess.imgdata.image[i][1];
-    //        blueP[i] = rawProcess.imgdata.image[i][2];
+    //        redP[i] = rawProcess->imgdata.image[i][0];
+    //        greenP[i] = rawProcess->imgdata.image[i][1];
+    //        blueP[i] = rawProcess->imgdata.image[i][2];
     //    }
 
 
@@ -267,64 +271,69 @@ RawImage::RawImage(QString filePath):filePath_(filePath), imageProcessed(NULL)
 
 RawImage::~RawImage()
 {
-    imRed.release();
-    imGreen.release();
-    imBlue.release();
-    delete[] imageProcessed;
+//    imRed.release();
+//    imGreen.release();
+//    imBlue.release();
+    delete rawProcess;
 }
 
 
 void RawImage::extractExif()
 {
     /// Extract exif data
-//    image = Exiv2::ImageFactory::open(filePath_.toStdString());
-//    assert(image.get() != 0);
-//    image->readMetadata();
-//    Exiv2::ExifData &exifData = image->exifData();
-//    if (exifData.empty())
-//    {
-//        std::string error(filePath_.toStdString());
-//        error += ": No Exif data found in the file";
-//        throw Exiv2::Error(1, error);
-//    }
-//    Exiv2::Exifdatum temperatureData = exifData["Exif.CanonSi.CameraTemperature"];
+    image = Exiv2::ImageFactory::open(filePath_.toStdString());
+    assert(image.get() != 0);
+    image->readMetadata();
+    Exiv2::ExifData &exifData = image->exifData();
+    if (exifData.empty())
+    {
+        std::string error(filePath_.toStdString());
+        error += ": No Exif data found in the file";
+        throw Exiv2::Error(1, error);
+    }
 
-    QDateTime dt = QDateTime::fromTime_t( rawProcess.imgdata.other.timestamp );
+    QDateTime dt = QDateTime::fromTime_t( rawProcess->imgdata.other.timestamp );
 
-    dispatchMetaDatum("Brand", QString::fromUtf8(rawProcess.imgdata.idata.make));
-    dispatchMetaDatum("Model", QString::fromUtf8(rawProcess.imgdata.idata.model));
-    dispatchMetaDatum("Colors", QString::number(rawProcess.imgdata.idata.colors), "Number of color channels");
-    dispatchMetaDatum("Bayer pattern", QString::fromUtf8(rawProcess.imgdata.idata.cdesc), "Color pattern of the Bayer matrix");
+    dispatchMetaDatum("Brand", QString::fromUtf8(rawProcess->imgdata.idata.make));
+    dispatchMetaDatum("Model", QString::fromUtf8(rawProcess->imgdata.idata.model));
+    dispatchMetaDatum("Colors", QString::number(rawProcess->imgdata.idata.colors), "Number of color channels");
+    dispatchMetaDatum("Bayer pattern", QString::fromUtf8(rawProcess->imgdata.idata.cdesc), "Color pattern of the Bayer matrix");
     dispatchMetaDatum("DATE", dt.toString("MMMM d yyyy hh:mm:ss t"));
-    dispatchMetaDatum("NAXIS1", QString::number(rawProcess.imgdata.sizes.width), "Image width (px)");
-    dispatchMetaDatum("NAXIS2", QString::number(rawProcess.imgdata.sizes.height), "Image height (px)");
-    dispatchMetaDatum("Flip", QString::number(rawProcess.imgdata.sizes.flip), "0: 0; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW");
-    dispatchMetaDatum("Order", QString::number(rawProcess.imgdata.other.shot_order), "Shot ordered number");
-    dispatchMetaDatum("ISO", QString::number(rawProcess.imgdata.other.iso_speed));
-    dispatchMetaDatum("XPOSURE", QString::number(rawProcess.imgdata.other.shutter), "Exposure time (s)");
-    //dispatchMetaDatum("Temperature", QString::fromStdString(temperatureData.print()), "Temperature of camera sensor in degrees Celsius");
+    dispatchMetaDatum("NAXIS1", QString::number(rawProcess->imgdata.sizes.width), "Image width (px)");
+    dispatchMetaDatum("NAXIS2", QString::number(rawProcess->imgdata.sizes.height), "Image height (px)");
+    dispatchMetaDatum("Flip", QString::number(rawProcess->imgdata.sizes.flip), "0: 0 deg; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW");
+    dispatchMetaDatum("Order", QString::number(rawProcess->imgdata.other.shot_order), "Shot ordered number");
+    dispatchMetaDatum("ISO", QString::number(rawProcess->imgdata.other.iso_speed));
+    dispatchMetaDatum("XPOSURE", QString::number(rawProcess->imgdata.other.shutter), "Exposure time (s)");
+    // CANON DSLR temperature
+    Exiv2::Exifdatum temperatureData = exifData["Exif.CanonSi.CameraTemperature"];
+    dispatchMetaDatum("Temperature", QString::fromStdString(temperatureData.print()), "Temperature of camera sensor in degrees Celsius");
 
 }
 
-LibRaw RawImage::getRawProcess() const
+LibRaw* RawImage::getRawProcess() const
 {
     return rawProcess;
 }
 
-Mat RawImage::getImRed() const
+cv::Mat RawImage::getMatCFA() const
 {
-    return imRed;
+    return matCFA;
 }
+//cv::Mat RawImage::getImRed() const
+//{
+//    return imRed;
+//}
 
-Mat RawImage::getImGreen() const
-{
-    return imGreen;
-}
+//cv::Mat RawImage::getImGreen() const
+//{
+//    return imGreen;
+//}
 
-Mat RawImage::getImBlue() const
-{
-    return imBlue;
-}
+//cv::Mat RawImage::getImBlue() const
+//{
+//    return imBlue;
+//}
 
 
 qint32 RawImage::getNaxis1() const
@@ -343,35 +352,35 @@ int RawImage::getNPixels() const
 }
 
 
-float RawImage::getDataMaxRed() const
-{
-    return dataMaxRed;
-}
+//float RawImage::getDataMaxRed() const
+//{
+//    return dataMaxRed;
+//}
 
-float RawImage::getDataMaxGreen() const
-{
-    return dataMaxGreen;
-}
+//float RawImage::getDataMaxGreen() const
+//{
+//    return dataMaxGreen;
+//}
 
-float RawImage::getDataMaxBlue() const
-{
-    return dataMaxBlue;
-}
+//float RawImage::getDataMaxBlue() const
+//{
+//    return dataMaxBlue;
+//}
 
-float RawImage::getDataMinRed() const
-{
-    return dataMinRed;
-}
+//float RawImage::getDataMinRed() const
+//{
+//    return dataMinRed;
+//}
 
-float RawImage::getDataMinGreen() const
-{
-    return dataMinGreen;
-}
+//float RawImage::getDataMinGreen() const
+//{
+//    return dataMinGreen;
+//}
 
-float RawImage::getDataMinBlue() const
-{
-    return dataMinBlue;
-}
+//float RawImage::getDataMinBlue() const
+//{
+//    return dataMinBlue;
+//}
 
 float RawImage::getWbRed() const
 {
