@@ -24,14 +24,15 @@ from skimage.transform import rotate
 import matplotlib.pyplot as plt
 import cv2
 
-def sort_calibration_files(data_dir):
+def sort_calibration_files(data_dir, extension):
     """
     Sort calibration files by moving them to directories depending on their nature: light, dark or bias image
 
     :param data_dir: directory where all files are
+    :param extension: file extension. Can be 'FTS', 'fits', 'FTS.gz', 'fits.gz'
     :return: none.
     """
-    file_list = glob.glob(os.path.join(data_dir, '*.FTS'))
+    file_list = glob.glob(os.path.join(data_dir, '*.' + extension))
     # List of tested gain values
     gains = [1000, 2000]
 
