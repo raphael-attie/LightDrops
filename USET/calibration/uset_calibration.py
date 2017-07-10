@@ -12,6 +12,7 @@ This module contains all the functions related to the alignment of USET images u
 """
 import glob
 import os
+import shutil
 from astropy.io import fits
 import numpy as np
 from astropy.convolution import convolve, Box1DKernel
@@ -23,12 +24,58 @@ from skimage.transform import rotate
 import matplotlib.pyplot as plt
 import cv2
 
+def sort_calibration_files(data_dir):
+    """
+    Sort calibration files by moving them to directories depending on their nature: light, dark or bias image
+
+    :param data_dir: directory where all files are
+    :return: none.
+    """
+    file_list = glob.glob(os.path.join(data_dir, '*.FTS'))
+    # List of tested gain values
+    gains = [1000, 2000]
+
+    gain_dirs = [os.path.join(data_dir, 'Gain' + str(gain)) for gain in gains]
+    lights_dirs = [os.path.join(gdir, 'lights') for gdir in gain_dirs]
+    darks_dirs = [os.path.join(gdir, 'darks') for gdir in gain_dirs]
+    bias_dirs = [os.path.join(gdir, 'bias') for gdir in gain_dirs]
+
+    for i in range(0, len(gains)):
+        # Check if output directories exist. Create if not.
+        if not os.path.isdir(lights_dirs[i]):
+            os.makedirs(lights_dirs[i])
+        if not os.path.isdir(bias_dirs[i]):
+            os.makedirs(bias_dirs[i])
+        if not os.path.isdir(darks_dirs[i]):
+            os.makedirs(darks_dirs[i])
+
+    for i in range(0, len(file_list)):
+
+        file = file_list[i]
+        hdu = fits.open(file, ignore_missing_end=True)
+        # Load header and image data from the 1st data unit: hdu[0]
+        h = hdu[0].header
+        img = hdu[0].data
+        # Get gain index of current image
+        g = gains.index(h['GAIN'])
+        # Move file to directory for according to current gain value, as bias, dark or lights
+        if h['EXPTIME'] < 1E-4:
+            # Consider image as bias
+            shutil.move(file, bias_dirs[g])
+        elif img.mean() < 50:
+            # Consider image as dark
+            shutil.move(file, darks_dirs[g])
+        else:
+            # if none of the above, consider image as light
+            shutil.move(file, lights_dirs[g])
+
+
 def create_master_dark(dark_dir, extension, master_path):
     """
     Take the median of a series of dark images
 
     :param dark_dir: path to dark images (fits files)
-    :param extension: file extension. Can be .FTS, .fits, .FTS.gz, .fits.gz
+    :param extension: file extension. Can be 'FTS', 'fits', 'FTS.gz', 'fits.gz'
     :return: Master dark image. Files are printed in dark_dir.
     """
     file_list = glob.glob(os.path.join(dark_dir, '*.' + extension))
