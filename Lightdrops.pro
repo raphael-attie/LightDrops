@@ -29,7 +29,7 @@ win32 {
     LIBS += -L"C:\Dev\temp\LibRaw-0.18.2\dll" -llibraw
     #LIBS += -LC:/Dev/libraw/lib -llibraw
     LIBS += -L"C:\Program Files\ArrayFire\v3\lib" -lafopencl
-    LIBS += -LC:\Dev\opencv\build\x64\vc14\lib -lopencv_world320
+    LIBS += -LC:\Dev\opencv\build\x64\vc14\lib -lopencv_world320d
 
 }
 

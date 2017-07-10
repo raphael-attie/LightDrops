@@ -10,7 +10,7 @@ This module contains all the functions related to the alignment of USET images u
 
 @author: Raphael Attie (attie.raphael@gmail.com)
 """
-
+import glob
 import os
 from astropy.io import fits
 import numpy as np
@@ -21,6 +21,31 @@ from skimage.transform import warp
 from skimage.transform import SimilarityTransform
 from skimage.transform import rotate
 import matplotlib.pyplot as plt
+import cv2
+
+def create_master_dark(dark_dir, extension):
+    """
+    Take the median of a series of dark images
+
+    :param dark_dir: path to dark images (fits files)
+    :param extension: file extension. Can be .FTS, .fits, .FTS.gz, .fits.gz
+    :return: Master dark image. Files are printed in dark_dir.
+    """
+    file_list = glob.glob(os.path.join(dark_dir, '*.' + extension))
+    hdu = fits.open(file_list[0], ignore_missing_end=True)
+    naxis1 = hdu[0].header['NAXIS1']
+    naxis2 = hdu[0].header['NAXIS2']
+    nframes = len(file_list)
+    darks = np.zeros([naxis1, naxis2, nframes])
+
+    for i in range(0, nframes):
+        hdu = fits.open(file_list[i], ignore_missing_end=True)
+        darks[:,:,i] = hdu[0].data
+
+    master_dark = np.median(darks, 2)
+
+    return master_dark
+
 
 
 def detectLimbPoints(img, numPts, smooth, limb_cleanup):
@@ -857,3 +882,74 @@ def emil_circle_fit(x, y, debug, num_clipping_passes=1, clipping_sigma=2):
                     break
 
     return xc, yc, Rm, numDatapoints
+
+def filter_hanning(image, w, filter_type):
+
+    # 2D hanning filter, assumes a square image size
+    # w: filter width
+    n = image.shape[0]
+    xgrid, ygrid = np.meshgrid(np.arange(n), np.arange(n))
+    cutoff = 0
+
+    # Get the fourier transform
+    Fimage = np.fft.fftshift(np.fft.fftn(image))
+
+    # grid of radial distances
+    r = np.sqrt((xgrid - (n / 2 - 0.5)) ** 2 + (ygrid - (n / 2 - 0.5)) ** 2)
+    han2D = 0.5 + 0.5 * np.cos(np.pi * (r - cutoff) / (2 * w))
+    mask_r = r > cutoff + 2 * w
+    han2D[mask_r] = 0
+
+    # Apply 2D Hanning window to fourier transform
+    windowed_Fimage = Fimage * han2D
+    filtered_image = np.real(np.fft.ifftn(np.fft.ifftshift((windowed_Fimage))))
+
+    return filtered_image
+
+def correct_limb_darkening(image, center, radius):
+    # Fit limb darkening.
+    # This assume a square image in the polar transform
+
+    # I(theta) = I(0) * ( 1 - ux)
+    # I(theta) = I(0) * ( 1 - u(1-cos(theta)) )
+    # cos(theta) = sqrt(radius**2 - r**2)/radius
+
+    # Image dimensions
+    naxis1 = image.shape[0]
+    naxis2 = image.shape[1]
+    # Coordinate of disk center
+    xc = center[0]
+    yc = center[1]
+
+    imageP = cv2.linearPolar(image, center, naxis1, cv2.INTER_LANCZOS4 + cv2.WARP_FILL_OUTLIERS)
+    # Take the median over theta (azimuthal average)
+    Iaz_avg = np.median(imageP, 0)
+
+    a = np.round(radius)
+    r = np.arange(a - 10)
+
+    Itheta = Iaz_avg[0:len(r)]
+
+    x = 1 - np.sqrt(a ** 2 - r ** 2) / a
+    y = Itheta / Itheta[0]
+
+    fit = np.polyfit(x, y, 1)
+    fit_fn = np.poly1d(fit)
+
+    limb_factor = fit[0] * x + fit[1]
+
+    # Define grid of cos(theta)
+    xgrid1, ygrid1 = np.meshgrid(np.arange(naxis1), np.arange(naxis2))
+    pixel_r = np.sqrt((xgrid1 - xc) ** 2 + (ygrid1 - yc) ** 2)
+
+    cos_theta = np.sqrt(a ** 2 - pixel_r ** 2) / a
+
+    x2 = 1 - cos_theta
+    limb_factor2D = fit[0] * x2 + fit[1]
+
+    mask_limb = pixel_r > a
+    limb_factor2D[mask_limb] = 1
+
+    image_limb = image / limb_factor2D
+
+    return image_limb, fit, x, fit_fn(x)

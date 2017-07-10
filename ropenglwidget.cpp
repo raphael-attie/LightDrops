@@ -33,7 +33,7 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
 {
-    this->setAttribute(Qt::WA_DeleteOnClose, true);
+    //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rListImageManager = rListImageManager;
     this->rMatImageList = rListImageManager->getRMatImageList();
     this->nFrames = rMatImageList.size();
@@ -52,7 +52,7 @@ ROpenGLWidget::ROpenGLWidget(QList<RMat *> rMatImageList, QWidget *parent)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
 {
-    this->setAttribute(Qt::WA_DeleteOnClose, true);
+    //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rMatImageList = rMatImageList;
     this->nFrames = rMatImageList.size();
 
@@ -66,7 +66,7 @@ ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
 {
-    this->setAttribute(Qt::WA_DeleteOnClose, true);
+    //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rMatImageList << rMatImage;
     //this->rMatImageList.push_back(rMatImage);
     this->nFrames = 1;

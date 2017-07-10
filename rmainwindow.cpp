@@ -213,7 +213,7 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 //    cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(0)->matImage.clone();
 //    cv::Mat matImageHPF = processing->makeImageHPF(matImage, 30);
 //    createNewImage(matImageHPF, false, instruments::generic, QString("Filtered"));
-    currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+    //currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
 
@@ -226,7 +226,7 @@ void RMainWindow::createNewImage(QList<RMat*> newRMatImageList)
     displayPlotWidget(currentROpenGLWidget);
     currentSubWindow->show();
     setupSliders(currentROpenGLWidget);
-    currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+    //currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 
 }
 
@@ -485,7 +485,7 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 
     currentScrollArea = new QScrollArea();
     currentScrollArea->setWidget(rOpenGLWidget);
-    currentScrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
+    //currentScrollArea->setAttribute(Qt::WA_DeleteOnClose, true);
     /// The size of the scrollArea must be set to the size of whatever is needed for the ROpenGLWidget
     /// to display the whole FOV in the central widget when adding the height of the scroll bars.
     /// Note that the "height" of the scrollBar always represent the dimension perpendicular to the direction
@@ -553,7 +553,7 @@ void RMainWindow::loadSubWindow(QScrollArea *scrollArea)
     /// Otherwise the shaders will not be bound.
     currentROpenGLWidget->resize(oglSize);
     currentSubWindow->resize(scrollArea->size());
-    currentSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
+    //currentSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
 
 }
 
@@ -843,8 +843,8 @@ void RMainWindow::solarLimbFit()
     processing->setShowContours(ui->contoursCheckBox->isChecked());
 
     /// test limb fitting without smooth
-    //bool success2 = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), false);
-    //fittedLimbList2 = processing->getCircleOutList();
+    bool success2 = processing->wernerLimbFit(currentROpenGLWidget->getRMatImageList(), false);
+    fittedLimbList2 = processing->getCircleOutList();
 
     /// With smooth
     int blurSize = ui->blurSizeSpinBox->value();
@@ -1121,15 +1121,19 @@ void RMainWindow::showLimbFitStats()
     QVector<double> x(nFrames);
     QVector<double> y(nFrames);
     QVector<double> y2(nFrames);
+    vector<double> yVector(nFrames);
     for (int i = 0 ; i < nFrames ; ++i)
     {
         x[i]  = i+1;
-        y[i]  = fittedLimbList.at(i).r;
+        y[i]  = (double)  fittedLimbList.at(i).r;
+        yVector[i]  = (double) fittedLimbList.at(i).r;
         y2[i] = y[i] - fittedLimbList2.at(i).r;
     }
-    cv::Scalar meanDiff, stdDiff, meanRadius, stdRadius;
+    cv::Scalar meanDiff, stdDiff, meanRadius, stdRadius, meanRadius2, stdRadius2;
     cv::meanStdDev(y2.toStdVector(), meanDiff, stdDiff);
     cv::meanStdDev(y.toStdVector(), meanRadius, stdRadius);
+    cv::meanStdDev(yVector, meanRadius2, stdRadius2);
+
 
     limbFitPlot = new QCustomPlot();
     limbFitPlot->legend->setVisible(true);
@@ -1155,7 +1159,6 @@ void RMainWindow::showLimbFitStats()
     limbFitPlot->yAxis->grid()->setPen(Qt::DashDotDotLine);
 
     // setup for graph 2: key axis top, value axis right
-    // will contain high frequency sine with low frequency beating:
     limbFitPlot->addGraph(limbFitPlot->xAxis, limbFitPlot->yAxis2);
     limbFitPlot->graph(1)->setPen(QPen(Qt::black));
     limbFitPlot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc));

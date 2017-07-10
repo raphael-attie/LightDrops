@@ -106,7 +106,7 @@ RMat::~RMat()
     if (item != NULL)
     {
         qDebug("RMat:: deleting item from QTreeWidget");
-        item->~QTreeWidgetItem();
+        //item->~QTreeWidgetItem();
     }
 }
 

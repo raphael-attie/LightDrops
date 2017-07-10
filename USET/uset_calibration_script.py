@@ -34,11 +34,17 @@ plt.ioff()
 
 # Set the directory where the FITS are.
 data_dir    =  '/Users/rattie/Data/USET/campaign/calibration/HALPHA'
+# Set path to calibration files (Dark images)
+dark_dir = '/Users'
+
 # Get the list of files, change it according to where your data files are and how are they are named.
 file_list   = glob.glob(os.path.join(data_dir, '*.FTS'))
 # Two output directories for two configuration levels (1.0 & 1.1), and 1 directory for jpeg image to check limb-fit.
 # Beware of how to use os.path.join() to create paths of subdirectories. Do not use "/" or "\" at the
 # Alternative: use explicit path. (e.g 'C:\USET\blah1\blah2 etc...) instead of os.path.join(...)
+# Calibration files (Dark images)
+dark_dir = '/data/usetHOP0334'
+
 # Calibration level 1.0
 outdir_0       = os.path.join(data_dir, 'calibrated_lev0')
 outdir_0_jpeg  = os.path.join(outdir_0, 'limb_fit_jpeg')
@@ -87,6 +93,8 @@ for i in range(0, 1):
     image = hdu[0].data
 
     # TODO: subtract master dark
+
+
     centered_image, xc, yc, Rm, pts, pts2, pts3 = uset.uset_limbfit_align(image, limb_cleanup)
 
 
