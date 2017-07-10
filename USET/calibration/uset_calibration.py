@@ -23,7 +23,7 @@ from skimage.transform import rotate
 import matplotlib.pyplot as plt
 import cv2
 
-def create_master_dark(dark_dir, extension):
+def create_master_dark(dark_dir, extension, master_path):
     """
     Take the median of a series of dark images
 
@@ -33,8 +33,9 @@ def create_master_dark(dark_dir, extension):
     """
     file_list = glob.glob(os.path.join(dark_dir, '*.' + extension))
     hdu = fits.open(file_list[0], ignore_missing_end=True)
-    naxis1 = hdu[0].header['NAXIS1']
-    naxis2 = hdu[0].header['NAXIS2']
+    header = hdu[0].header
+    naxis1 = header['NAXIS1']
+    naxis2 = header['NAXIS2']
     nframes = len(file_list)
     darks = np.zeros([naxis1, naxis2, nframes])
 
@@ -43,6 +44,10 @@ def create_master_dark(dark_dir, extension):
         darks[:,:,i] = hdu[0].data
 
     master_dark = np.median(darks, 2)
+
+    # Write to disk if path is set for the master dark
+    if master_path:
+        write_uset_fits(master_dark, header, master_path)
 
     return master_dark
 
