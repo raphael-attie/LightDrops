@@ -32,7 +32,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, level, preview):
     :param data_dir: directory containing the FITS files to calibrate (FITS, FITS.gz, FTS)
     :param output_dir: directory where the calibrated FITS files are written
     :param extension: file extension of the input fits files (fits, FITS.gz, or FTS) in data_dir
-    :param dark_path: path to master dark to subtract
+    :param dark_path: path to master dark file to subtract
     :param level: calibration level.
     - Level 0: only headers filled with the results of limb fitting and WCS-related keywords.
     The latter can be used to register (co-align) the image with user's own method.
