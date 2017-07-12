@@ -70,7 +70,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             # Export the calibrated image and new header into a FITS file.
             fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
             fname = os.path.join(output_dir, fname_fits)
-            write_uset_fits(image, header, fname, compressed=True)
+            write_uset_fits(image, header, fname, compressed=False)
 
         if level == 1:
             # Level 1 aligns the image to center of FOV with rotation to align y-axis to solar north
@@ -82,7 +82,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             # Export the calibrated image and new header into a FITS file.
             fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
             fname = os.path.join(output_dir, fname_fits)
-            write_uset_fits(centered_image, header, fname, compressed=True)
+            write_uset_fits(centered_image, header, fname, compressed=False)
 
 
         if preview:
