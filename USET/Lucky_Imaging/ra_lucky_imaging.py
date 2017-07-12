@@ -321,7 +321,8 @@ def lucky_imaging_single_block(images, globalRefImage, blk_size, nbest, binning,
 
     return stacked_blk, shift, best_indices, xs, ys
 
-def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, binning, blk_size, qmetric, blend_mode, preview=True):
+def lucky_imaging_wrapper(files, outdir, outdir_jpeg, nImages, interval, nbest, binning, blk_size, qmetric,
+                          blend_mode, master_dark_path, preview=True):
 
     print('interval = ' + str(interval))
     print('blend_mode = ' + blend_mode)

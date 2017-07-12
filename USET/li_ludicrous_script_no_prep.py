@@ -23,6 +23,8 @@ plt.ioff()
 # In my case it's either D:\USET\DATA on my windows PC or /Users/blah/USET/DATA on my Mac.
 # data_dir can be set to a string with a more explicit path if it is not possible to set an environment variable.
 data_dir    =  os.path.join(os.environ.get('USETDATA'), 'HAlpha', 'UPH20161215_Short_Exp', 'calibrated_level1.1')
+# path to master dark to subtract to the data
+master_dark_path = '/home/uset/calibration_HAlpha/darks/master_dark.fits'
 # Set the output directories (calibrated FITS, jpeg, ...)
 outdir      = os.path.join(data_dir, 'lucky')
 outdir_jpeg = os.path.join(outdir , 'jpeg')

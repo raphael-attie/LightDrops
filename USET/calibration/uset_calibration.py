@@ -17,12 +17,81 @@ from astropy.io import fits
 import numpy as np
 from astropy.convolution import convolve, Box1DKernel
 from sunpy.sun import solar_north
+import sunpy.cm as cm
 from scipy import optimize
 from skimage.transform import warp
 from skimage.transform import SimilarityTransform
 from skimage.transform import rotate
 import matplotlib.pyplot as plt
 import cv2
+
+def calibrate(data_dir, output_dir, fits_extension, dark_path, level, preview):
+    """
+    produces two levels of calibration:
+
+    :param data_dir: directory containing the FITS files to calibrate (FITS, FITS.gz, FTS)
+    :param output_dir: directory where the calibrated FITS files are written
+    :param extension: file extension of the input fits files (fits, FITS.gz, or FTS) in data_dir
+    :param dark_path: path to master dark to subtract
+    :param level: calibration level.
+    - Level 0: only headers filled with the results of limb fitting and WCS-related keywords.
+    The latter can be used to register (co-align) the image with user's own method.
+    - Level 1: center of disk into center of FOV, and optionnally rotate by P angle.
+    :param preview: print a jpeg preview of the calibrated image
+    :return: None. Data are written to disk
+    """
+    # Get the list of files, change it according to where your data files are and how are they are named.
+    file_list = glob.glob(os.path.join(data_dir, '*.' + fits_extension))
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+    # Number of frames to process
+    num_files = len(file_list)
+
+    for i in range(0, 1):
+        file = file_list[i]
+        hdu = fits.open(file, ignore_missing_end=True)
+        # Load header and image data from the 1st data unit: hdu[0]
+        header = hdu[0].header
+        image = hdu[0].data
+
+        if dark_path:
+            hdu_dark = fits.open(dark_path)
+            image = image - hdu_dark[0].data
+
+        centered_image, xc, yc, Rm, pts, pts2, pts3 = uset_limbfit_align(image, 'True')
+
+        if level == 0:
+            # Update header with information from limb fitting using WCS.
+            # Level 0 does not align the image to center of FOV.
+            # Here we export level 1.0. With CRPIX1 = xc , CRPIX2 = yc, CRVAL1 = 0, CRVAL2 = 0
+            header = set_header_calibrated(header, xc, yc, Rm)
+
+        if level == 1:
+            # Level 1 aligns the image to center of FOV with rotation to align y-axis to solar north
+            # Export level 1.0. With CRPIX1 = xc , CRPIX2 = yc, CRVAL1 = 0, CRVAL2 = 0
+            # Coordinate of disk center in centered image
+            xc2 = image.shape[0] / 2 - 0.5
+            yc2 = image.shape[1] / 2 - 0.5
+            header = set_header_calibrated(header, xc2, yc2, Rm)
+
+        # Export the calibrated image and new header into a FITS file.
+        fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
+        fname = os.path.join(output_dir, fname_fits)
+        write_uset_fits(centered_image, header, fname, compressed=True)
+
+        if preview:
+            # load a colormap
+            cmap = cm.get_cmap('irissjiFUV')
+            # Define file names of png file
+            basename_png = get_basename(file) + '_level_1.png'
+            fname = os.path.join(output_dir, basename_png)
+            # Plot and export preview of limb fitting results
+            export_preview(image, fname, cmap)
+
+    return
+
+
 
 def sort_calibration_files(data_dir, extension):
     """
@@ -69,35 +138,36 @@ def sort_calibration_files(data_dir, extension):
         else:
             # if none of the above, consider image as light
             shutil.move(file, lights_dirs[g])
+    return
 
 
-def create_master_dark(dark_dir, extension, master_path):
+def create_master_frame(calibration_dir, extension, master_path):
     """
-    Take the median of a series of dark images
+    Take the median of a series of images to produce a master calibration frame (master dark, bias, ...)
 
-    :param dark_dir: path to dark images (fits files)
+    :param calibration_dir: path to calibration images (fits files)
     :param extension: file extension. Can be 'FTS', 'fits', 'FTS.gz', 'fits.gz'
-    :return: Master dark image. Files are printed in dark_dir.
+    :return: Master image. Files are printed in dark_dir.
     """
-    file_list = glob.glob(os.path.join(dark_dir, '*.' + extension))
+    file_list = glob.glob(os.path.join(calibration_dir, '*.' + extension))
     hdu = fits.open(file_list[0], ignore_missing_end=True)
     header = hdu[0].header
     naxis1 = header['NAXIS1']
     naxis2 = header['NAXIS2']
     nframes = len(file_list)
-    darks = np.zeros([naxis1, naxis2, nframes])
+    frames = np.zeros([naxis1, naxis2, nframes])
 
     for i in range(0, nframes):
         hdu = fits.open(file_list[i], ignore_missing_end=True)
-        darks[:,:,i] = hdu[0].data
+        frames[:,:,i] = hdu[0].data
 
-    master_dark = np.median(darks, 2)
+    master_frame = np.median(frames, 2)
 
-    # Write to disk if path is set for the master dark
+    # Write to disk if path is set for the master frame
     if master_path:
-        write_uset_fits(master_dark, header, master_path)
+        write_uset_fits(master_frame, header, master_path)
 
-    return master_dark
+    return master_frame
 
 
 

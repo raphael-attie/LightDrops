@@ -32,11 +32,8 @@ import sunpy.cm as cm
 # Disable interactive mode so figure goes directory to a file and does not show up on screen
 plt.ioff()
 
-# Set the directory where the FITS are.
+# Set the directory of the FITS files (or FTS.gz).
 data_dir    =  '/Users/rattie/Data/USET/campaign/calibration/HALPHA'
-# Set path to calibration files (Dark images)
-dark_dir = '/Users'
-
 # Get the list of files, change it according to where your data files are and how are they are named.
 file_list   = glob.glob(os.path.join(data_dir, '*.FTS'))
 # Two output directories for two configuration levels (1.0 & 1.1), and 1 directory for jpeg image to check limb-fit.
