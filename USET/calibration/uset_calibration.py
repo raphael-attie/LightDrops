@@ -104,9 +104,9 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             centered_image2 = np.array(centered_image)
 
             # Apply mask and enhance intensity beyond limb
-            centered_image2[pixels_off_limb] = centered_image2[pixels_off_limb] * 5
-            # Get the maximum intensity for the rescaled image based on 99.97% percentile
-            new_max = compute_intensity_high(centered_image)
+            centered_image2[pixels_off_limb] = centered_image2[pixels_off_limb] * 3
+            # Get the maximum intensity for the rescaled image based on 99.99% percentile
+            new_max = compute_intensity_high(centered_image, 99.99)
             # Apply rotation of solar rotation axis to the image y-axis (top-bottom axis)
             centered_image2 = align_to_solar_north(centered_image2, header)
             # load a colormap for the preview function (could be passed as argument to this function...)
@@ -524,17 +524,17 @@ def compute_intensity_percentile(image, percentile):
 
     return intensity
 
-def compute_intensity_high(image):
+def compute_intensity_high(image, cutoff_high):
     """
     Compute the image percentile-based high intensity threshold up to which we stretch (rescale) the intensity.
     This is specific to USET and the percentile is hardcoded at 99.97%
 
     :param image: input image
+    :param image: percentile. Typical values within [99.97 - 99.99]
     :return: maximum thresholding intensity
     """
     nbins = 256
     im_hist, bin_edges = np.histogram(image, nbins)
-    cutoff_high = 99.97
     hist_width = bin_edges[1] - bin_edges[0]
     intensity_high = calc_threshold(cutoff_high, im_hist, hist_width)
 
@@ -603,7 +603,7 @@ def rescale_image_by_histmax(image):
     """
 
     new_min = 0
-    new_max = compute_intensity_high(image)
+    new_max = compute_intensity_high(image, 99.97)
     rescaled_image = rescale_image(image, new_min, new_max)
 
     return rescaled_image
