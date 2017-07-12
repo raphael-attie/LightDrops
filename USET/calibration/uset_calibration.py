@@ -106,7 +106,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             # Apply mask and enhance intensity beyond limb
             centered_image2[pixels_off_limb] = centered_image2[pixels_off_limb] * 4
             # Get the maximum intensity for the rescaled image based on 99.99% percentile
-            new_max = compute_intensity_high(centered_image, 99.99)
+            new_max = compute_intensity_high(centered_image, 99.995)
             # Apply rotation of solar rotation axis to the image y-axis (top-bottom axis)
             centered_image2 = align_to_solar_north(centered_image2, header)
             # load a colormap for the preview function (could be passed as argument to this function...)
