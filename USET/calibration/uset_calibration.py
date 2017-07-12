@@ -25,7 +25,7 @@ from skimage.transform import rotate
 import matplotlib.pyplot as plt
 import cv2
 
-def calibrate(data_dir, output_dir, fits_extension, dark_path, level, preview):
+def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, level, preview):
     """
     produces two levels of calibration:
 
@@ -33,6 +33,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, level, preview):
     :param output_dir: directory where the calibrated FITS files are written
     :param extension: file extension of the input fits files (fits, FITS.gz, or FTS) in data_dir
     :param dark_path: path to master dark file to subtract
+    :param limb_cleanpup: toggle aggressive limb detection (True / False)
     :param level: calibration level.
     - Level 0: only headers filled with the results of limb fitting and WCS-related keywords.
     The latter can be used to register (co-align) the image with user's own method.
@@ -59,7 +60,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, level, preview):
             hdu_dark = fits.open(dark_path)
             image = image - hdu_dark[0].data
 
-        centered_image, xc, yc, Rm, pts, pts2, pts3 = uset_limbfit_align(image, 'True')
+        centered_image, xc, yc, Rm, pts, pts2, pts3 = uset_limbfit_align(image, limb_cleanup)
 
         if level == 0:
             # Update header with information from limb fitting using WCS.
