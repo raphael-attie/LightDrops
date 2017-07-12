@@ -141,7 +141,7 @@ def sort_calibration_files(data_dir, extension):
     return
 
 
-def create_master_frame(calibration_dir, extension, master_path):
+def create_master_frame(calibration_dir, extension, master_path, nframes):
     """
     Take the median of a series of images to produce a master calibration frame (master dark, bias, ...)
 
@@ -154,8 +154,12 @@ def create_master_frame(calibration_dir, extension, master_path):
     header = hdu[0].header
     naxis1 = header['NAXIS1']
     naxis2 = header['NAXIS2']
-    nframes = len(file_list)
+    # If the number of files in the directory is smaller than the user input number of frames,
+    # need to take the latter.
+    nframes = np.min([len(file_list), nframes])
     frames = np.zeros([naxis1, naxis2, nframes])
+
+    print('Creating master frame from %d frames...' %nframes)
 
     for i in range(0, nframes):
         hdu = fits.open(file_list[i], ignore_missing_end=True)
@@ -166,6 +170,7 @@ def create_master_frame(calibration_dir, extension, master_path):
     # Write to disk if path is set for the master frame
     if master_path:
         write_uset_fits(master_frame, header, master_path)
+        print('Wrote master into %s ' %master_path)
 
     return master_frame
 
