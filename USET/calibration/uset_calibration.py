@@ -88,7 +88,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             basename_png = get_basename(file) + '_level_1.png'
             fname = os.path.join(output_dir, basename_png)
             # Plot and export preview of limb fitting results
-            export_preview(image, fname, cmap)
+            export_preview(centered_image, fname, cmap)
 
     return
 
@@ -680,9 +680,9 @@ def export_preview(image, fname, colormap='gray'):
     fig.clear()
     # Plot image
     plt.imshow(image, cmap = colormap, origin='lower')
-    plt.xlabel('X [px]')
-    plt.ylabel('Y [px]')
-    plt.axis([0, naxis1, 0, naxis2])
+    current_frame = plt.gca()
+    current_frame.axes.get_xaxis().set_visible(False)
+    current_frame.axes.get_yaxis().set_visible(False)
 
     plt.savefig(fname, dpi=180, bbox_inches='tight')
 
