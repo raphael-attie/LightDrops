@@ -67,6 +67,10 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             # Level 0 does not align the image to center of FOV.
             # Here we export level 1.0. With CRPIX1 = xc , CRPIX2 = yc, CRVAL1 = 0, CRVAL2 = 0
             header = set_header_calibrated(header, xc, yc, Rm)
+            # Export the calibrated image and new header into a FITS file.
+            fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
+            fname = os.path.join(output_dir, fname_fits)
+            write_uset_fits(image, header, fname, compressed=True)
 
         if level == 1:
             # Level 1 aligns the image to center of FOV with rotation to align y-axis to solar north
@@ -75,11 +79,11 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             xc2 = image.shape[0] / 2 - 0.5
             yc2 = image.shape[1] / 2 - 0.5
             header = set_header_calibrated(header, xc2, yc2, Rm)
+            # Export the calibrated image and new header into a FITS file.
+            fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
+            fname = os.path.join(output_dir, fname_fits)
+            write_uset_fits(centered_image, header, fname, compressed=True)
 
-        # Export the calibrated image and new header into a FITS file.
-        fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
-        fname = os.path.join(output_dir, fname_fits)
-        write_uset_fits(centered_image, header, fname, compressed=True)
 
         if preview:
             # load a colormap
