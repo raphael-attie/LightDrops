@@ -104,7 +104,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             centered_image2 = np.array(centered_image)
 
             # Apply mask and enhance intensity beyond limb
-            centered_image2[pixels_off_limb] = centered_image2[pixels_off_limb] * 2
+            centered_image2[pixels_off_limb] = centered_image2[pixels_off_limb] * 3
             # Get the maximum intensity for the rescaled image based on 99.99% percentile
             new_max = compute_intensity_high(centered_image, 99.999)
             # Apply rotation of solar rotation axis to the image y-axis (top-bottom axis)
