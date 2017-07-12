@@ -33,7 +33,7 @@ import sunpy.cm as cm
 plt.ioff()
 
 # Set the directory of the FITS files (or FTS.gz).
-data_dir    =  '/Users/rattie/Data/USET/campaign/calibration/HALPHA'
+data_dir    =  'D:\\USET\\DATA\\HAlpha\\samples'
 # Get the list of files, change it according to where your data files are and how are they are named.
 file_list   = glob.glob(os.path.join(data_dir, '*.FTS'))
 # Two output directories for two configuration levels (1.0 & 1.1), and 1 directory for jpeg image to check limb-fit.

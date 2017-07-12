@@ -25,6 +25,7 @@ from skimage.transform import rotate
 import matplotlib.pyplot as plt
 import cv2
 
+
 def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, level, preview):
     """
     produces two levels of calibration:
@@ -48,6 +49,9 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
         os.makedirs(output_dir)
     # Number of frames to process
     num_files = len(file_list)
+
+    if num_files == 0:
+        return
 
     for i in range(0, num_files):
         file = file_list[i]
@@ -116,6 +120,11 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
             fname = os.path.join(output_dir, basename_png)
             # Plot and export preview of limb fitting results
             export_preview(centered_image2, fname, new_max, cmap)
+
+        # Run the script that register the new files into the database
+        # fulltarget = build_uset_fpath(file)
+        # command_string = '/home/uset/scripts/cam/indexusetcam ' + fulltarget
+        # os.system(command_string)
 
     return
 
@@ -669,6 +678,29 @@ def write_uset_fits(image, header, fname, compressed=False):
     else:
         chdu = fits.CompImageHDU(data=image, header=header, compression_type='RICE_1')
         chdu.writeto(fname, overwrite=True)
+
+def build_uset_fpath(fname):
+
+    base = get_basename(fname)
+    # Instrument
+    instrument = base[0:3]
+    subdir1 = ''
+    if (instrument == 'UCH'):
+        subdir1 = 'Halpha'
+    elif (instrument == 'UPH'):
+        subdir1 = 'Wlight'
+    elif (instrument  == 'UCC'):
+        subdir1 = 'Calcium'
+
+    # Year
+    subdir2 = base[3:7]
+    # Month
+    subdir3 = base[7:9]
+
+    tdir = '/home/uset/mnt/usetarch/'
+    fpath = os.path.join(tdir, subdir1, subdir2, subdir3)
+
+    return fpath
 
 
 def get_basename(filepath):
