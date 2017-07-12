@@ -48,7 +48,7 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, level, preview):
     # Number of frames to process
     num_files = len(file_list)
 
-    for i in range(0, 1):
+    for i in range(0, num_files):
         file = file_list[i]
         hdu = fits.open(file, ignore_missing_end=True)
         # Load header and image data from the 1st data unit: hdu[0]
