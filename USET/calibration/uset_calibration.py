@@ -55,12 +55,17 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
         # Load header and image data from the 1st data unit: hdu[0]
         header = hdu[0].header
         image = hdu[0].data
+        naxis1 = image.shape[0]
+        naxis2 = image.shape[1]
 
         if dark_path:
             hdu_dark = fits.open(dark_path)
             image = image - hdu_dark[0].data
 
         centered_image, xc, yc, Rm, pts, pts2, pts3 = uset_limbfit_align(image, limb_cleanup)
+        # Coordinate of disk center in centered image
+        xc2 = naxis1 / 2 - 0.5
+        yc2 = naxis2 / 2 - 0.5
 
         if level == 0:
             # Update header with information from limb fitting using WCS.
@@ -74,10 +79,8 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
 
         if level == 1:
             # Level 1 aligns the image to center of FOV with rotation to align y-axis to solar north
-            # Export level 1.0. With CRPIX1 = xc , CRPIX2 = yc, CRVAL1 = 0, CRVAL2 = 0
-            # Coordinate of disk center in centered image
-            xc2 = image.shape[0] / 2 - 0.5
-            yc2 = image.shape[1] / 2 - 0.5
+            # Export level 1.0. With CRPIX1 = xc2 , CRPIX2 = yc2, CRVAL1 = 0, CRVAL2 = 0
+
             header = set_header_calibrated(header, xc2, yc2, Rm)
             # Export the calibrated image and new header into a FITS file.
             fname_fits = get_basename(file) + '_level_' + str(level) + '.fits'
@@ -86,13 +89,33 @@ def calibrate(data_dir, output_dir, fits_extension, dark_path, limb_cleanup, lev
 
 
         if preview:
-            # load a colormap
+            # Apply radial filter to boost off-limb prominences
+
+            # Define grid of coordinates
+            xgrid1, ygrid1 = np.meshgrid(np.arange(naxis1), np.arange(naxis2))
+            # Distance of each pixel to disk center
+            pixel_r = np.sqrt((xgrid1 - xc2) ** 2 + (ygrid1 - yc2) ** 2)
+
+            # apply a radius-based scaling to boost the limb
+            radius = header['SOLAR_R']
+            # Mask of off-limb pixels
+            pixels_off_limb = pixel_r > radius
+            # Copy image into new array
+            centered_image2 = np.array(centered_image)
+
+            # Apply mask and enhance intensity beyond limb
+            centered_image2[pixels_off_limb] = centered_image2[pixels_off_limb] * 5
+            # Get the maximum intensity for the rescaled image based on 99.97% percentile
+            new_max = compute_intensity_high(centered_image2)
+            # Apply rotation of solar rotation axis to the image y-axis (top-bottom axis)
+            centered_image2 = align_to_solar_north(centered_image2, header)
+            # load a colormap for the preview function (could be passed as argument to this function...)
             cmap = cm.get_cmap('irissjiFUV')
             # Define file names of png file
             basename_png = get_basename(file) + '_level_1.png'
             fname = os.path.join(output_dir, basename_png)
             # Plot and export preview of limb fitting results
-            export_preview(centered_image, fname, cmap)
+            export_preview(centered_image2, fname, new_max, cmap)
 
     return
 
@@ -665,7 +688,7 @@ def get_basename(filepath):
     return os.path.basename(path_basename)
 
 
-def export_preview(image, fname, colormap='gray'):
+def export_preview(image, fname, new_max, colormap='gray'):
     """
     Print preview of the given image with axis labels into an image file
 
@@ -683,7 +706,7 @@ def export_preview(image, fname, colormap='gray'):
     fig = plt.figure(1)
     fig.clear()
     # Plot image
-    plt.imshow(image, cmap = colormap, origin='lower')
+    plt.imshow(image, vmin=0, vmax=new_max, cmap = colormap, origin='lower')
     current_frame = plt.gca()
     current_frame.axes.get_xaxis().set_visible(False)
     current_frame.axes.get_yaxis().set_visible(False)
