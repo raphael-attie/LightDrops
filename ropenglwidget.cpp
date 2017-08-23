@@ -346,8 +346,10 @@ void ROpenGLWidget::loadGLTexture()
 
 
         oglt->setMagnificationFilter(QOpenGLTexture::Nearest);
-        //oglt->setMagnificationFilter(QOpenGLTexture::NearestMipMapNearest);
+        //tionFilter(QOpenGLTexture::NearestMipMapNearest);
         oglt->setMinificationFilter(QOpenGLTexture::NearestMipMapNearest);
+        //oglt->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+
 
         qDebug() << "isAutoMipMapGenerationEnabled() =" << oglt->isAutoMipMapGenerationEnabled();
 
