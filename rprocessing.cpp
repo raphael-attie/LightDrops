@@ -216,6 +216,29 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
     fits_close_file(fptr, &status);
 }
 
+void RProcessing::loadMasterBias()
+{
+    /// Used off-screen because no image is loaded beforehand in the ROpenGLWidget.
+    /// So the url must exist in the treeWidget
+    if (treeWidget->getBiasUrls().size() == 1)
+    {
+        masterBiasPath = treeWidget->getBiasUrls().at(0).toLocalFile();
+    }
+    else
+    {
+
+        qDebug("You need at lest one Dark image in the calibration tree");
+        tempMessageSignal(QString("You need at lest one Dark image in the calibration tree"));
+        return;
+    }
+
+    /// Let the ImageManager on the stack, (so we don't have to call delete).
+    ///  and make a deep copy of the data in RMat before leaving this function.
+    ImageManager imageManager(masterBiasPath);
+
+    masterBias = new RMat(*imageManager.getRMatImage());
+}
+
 void RProcessing::loadMasterDark()
 {
     /// Used off-screen because no image is loaded beforehand in the ROpenGLWidget.
@@ -1867,20 +1890,16 @@ void RProcessing::calibrateOffScreen()
         resultList.clear();
     }
 
+    if (masterBias == NULL)
+    {
+        loadMasterBias();
+    }
+
     if (masterDark == NULL)
     {
         loadMasterDark();
     }
 
-    // It's possible that after the above, masterDark is still NULL.
-    if (masterDark == NULL)
-    {
-        if (masterBias !=NULL)
-        {
-            // We may need a proper copy constructor for RMat.
-            masterDark = new RMat(*masterBias);
-        }
-    }
 
     if (masterFlat == NULL)
     {
@@ -1926,12 +1945,23 @@ void RProcessing::calibrate()
         {
             lightMat.convertTo(lightMat, CV_32F);
         }
-        if (masterDark->matImage.type() != CV_32F)
-        {
-            masterDark->matImage.convertTo(masterDark->matImage, CV_32F);
-        }
 
-        cv::subtract(lightMat, masterDark->matImage, matResult);
+        if (masterDark!=NULL )
+        {
+            if (masterDark->matImage.type() != CV_32F)
+            {
+                masterDark->matImage.convertTo(masterDark->matImage, CV_32F);
+            }
+            cv::subtract(lightMat, masterDark->matImage, matResult);
+        }
+        else if (masterBias != NULL)
+        {
+            if (masterBias->matImage.type() != CV_32F)
+            {
+                masterBias->matImage.convertTo(masterBias->matImage, CV_32F);
+            }
+            cv::subtract(lightMat, masterBias->matImage, matResult);
+        }
 
         if (masterFlatN != NULL)
         {
@@ -1942,7 +1972,7 @@ void RProcessing::calibrate()
 
         /// Copy the result into the list.
         /// This may be an overkill. We could output directly into the elements of the list
-        resultList << new RMat(matResult, masterDark->isBayer(), lightManager.getRMatImage()->getInstrument());
+        resultList << new RMat(matResult, lightManager.getRMatImage()->isBayer(), lightManager.getRMatImage()->getInstrument());
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
         if (masterFlatN != NULL)

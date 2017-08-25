@@ -14,7 +14,7 @@ CONFIG += console #only for debug
 
 win32 {
     DEFINES += WIN32
-    INCLUDEPATH += C:/Dev/cfitsio_64
+    INCLUDEPATH += C:/Dev/cfitsio_64/cfitsio
     INCLUDEPATH += "C:\Dev\temp\LibRaw-0.18.2\libraw"
     #INCLUDEPATH += C:/Dev/libraw
     INCLUDEPATH += C:\Dev\opencv\build\include

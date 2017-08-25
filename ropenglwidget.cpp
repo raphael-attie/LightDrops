@@ -170,12 +170,12 @@ void ROpenGLWidget::prepImage()
         if (rMatImageList.at(ii)->isBayer())
         {
             //cv::Mat tempMat16;
-            //rMatImageList.at(ii)->matImage.convertTo(tempMat16, CV_16U);
-            cv::cvtColor(rMatImageList.at(ii)->matImage, tempMatRGB, CV_BayerBG2RGB);
+            rMatImageList.at(ii)->matImage.convertTo(tempMatRGB, CV_16U);
+            cv::cvtColor(tempMatRGB, tempMatRGB, CV_BayerBG2RGB);
             // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
             // Since FITS images uses the same coordinate frame as the openGL viewport,
             // it is necessary to flip the DSLR images up-side down.
-            if (rListImageManager->getImageManagerList().at(0)->getRMatImage()->getInstrument() == instruments::DSLR)
+            if (rMatImageList.at(ii)->getInstrument() == instruments::DSLR)
             {
                 cv::flip(tempMatRGB, tempMatRGB, 0);
             }

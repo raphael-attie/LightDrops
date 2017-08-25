@@ -117,6 +117,7 @@ public:
     void exportMastersToFits();
     void exportToFits(RMat *rMatImage, QString QStrFilename);
     QString setupFileName(QFileInfo fileInfo, QString format);
+    void loadMasterBias();
     void loadMasterDark();
     void loadMasterFlat();
 
