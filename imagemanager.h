@@ -6,9 +6,10 @@
 #include <QTableWidget>
 
 //opencv
-#include <opencv2/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/core.hpp>
+//#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/world.hpp>
 
 #include "MyFitsImage.h"
 #include "RawImage.h"

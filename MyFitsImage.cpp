@@ -1,6 +1,6 @@
 #include "MyFitsImage.h"
 
-#include <cfitsio/fitsio.h>
+#include <fitsio.h>
 #include <cmath>
 #include <algorithm>
 

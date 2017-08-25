@@ -37,19 +37,21 @@ macx {
     # Fix for xcode 8
     QMAKE_MAC_SDK = macosx10.12
     INCLUDEPATH += /usr/local/include
+# Libraw
+    INCLUDEPATH += /usr/local/include/libraw
 # Exiv2
-    #INCLUDEPATH += /opt/local/include
-    #INCLUDEPATH += /Users/raphaela/Dev/Exiv2/temp1/include
-    INCLUDEPATH += /Users/raphaela/Dev/Exiv2_CLion/compiled/include
+    INCLUDEPATH += /Users/rattie/Dev/exiv2-trunk_raphael/install/include
+# opencv
+    INCLUDEPATH += /Users/rattie/Dev/opencv-3.3.0/install/include
 
-# cfitsio
+# cfitsio (install with homebrew)
     LIBS += -L/usr/local/lib -lcfitsio
 
-# libraw
+# libraw (install with homebrew)
     LIBS += -L/usr/local/lib -lraw
-# Exiv2
+# Exiv2 (re-built to include fix for sensor temperature)
     #LIBS += -L/opt/local/lib -lexiv2
-    LIBS += -L/Users/raphaela/Dev/Exiv2_CLion/compiled/lib -lexiv2
+    LIBS += -L/usr/local/lib -lexiv2
 
 # opencv "world" (it has all modules)
     LIBS += -L/usr/local/lib -lopencv_world
