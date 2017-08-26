@@ -231,6 +231,28 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
     fits_close_file(fptr, &status);
 }
 
+void RProcessing::batchExportToFits(QList<QUrl> urls, QDir exportDir)
+{
+    // Do a batch export to FITS keeping the same basenames
+    QString format("fits");
+    for(int i = 0; i < urls.size(); i++)
+    {
+        QUrl url = urls.at(i);
+        QString filename = url.fileName();
+        QString filePathQStr = url.toLocalFile();
+
+//        ImageManager lightManager(filePathQStr);
+
+
+//        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
+//        QString fileName(QString("image_") + indexQStr + QString(".") + format);
+//        QFileInfo fileInfo(exportDir.filePath(fileName));
+//        QString filePath = setupFileName(fileInfo, format);
+
+//        exportToFits(lightManager.getRMatImage(), filePath);
+    }
+}
+
 void RProcessing::loadMasterBias()
 {
     /// Used off-screen because no image is loaded beforehand in the ROpenGLWidget.

@@ -116,6 +116,7 @@ public:
     /// export methods
     void exportMastersToFits();
     void exportToFits(RMat *rMatImage, QString QStrFilename);
+    void batchExportToFits(QList<QUrl> urls, QDir exportDir);
     QString setupFileName(QFileInfo fileInfo, QString format);
     void loadMasterBias();
     void loadMasterDark();

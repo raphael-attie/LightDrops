@@ -1832,15 +1832,28 @@ void RMainWindow::exportMastersToFits()
 
 void RMainWindow::exportFrames()
 {
-    if (ui->jpegExportCheckBox->isChecked())
+    if (currentROpenGLWidget != NULL)
     {
-        exportFramesToJpeg();
+        if (ui->jpegExportCheckBox->isChecked())
+        {
+            exportFramesToJpeg();
+        }
+
+        if (ui->fitsExportCheckBox->isChecked())
+        {
+            exportFramesToFits();
+        }
+    }
+    else
+    {
+        if (!ui->treeWidget->getLightUrls().empty())
+        {
+            // Do a batch conversion to FITS off screen using the URLs in the treeWidget
+            processing->batchExportToFits(ui->treeWidget->getLightUrls(), ui->exportDirEdit->text());
+        }
     }
 
-    if (ui->fitsExportCheckBox->isChecked())
-    {
-        exportFramesToFits();
-    }
+
 }
 
 void RMainWindow::exportFramesToJpeg()
@@ -1873,6 +1886,7 @@ void RMainWindow::exportFramesToFits()
 {
     QDir exportDir(ui->exportDirEdit->text());
     QString format("fits");
+
 
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {

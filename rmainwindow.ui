@@ -78,7 +78,7 @@
      <x>0</x>
      <y>0</y>
      <width>1557</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>5</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -2932,8 +2932,8 @@
    <slot>decreaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1430</x>
-     <y>163</y>
+     <x>1444</x>
+     <y>160</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2948,8 +2948,8 @@
    <slot>increaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1463</x>
-     <y>163</y>
+     <x>1484</x>
+     <y>160</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2965,7 +2965,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1539</x>
-     <y>665</y>
+     <y>661</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2996,8 +2996,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1102</x>
-     <y>909</y>
+     <x>1104</x>
+     <y>906</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -3013,7 +3013,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1510</x>
-     <y>692</y>
+     <y>688</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -3092,8 +3092,8 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>471</x>
-     <y>888</y>
+     <x>468</x>
+     <y>883</y>
     </hint>
     <hint type="destinationlabel">
      <x>520</x>
@@ -3108,8 +3108,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1461</x>
-     <y>473</y>
+     <x>1455</x>
+     <y>469</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3124,8 +3124,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1462</x>
-     <y>469</y>
+     <x>1456</x>
+     <y>465</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3140,8 +3140,8 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>471</x>
-     <y>927</y>
+     <x>468</x>
+     <y>922</y>
     </hint>
     <hint type="destinationlabel">
      <x>520</x>
@@ -3156,8 +3156,8 @@
    <slot>previewMatImageHPFSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>601</x>
-     <y>928</y>
+     <x>609</x>
+     <y>925</y>
     </hint>
     <hint type="destinationlabel">
      <x>701</x>
@@ -3176,8 +3176,8 @@
      <y>926</y>
     </hint>
     <hint type="destinationlabel">
-     <x>471</x>
-     <y>927</y>
+     <x>468</x>
+     <y>922</y>
     </hint>
    </hints>
   </connection>
@@ -3192,8 +3192,8 @@
      <y>887</y>
     </hint>
     <hint type="destinationlabel">
-     <x>471</x>
-     <y>888</y>
+     <x>468</x>
+     <y>883</y>
     </hint>
    </hints>
   </connection>
@@ -3236,8 +3236,8 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>520</x>
-     <y>906</y>
+     <x>522</x>
+     <y>904</y>
     </hint>
     <hint type="destinationlabel">
      <x>524</x>
@@ -3252,12 +3252,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>665</x>
-     <y>870</y>
+     <x>708</x>
+     <y>869</y>
     </hint>
     <hint type="destinationlabel">
-     <x>895</x>
-     <y>874</y>
+     <x>886</x>
+     <y>873</y>
     </hint>
    </hints>
   </connection>
@@ -3272,8 +3272,8 @@
      <y>902</y>
     </hint>
     <hint type="destinationlabel">
-     <x>895</x>
-     <y>908</y>
+     <x>886</x>
+     <y>907</y>
     </hint>
    </hints>
   </connection>
@@ -3288,8 +3288,8 @@
      <y>934</y>
     </hint>
     <hint type="destinationlabel">
-     <x>895</x>
-     <y>942</y>
+     <x>886</x>
+     <y>941</y>
     </hint>
    </hints>
   </connection>
@@ -3317,7 +3317,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1541</x>
-     <y>774</y>
+     <y>770</y>
     </hint>
     <hint type="destinationlabel">
      <x>1119</x>
@@ -3332,8 +3332,8 @@
    <slot>luckyROISlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1441</x>
-     <y>734</y>
+     <x>1442</x>
+     <y>730</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3349,7 +3349,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1528</x>
-     <y>734</y>
+     <y>730</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3364,8 +3364,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1128</x>
-     <y>869</y>
+     <x>1173</x>
+     <y>879</y>
     </hint>
     <hint type="destinationlabel">
      <x>1109</x>
@@ -3380,8 +3380,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1175</x>
-     <y>932</y>
+     <x>1173</x>
+     <y>925</y>
     </hint>
     <hint type="destinationlabel">
      <x>1160</x>
