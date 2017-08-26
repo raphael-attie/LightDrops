@@ -19,7 +19,7 @@ RawImage::RawImage()
 }
 
 RawImage::RawImage(QString filePath):
-    filePath_(filePath), naxis1(0), naxis2(0), nPixels(0),
+    filePath_(filePath), naxis1(0), naxis2(0), nPixels(0), TEMP(-100),
     wbRed(1.0), wbGreen(1.0), wbBlue(1.0), rawProcess(NULL)
 {
 
@@ -308,7 +308,8 @@ void RawImage::extractExif()
     // CANON DSLR temperature
     Exiv2::Exifdatum temperatureData = exifData["Exif.CanonSi.CameraTemperature"];
     dispatchMetaDatum("Temperature", QString::fromStdString(temperatureData.print()), "Temperature of camera sensor in degrees Celsius");
-
+    this->TEMP = stof(temperatureData.print());
+    this->XPOSURE = rawProcess->imgdata.other.shutter;
 }
 
 LibRaw* RawImage::getRawProcess() const
@@ -349,6 +350,16 @@ qint32 RawImage::getNaxis2() const
 int RawImage::getNPixels() const
 {
     return nPixels;
+}
+
+float RawImage::getTEMP() const
+{
+    return TEMP;
+}
+
+float RawImage::getXPOSURE() const
+{
+    return XPOSURE;
 }
 
 

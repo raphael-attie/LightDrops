@@ -14,7 +14,7 @@ RMat::RMat()
 }
 
 RMat::RMat(const RMat &rMat)
-    : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE),
+    : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP),
        SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL)
 {
     rMat.matImage.copyTo(this->matImage);
@@ -35,7 +35,7 @@ RMat::RMat(const RMat &rMat)
 
 
 
-RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0),
+RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
     SOLAR_R(0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
@@ -56,7 +56,7 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
     calcStats();
 }
 
-RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0),
+RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
     SOLAR_R(0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
@@ -78,7 +78,29 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(0), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
+    bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
+{
+    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
+    mat.copyTo(this->matImage);
+    this->bayer = bayer;
+    this->imageTitle = QString("");
+    this->instrument = instrument;
+
+    if (matImage.channels() > 1)
+    {
+        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
+    }
+    else
+    {
+        matImageGray = matImage;
+    }
+
+
+    calcStats();
+}
+
+RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP) : dataMin(0), dataMax(0), bscale(1),
+    bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
 {
     //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
@@ -331,6 +353,11 @@ float RMat::getXPOSURE() const
     return XPOSURE;
 }
 
+float RMat::getTEMP() const
+{
+    return TEMP;
+}
+
 float RMat::getSOLAR_R() const
 {
     return SOLAR_R;
@@ -487,6 +514,11 @@ void RMat::setSOLAR_R(float SOLAR_R)
 void RMat::setXPOSURE(float XPOSURE)
 {
     this->XPOSURE = XPOSURE;
+}
+
+void RMat::setTEMP(float temperature)
+{
+    this->TEMP = temperature;
 }
 
 void RMat::setWbRed(float wbRed)

@@ -41,6 +41,8 @@ public:
     qint32 getNaxis2() const;
 
     int getNPixels() const;
+    float getTEMP() const;
+    float getXPOSURE() const;
 
 //    float getDataMinRed() const;
 //    float getDataMaxRed() const;
@@ -70,6 +72,11 @@ private:
     int naxis1;
     int naxis2;
     int nPixels;
+
+    // Camera sensor temperature
+    float TEMP;
+    // Camera exposure time
+    float XPOSURE;
 
 //    float dataMinRed;
 //    float dataMaxRed;

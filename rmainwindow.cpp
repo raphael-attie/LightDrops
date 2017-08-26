@@ -1795,6 +1795,8 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
         ui->actionHeader->setChecked(false);
     }
 
+
+
 }
 
 void RMainWindow::updateFrameInSeries(int frameIndex)
@@ -2230,10 +2232,6 @@ void RMainWindow::radioRMatSlot()
 
     if (this->sender() == ui->biasRButton)
     {
-        double min = 0;
-        double max = 0;
-        cv::minMaxLoc(currentROpenGLWidget->getRMatImageList().at(0)->matImage, &min, &max);
-        qDebug("RMainWindow::radioRMatSlot():: min =%f , max =%f", min, max );
         emit radioBiasImages(currentROpenGLWidget->getRMatImageList());
     }
 

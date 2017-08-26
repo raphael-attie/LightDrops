@@ -204,6 +204,21 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         fits_write_key(fptr, TFLOAT, keyNameRadius, &keyValueRadius, NULL, &status);
 
     }
+    else if (rMatImage->getInstrument() == instruments::DSLR)
+    {
+        char keyNameTelescop[] = "TELESCOP";
+        char keyValueTelescop[] = "DSLR";
+        fits_write_key(fptr, TSTRING, keyNameTelescop, keyValueTelescop, NULL, &status);
+
+        char keyNameXPOSURE[] = "XPOSURE";
+        float keyValueXPOSURE = rMatImage->getXPOSURE();
+        fits_write_key(fptr, TFLOAT, keyNameXPOSURE, &keyValueXPOSURE, NULL, &status);
+
+        char keyNameTEMP[] = "TEMP";
+        float keyValueTEMP = rMatImage->getTEMP();
+        fits_write_key(fptr, TFLOAT, keyNameTEMP, &keyValueTEMP, NULL, &status);
+
+    }
     else
     {
         char keyNameTelescop[] = "TELESCOP";
@@ -436,11 +451,13 @@ bool RProcessing::makeMasterBias()
         {
             masterBias = average(rMatBiasList);
             masterBias->setImageTitle( QString("master Bias (arithmetic mean)") );
+
         }
         else if (masterWithSigmaClip)
         {
             masterBias = sigmaClipAverage(rMatBiasList);
             masterBias->setImageTitle( QString("master Bias (sigma-clipped average)") );
+
         }
         return !masterBias->matImage.empty();
     }
@@ -643,7 +660,7 @@ RMat* RProcessing::average(QList<RMat*> rMatList)
 
     avgImg = avgImg / (float) rMatList.size();
     avgImg.convertTo(avgImg, rMatList.at(0)->matImage.type());
-    RMat *rMatAvg = new RMat(avgImg, rMatList.at(0)->isBayer(), rMatList.at(0)->getInstrument());
+    RMat *rMatAvg = new RMat(avgImg, rMatList.at(0)->isBayer(), rMatList.at(0)->getInstrument(), rMatList.at(0)->getXPOSURE(), rMatList.at(0)->getTEMP());
     return rMatAvg;
 }
 

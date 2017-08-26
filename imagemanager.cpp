@@ -158,6 +158,8 @@ void ImageManager::loadRaw()
     newRawImage = new RawImage(filePathQStr);
     //newRawImage = new RawImage2();
     rMatImage = new RMat(newRawImage->getMatCFA(), true, instruments::DSLR);
+    rMatImage->setTEMP(newRawImage->getTEMP());
+    rMatImage->setXPOSURE(newRawImage->getXPOSURE());
 
 //    rMatImage->setWbRed(newRawImage->getWbRed());
 //    rMatImage->setWbGreen(newRawImage->getWbGreen());

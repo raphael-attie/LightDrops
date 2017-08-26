@@ -23,6 +23,7 @@ public:
     RMat(cv::Mat mat);
     RMat(cv::Mat mat, bool bayer);
     RMat(cv::Mat mat, bool bayer, instruments instrument);
+    RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP);
     ~RMat();
 
     cv::Mat matImage;
@@ -44,6 +45,7 @@ public:
     double getDataMax() const;
     float getExpTime() const;
     float getXPOSURE() const;
+    float getTEMP() const;
     float getSOLAR_R() const;
     float getWbRed() const;
     float getWbGreen() const;
@@ -79,6 +81,7 @@ public:
     void setExpTime(float expTime);
     void setSOLAR_R(float SOLAR_R);
     void setXPOSURE(float XPOSURE);
+    void setTEMP(float temperature);
     void setWbRed(float wbRed);
     void setWbGreen(float wbGreen);
     void setWbBlue(float wbBlue);
@@ -101,6 +104,7 @@ private:
    double dataMax;
    float expTime;
    float XPOSURE;
+   float TEMP;
    float SOLAR_R;
    float wbRed;
    float wbGreen;
