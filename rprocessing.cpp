@@ -231,25 +231,49 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
     fits_close_file(fptr, &status);
 }
 
-void RProcessing::batchExportToFits(QList<QUrl> urls, QDir exportDir)
+void RProcessing::batchExportToFits(QList<QUrl> urls, QString exportDir)
 {
-    // Do a batch export to FITS keeping the same basenames
+    if (urls.empty())
+    {
+        return;
+    }
+
+    bool useInputDirectory = false;
+    exportQDir = QDir(exportDir);
+
+    if (exportDir.isEmpty())
+    {
+        useInputDirectory = true;
+    }
+
+
+
+    // Do a batch export to FITS and keep the same basenames
     QString format("fits");
     for(int i = 0; i < urls.size(); i++)
     {
+
         QUrl url = urls.at(i);
-        QString filename = url.fileName();
+
+        if (useInputDirectory)
+        {
+            QFileInfo fileInfo(urls.at(i).toLocalFile());
+            QString fileDir = fileInfo.path();
+            exportQDir = QDir(fileDir);
+        }
+
+        QFileInfo fileInfo1(url.fileName());
+        QString basename = fileInfo1.baseName();
         QString filePathQStr = url.toLocalFile();
 
-//        ImageManager lightManager(filePathQStr);
+        QString fileName(basename + QString(".") + format);
+        QFileInfo fileInfo2(exportQDir.filePath(fileName));
+        // Check if file does not really exist, rename if that is the cases
+        QString filePath = setupFileName(fileInfo2, format);
 
-
-//        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
-//        QString fileName(QString("image_") + indexQStr + QString(".") + format);
-//        QFileInfo fileInfo(exportDir.filePath(fileName));
-//        QString filePath = setupFileName(fileInfo, format);
-
-//        exportToFits(lightManager.getRMatImage(), filePath);
+        // Import FITS file
+        ImageManager fitsManager(filePathQStr);
+        exportToFits(fitsManager.getRMatImage(), filePath);
     }
 }
 
@@ -261,11 +285,11 @@ void RProcessing::loadMasterBias()
     {
         masterBiasPath = treeWidget->getBiasUrls().at(0).toLocalFile();
     }
-    else
+    else if (treeWidget->getBiasUrls().empty())
     {
 
-        qDebug("You need at lest one Dark image in the calibration tree");
-        tempMessageSignal(QString("You need at lest one Dark image in the calibration tree"));
+        qDebug("You need at least one Bias image in the calibration tree");
+        tempMessageSignal(QString("You need at least one Bias image in the calibration tree"));
         return;
     }
 
@@ -284,11 +308,11 @@ void RProcessing::loadMasterDark()
     {
         masterDarkPath = treeWidget->getDarkUrls().at(0).toLocalFile();
     }
-    else
+    else if (treeWidget->getDarkUrls().empty())
     {
 
-        qDebug("You need at lest one Dark image in the calibration tree");
-        tempMessageSignal(QString("You need at lest one Dark image in the calibration tree"));
+        qDebug("You need at least one Dark image in the calibration tree");
+        tempMessageSignal(QString("You need at least one Dark image in the calibration tree"));
         return;
     }
 
@@ -308,10 +332,10 @@ void RProcessing::loadMasterFlat()
     {
         masterFlatPath = treeWidget->getFlatUrls().at(0).toLocalFile();
     }
-    else
+    else if (treeWidget->getFlatUrls().empty())
     {
-        qDebug("You need at lest one Flat image in the calibration tree");
-        tempMessageSignal(QString("You need at lest one Flat image in the calibration tree"));
+        qDebug("You need at least one Flat image in the calibration tree");
+        tempMessageSignal(QString("You need at least one Flat image in the calibration tree"));
         return;
     }
 

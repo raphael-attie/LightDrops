@@ -55,22 +55,22 @@ void RTreeWidget::dispatchUrls(QTreeWidgetItem *parentItem, QList<QUrl> urls)
 
     if (parentItem == lightItem)
     {
-        lightUrls = urls;
+        lightUrls.append(urls);
         lightsDir = filesInfo.absoluteDir();
     }
     else if (parentItem == biasItem)
     {
-        biasUrls = urls;
+        biasUrls.append(urls);
         biasDir = filesInfo.absoluteDir();
     }
     else if (parentItem == darkItem)
     {
-        darkUrls = urls;
+        darkUrls.append(urls);
         darkDir = filesInfo.absoluteDir();
     }
     else if (parentItem == flatItem)
     {
-        flatUrls = urls;
+        flatUrls.append(urls);
         flatDir = filesInfo.absoluteDir();
     }
 }

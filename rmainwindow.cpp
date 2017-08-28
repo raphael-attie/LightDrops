@@ -1846,13 +1846,18 @@ void RMainWindow::exportFrames()
     }
     else
     {
-        if (!ui->treeWidget->getLightUrls().empty())
-        {
-            // Do a batch conversion to FITS off screen using the URLs in the treeWidget
-            processing->batchExportToFits(ui->treeWidget->getLightUrls(), ui->exportDirEdit->text());
-        }
+        // Do a batch conversion to FITS off screen using the URLs in the treeWidget
+        emit tempMessageSignal(QString("Exporting frames... "));
+        // Lights
+        processing->batchExportToFits(ui->treeWidget->getLightUrls(), ui->exportDirEdit->text());
+        // Bias
+        processing->batchExportToFits(ui->treeWidget->getBiasUrls(), ui->exportDirEdit->text());
+        // Darks
+        processing->batchExportToFits(ui->treeWidget->getDarkUrls(), ui->exportDirEdit->text());
+        //Flats
+        processing->batchExportToFits(ui->treeWidget->getFlatUrls(), ui->exportDirEdit->text());
+        emit tempMessageSignal(QString("Exporting frames completed! "));
     }
-
 
 }
 
