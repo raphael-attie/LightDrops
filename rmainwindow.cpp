@@ -1892,11 +1892,15 @@ void RMainWindow::exportFramesToFits()
     QDir exportDir(ui->exportDirEdit->text());
     QString format("fits");
 
-
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {
         QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
         QString fileName(QString("image_") + indexQStr + QString(".") + format);
+        if (ui->baseNameCheckBox->isChecked())
+        {
+            QString baseName = currentROpenGLWidget->getRMatImageList().at(i)->getFileInfo().baseName();
+            fileName = baseName + QString("_C") + QString(".") + format;
+        }
         QFileInfo fileInfo(exportDir.filePath(fileName));
         QString filePath = processing->setupFileName(fileInfo, format);
         processing->exportToFits(currentROpenGLWidget->getRMatImageList().at(i), filePath);

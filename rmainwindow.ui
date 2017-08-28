@@ -78,7 +78,7 @@
      <x>0</x>
      <y>0</y>
      <width>1557</width>
-     <height>20</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
@@ -92,14 +92,14 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>1393</width>
-     <height>180</height>
+     <width>1516</width>
+     <height>182</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
-     <width>1700</width>
-     <height>180</height>
+     <width>2500</width>
+     <height>182</height>
     </size>
    </property>
    <property name="autoFillBackground">
@@ -1219,7 +1219,7 @@
               <string>Current</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -1227,6 +1227,9 @@
             <widget class="QRadioButton" name="exportSeries">
              <property name="text">
               <string>Series</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -1272,20 +1275,13 @@
             <string>Pictures format</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_5">
-            <item row="0" column="1">
-             <widget class="QCheckBox" name="tiffExport">
-              <property name="text">
-               <string>tiff</string>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="0">
              <widget class="QCheckBox" name="jpegExportCheckBox">
               <property name="text">
                <string>jpeg</string>
               </property>
               <property name="checked">
-               <bool>true</bool>
+               <bool>false</bool>
               </property>
              </widget>
             </item>
@@ -1293,6 +1289,9 @@
              <widget class="QCheckBox" name="fitsExportCheckBox">
               <property name="text">
                <string>fits</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -1303,7 +1302,24 @@
               </property>
              </widget>
             </item>
+            <item row="0" column="1">
+             <widget class="QCheckBox" name="tiffExport">
+              <property name="text">
+               <string>tiff</string>
+              </property>
+             </widget>
+            </item>
            </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="baseNameCheckBox">
+           <property name="text">
+            <string>Use same basenames</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
          <item>
@@ -1983,7 +1999,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>365</height>
+          <height>330</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2088,7 +2104,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>365</height>
+          <height>330</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2232,7 +2248,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>365</height>
+          <height>330</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2509,7 +2525,7 @@
           <x>0</x>
           <y>0</y>
           <width>210</width>
-          <height>365</height>
+          <height>330</height>
          </rect>
         </property>
         <attribute name="label">
@@ -2566,8 +2582,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>210</width>
-          <height>365</height>
+          <width>230</width>
+          <height>330</height>
          </rect>
         </property>
         <attribute name="label">
@@ -2782,8 +2798,8 @@
    </property>
    <property name="maximumSize">
     <size>
-     <width>225</width>
-     <height>524287</height>
+     <width>2000</width>
+     <height>300</height>
     </size>
    </property>
    <property name="floating">

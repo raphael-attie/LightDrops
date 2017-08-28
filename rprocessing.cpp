@@ -2035,9 +2035,10 @@ void RProcessing::calibrate()
 
         /// Copy the result into the list.
         /// This may be an overkill. We could output directly into the elements of the list
-        resultList << new RMat(matResult, lightManager.getRMatImage()->isBayer(), lightManager.getRMatImage()->getInstrument());
+        resultList << new RMat(matResult, lightManager.getRMatImage()->isBayer(), lightManager.getRMatImage()->getInstrument(), lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
+        resultList.at(i)->setFileInfo(lightManager.getRMatImage()->getFileInfo());
         if (masterFlatN != NULL)
         {
             resultList.at(i)->setBscale(masterFlatN->getDataMax()/masterFlat->getDataMax());

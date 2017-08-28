@@ -165,19 +165,42 @@ void RMat::calcStats()
     qDebug("RMat::calcStats():: [dataMin , dataMax] = [%f , %f]", (float) dataMin, (float) dataMax);
 
 
-    /// Determine a range of the histogram
+    /// Determine a data range for the sliders and histogram
     /// These params depend on the instrument's sensor (different bit depths).
 
+    int matType = matImage.type();
     if (instrument == instruments::USET)
     {
+        dataRange = 4096.0f;
+        normalizeRange = 4096.0f;
         maxHistRange = 4095.0f;
     }
-    else if (instrument == instruments::DSLR || matImage.type() == CV_16U)
+    else if (instrument == instruments::DSLR)
     {
+        // DSLRs like Canon EOS are typically 14-bit sensors = 16384
+        dataRange = 16384.0f;
+        normalizeRange = 16384.0f;
+        maxHistRange = 16383.0f;
+    }
+    else if (matType == CV_16U || matType == CV_16UC3)
+    {
+        dataRange = 65536.0f;
+        normalizeRange = 65536.0f;
+        maxHistRange = 65535;
+    }
+    else if (matType == CV_32F || matType == CV_32FC3)
+    {
+        dataRange = (float) (dataMax - dataMin) + 1.0f;
+        /// For normalization / contrast stretching
+        /// we assume that no CCD will go beyond 16 bits
+        /// thus keeping a maximum 16-bit data range
+        normalizeRange = 65536.0f;
         maxHistRange = 65535.0f;
     }
     else if (matImage.type() == CV_8U || matImage.type() == CV_8UC3)
     {
+        dataRange = 256.0f;
+        normalizeRange = 256.0f;
         maxHistRange = 255.0f;
     }
     else
@@ -228,36 +251,6 @@ void RMat::calcStats()
     if (intensityLow == intensityHigh)
     {
         intensityHigh = intensityLow + 1;
-    }
-
-    int matType = matImage.type();
-    if (instrument == instruments::USET)
-    {
-        dataRange = 4096.0f;
-        normalizeRange = 4096.0f;
-    }
-    else if (matType == CV_16U || matType == CV_16UC3)
-    {
-        dataRange = 65536.0f;
-        normalizeRange = 65536.0f;
-    }
-    else if (matType == CV_32F || matType == CV_32FC3)
-    {
-        dataRange = (float) (dataMax - dataMin) + 1.0f;
-        /// For normalization / contrast stretching
-        /// we assume that no CCD will go beyond 16 bits
-        /// thus keeping a maximum 16-bit data range
-        normalizeRange = 65536.0f;
-    }
-    else if (matType == CV_8U || matType == CV_8UC3)
-    {
-        dataRange = 256.0f;
-        normalizeRange = 256.0f;
-    }
-    else
-    {
-        qDebug("RMat::calcStats():: ERROR. Unknown dataRange");
-        exit(1);
     }
 }
 

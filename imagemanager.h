@@ -42,6 +42,8 @@ private:
     void loadFits();
     void loadRaw();
     void createTableWidget();
+    void setupFitsTableWidget();
+    void setupRawTableWidget();
     void fixUset();
 
     RMat* rMatImage;
@@ -59,6 +61,7 @@ private:
     // Header info
     QString date_obs;
     QString time_obs;
+    uint nKeys;
 
     // white balance
     float wbRed;

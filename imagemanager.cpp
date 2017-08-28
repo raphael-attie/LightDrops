@@ -39,6 +39,7 @@ ImageManager::ImageManager(QString filePathQStr) :
     else if (rawExtList.contains(fileExt))
     {
         loadRaw();
+        rMatImage->setFileInfo(fileInfo);
     }
     else
     {
@@ -93,6 +94,10 @@ void ImageManager::loadFits()
     {
         instrument = instruments::USET;
         //fixUset();
+    }
+    else if (newFitsImage->getKeyValues().contains(QString("DSLR")))
+    {
+        instrument = instruments::DSLR;
     }
     else if (rMatImage->getDataMin() < -100.0)
     {
@@ -149,7 +154,7 @@ void ImageManager::loadFits()
     rMatImage->setDate_obs(date_obs);
     rMatImage->setTime_obs(time_obs);
     rMatImage->setDate_time(date_obs + QString(" ") + time_obs);
-
+    nKeys = newFitsImage->getNKeys();
 
 }
 
@@ -160,23 +165,18 @@ void ImageManager::loadRaw()
     rMatImage = new RMat(newRawImage->getMatCFA(), true, instruments::DSLR);
     rMatImage->setTEMP(newRawImage->getTEMP());
     rMatImage->setXPOSURE(newRawImage->getXPOSURE());
+    nKeys = newRawImage->getKeyNames().size();
 
 //    rMatImage->setWbRed(newRawImage->getWbRed());
 //    rMatImage->setWbGreen(newRawImage->getWbGreen());
 //    rMatImage->setWbBlue(newRawImage->getWbBlue());
+
+
 }
 
 void ImageManager::createTableWidget()
 {
-    int nKeys;
-    if (rMatImage->getInstrument() != instruments::DSLR)
-    {
-        nKeys = newFitsImage->getNKeys();
-    }
-    else
-    {
-        nKeys = newRawImage->getKeyNames().size();
-    }
+    // The table widget displays the header keywords/value pairs.
 
     tableWidget = new QTableWidget(nKeys, 3);
     tableWidget->verticalHeader()->setVisible(false);
@@ -197,41 +197,63 @@ void ImageManager::createTableWidget()
     tableWidget->setColumnWidth(1, 150);
     tableWidget->setColumnWidth(2, 400);
 
-    int rowHeight = 20;
-    QFont tFont;
-    tFont.setPointSize(12);
-    tFont.setFamily("Arial");
 
-    if (rMatImage->getInstrument() != instruments::DSLR)
+    if (fitsExtList.contains(fileExt))
     {
-        for (int ii=0; ii<newFitsImage->getNKeys(); ii++)
-        {
-           tableWidget->setItem(ii, 0,  new QTableWidgetItem(newFitsImage->getKeyNames().at(ii)));
-           tableWidget->setItem(ii, 1,  new QTableWidgetItem(newFitsImage->getKeyValues().at(ii)));
-           tableWidget->setItem(ii, 2,  new QTableWidgetItem(newFitsImage->getKeyComments().at(ii)));
-           tableWidget->item(ii, 0)->setFont(tFont);
-           tableWidget->item(ii, 1)->setFont(tFont);
-           tableWidget->item(ii, 2)->setFont(tFont);
-           tableWidget->setRowHeight(ii, rowHeight);
-        }
-        tableWidget->setMinimumHeight((newFitsImage->getNKeys() + 3) * rowHeight);
+        setupFitsTableWidget();
+    }
+    else if (rawExtList.contains(fileExt))
+    {
+        setupRawTableWidget();
     }
     else
     {
-        for (int ii=0; ii < newRawImage->getKeyNames().size(); ii++)
-        {
-           tableWidget->setItem(ii, 0,  new QTableWidgetItem(newRawImage->getKeyNames().at(ii)));
-           tableWidget->setItem(ii, 1,  new QTableWidgetItem(newRawImage->getKeyValues().at(ii)));
-           tableWidget->setItem(ii, 2,  new QTableWidgetItem(newRawImage->getKeyComments().at(ii)));
-           tableWidget->item(ii, 0)->setFont(tFont);
-           tableWidget->item(ii, 1)->setFont(tFont);
-           tableWidget->item(ii, 2)->setFont(tFont);
-           tableWidget->setRowHeight(ii, rowHeight);
-        }
-        tableWidget->setMinimumHeight((nKeys + 3) * rowHeight);
+        qDebug("Unknown file extension");
+        error = 1;
+        return;
     }
 
     tableWidget->adjustSize();
+}
+
+void ImageManager::setupFitsTableWidget()
+{
+    QFont tFont;
+    tFont.setPointSize(12);
+    tFont.setFamily("Arial");
+    int rowHeight = 20;
+
+    for (int ii=0; ii<newFitsImage->getNKeys(); ii++)
+    {
+       tableWidget->setItem(ii, 0,  new QTableWidgetItem(newFitsImage->getKeyNames().at(ii)));
+       tableWidget->setItem(ii, 1,  new QTableWidgetItem(newFitsImage->getKeyValues().at(ii)));
+       tableWidget->setItem(ii, 2,  new QTableWidgetItem(newFitsImage->getKeyComments().at(ii)));
+       tableWidget->item(ii, 0)->setFont(tFont);
+       tableWidget->item(ii, 1)->setFont(tFont);
+       tableWidget->item(ii, 2)->setFont(tFont);
+       tableWidget->setRowHeight(ii, rowHeight);
+    }
+    tableWidget->setMinimumHeight((newFitsImage->getNKeys() + 3) * rowHeight);
+}
+
+void ImageManager::setupRawTableWidget()
+{
+    QFont tFont;
+    tFont.setPointSize(12);
+    tFont.setFamily("Arial");
+    int rowHeight = 20;
+
+    for (int ii=0; ii < newRawImage->getKeyNames().size(); ii++)
+    {
+       tableWidget->setItem(ii, 0,  new QTableWidgetItem(newRawImage->getKeyNames().at(ii)));
+       tableWidget->setItem(ii, 1,  new QTableWidgetItem(newRawImage->getKeyValues().at(ii)));
+       tableWidget->setItem(ii, 2,  new QTableWidgetItem(newRawImage->getKeyComments().at(ii)));
+       tableWidget->item(ii, 0)->setFont(tFont);
+       tableWidget->item(ii, 1)->setFont(tFont);
+       tableWidget->item(ii, 2)->setFont(tFont);
+       tableWidget->setRowHeight(ii, rowHeight);
+    }
+    tableWidget->setMinimumHeight((nKeys + 3) * rowHeight);
 }
 
 void ImageManager::fixUset()
