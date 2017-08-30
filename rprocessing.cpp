@@ -2067,7 +2067,7 @@ void RProcessing::setExportCalibrateDir(QString dir)
 
 void RProcessing::registerSeries()
 {
-    /// Here we process the rMatLightList. It is assigned in two ways:
+    /// Here we register rMatLightList. It is assigned in two ways:
     /// 1) By Drag and Drop in the QMdiArea
     /// 2) After a calibration like in calibrate()
     /// We use resultList as the (temporary?) output list.
@@ -2109,27 +2109,38 @@ void RProcessing::registerSeries()
 
     // Get the 1st image of the rMatLightList as the reference image (and put as 1st element of resultList)
 
-    cv::Mat refMat = rMatLightList.at(0)->matImage;
-    refMat.convertTo(refMat, CV_32F);
+    cv::Mat refMat;
+    // Normalized version
+    cv::Mat refMatN;
+
+    if (rMatLightList.at(0)->isBayer())
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument());
+    }
+    else
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument());
+    }
+
+    rMatLightList.at(0)->matImageGray.convertTo(refMat, CV_32F);
     // Normalize to a multiple of the exposure time * median?
-    float expTime = rMatLightList.at(0)->getExpTime();
-    float mean = rMatLightList.at(0)->getMean();
-    float normFactor = 1.0f / (mean);
+    //float lowThresh = rMatLightList.at(0)->getIntensityLow();
+    float highThresh = rMatLightList.at(0)->getIntensityHigh();
+    float normFactor = 1.0f / highThresh;
 
-    qDebug("RProcessing::registerSeries() image 1/%i", nFrames);
-    qDebug("expTime = %f", expTime);
-    qDebug("mean = %f", mean);
-    qDebug("normFactor = %f", normFactor);
+    // Normalize to the normFactor (e.g: the mean, high threshold from rMat->calcStats(), ...)
+    refMatN = refMat * normFactor;
+    //cv::threshold(refMatN, registeredMatN, 0.9, 0.9, cv::THRESH_TRUNC);
 
-    refMat = refMat * normFactor;
-    cv::Mat refMat2;
-    cv::threshold(refMat, refMat2, 0.5, 0.5, cv::THRESH_TRUNC);
+    // If ROI is used
+    if (useROI)
+    {
+        refMatN = refMatN(cvRectROI);
+    }
 
-    resultList << new RMat(refMat, false);
-    resultList.at(0)->setBscale(normFactor);
     // Get a resampled version. 1/4 on each axis.
-    cv::Mat refMat2R;
-    cv::resize(refMat2, refMat2R, cv::Size(), 0.25, 0.25, CV_INTER_AREA);
+    cv::Mat refMatR;
+    cv::resize(refMatN, refMatR, cv::Size(), 0.25, 0.25, CV_INTER_AREA);
 
 
     for (int i = 1 ; i < nFrames; ++i)
@@ -2137,28 +2148,42 @@ void RProcessing::registerSeries()
         qDebug("Registering image #%i/%i", i, nFrames);
 
         // Normalize to a multiple of the exposure time
-        expTime = rMatLightList.at(i)->getExpTime();
-        mean = rMatLightList.at(i)->getMean();
-        normFactor = 1.0f / (mean);
+        float expTime = rMatLightList.at(i)->getExpTime();
+        float mean = rMatLightList.at(i)->getMean();
+        float normFactor = 1.0f / (mean);
         qDebug("expTime = %f", expTime);
         qDebug("mean = %f", mean);
         qDebug("normFactor = %f", normFactor);
 
-        cv::Mat registeredMat = rMatLightList.at(i)->matImage.clone();
-        registeredMat.convertTo(registeredMat, CV_32F);
-        registeredMat = registeredMat * normFactor;
-        cv::Mat registeredMat2;
-        cv::threshold(registeredMat, registeredMat2, 0.6, 0.6, cv::THRESH_TRUNC);
-        // Get a resampled version. 1/4 on each axis.
-        cv::Mat registeredMat2R;
-        cv::resize(registeredMat2, registeredMat2R, cv::Size(), 0.25, 0.25, CV_INTER_AREA);
+        cv::Mat registeredMat;
+        // Normalized mat image
+        cv::Mat registeredMatN;
+        // Rebinned mat Image
+        cv::Mat registeredMatR;
+
+
+        // Registration requires floating points
+        rMatLightList.at(i)->matImageGray.convertTo(registeredMat, CV_32F);
+        registeredMatN = registeredMat * normFactor;
+        // If ROI is used
+        if (useROI)
+        {
+            registeredMatN = registeredMatN(cvRectROI);
+        }
+
+        //cv::threshold(registeredMatN, registeredMatN, 0.9, 0.9, cv::THRESH_TRUNC);
+
+
+
+        // Get a resampled version. 1/4 on each axis;
+        cv::resize(registeredMatN, registeredMatR, cv::Size(), 0.25, 0.25, CV_INTER_AREA);
 
         cv::Mat warp_matrix_1 = cv::Mat::eye(2, 3, CV_32F);
         double eccEps = 0;
         // 1st pass of the ECC algorithm on the decimated image. The results are stored in warp_matrix.
         eccEps = cv::findTransformECC(
-                    refMat2R,
-                    registeredMat2R,
+                    refMatR,
+                    registeredMatR,
                     warp_matrix_1,
                     warp_mode_1,
                     criteria1
@@ -2170,8 +2195,8 @@ void RProcessing::registerSeries()
 
         // 2nd pass on the full resolution images.
         eccEps = cv::findTransformECC(
-                    refMat2,
-                    registeredMat2,
+                    refMatN,
+                    registeredMatN,
                     warp_matrix_1,
                     warp_mode_2,
                     criteria2
@@ -2180,9 +2205,40 @@ void RProcessing::registerSeries()
         qDebug() << "eccEps 2 =" << eccEps;
         std::cout << "result warp_matrix 2 =" << std::endl << warp_matrix_1 << std::endl << std::endl;
 
-        cv::warpAffine(registeredMat, registeredMat, warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
-        resultList << new RMat(registeredMat, false); // This RMat is necessarily non-bayer.
-        resultList.at(i)->setBscale(normFactor);
+        // To do the alignment, use warpAffine. Needs to be applied on 3 channels separately and reassemble the channels?
+        // That should be ok as the shifts will be applied rigidly on the 3 channels.
+
+        if (rMatLightList.at(0)->isBayer())
+        {
+            // RGB array for splitting channels
+            cv::Mat tempMatRGB[3];
+            // Split the channels
+            cv::split(rMatLightList.at(i)->matImageRGB, tempMatRGB);
+            cv::warpAffine(tempMatRGB[0], tempMatRGB[0], warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[1], tempMatRGB[1], warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[2], tempMatRGB[2], warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
+
+            tempMatRGB[0].convertTo(tempMatRGB[0], CV_16U);
+            tempMatRGB[1].convertTo(tempMatRGB[1], CV_16U);
+            tempMatRGB[2].convertTo(tempMatRGB[2], CV_16U);
+            vector<cv::Mat> channels;
+            // Watch the order. 1st array will be last channel.
+            channels.push_back(tempMatRGB[2]);
+            channels.push_back(tempMatRGB[1]);
+            channels.push_back(tempMatRGB[0]);
+            cv::Mat registeredMatRGB;
+            cv::merge(channels, registeredMatRGB);
+            // registeredMat is necessarily non-bayer.
+            resultList << new RMat(registeredMatRGB, false, rMatLightList.at(i)->getInstrument());
+        }
+        else
+        {
+            cv::warpAffine(registeredMat, registeredMat, warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
+            // registeredMat is necessarily non-bayer.
+            resultList << new RMat(registeredMat, false, rMatLightList.at(i)->getInstrument());
+            resultList.at(i)->setBscale(normFactor);
+
+        }
 
     }
 
@@ -3208,7 +3264,7 @@ cv::Mat RProcessing::normalizeByThresh(cv::Mat matImage, float oldMin, float old
     matImage.convertTo(normalizedMatImage, CV_32F);
 
     normalizedMatImage = normalizedMatImage * alpha + beta;
-    cv::threshold(normalizedMatImage, normalizedMatImage, newRange - 1, newRange - 1, cv::THRESH_TRUNC);
+    cv::threshold(normalizedMatImage, normalizedMatImage, newRange, newRange, cv::THRESH_TRUNC);
 
     if (matImage.type() == CV_32F || matImage.type() == CV_32FC3)
     {

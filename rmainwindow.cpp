@@ -198,7 +198,6 @@ void RMainWindow::closeEvent(QCloseEvent *event)
 void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 {
     currentROpenGLWidget = new ROpenGLWidget(newRListImageManager, this);
-
     addImage(currentROpenGLWidget);
     displayPlotWidget(currentROpenGLWidget);
     currentSubWindow->show();
@@ -347,10 +346,10 @@ void RMainWindow::selectROI(bool isSquare, int blkSize)
     /// Use copy constructor of the RMat to copy the current RMat image.
     RMat tempRMat(*currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()));
     // Setup image display with QImage and not openGL to allow easier drawings
-    cv::Mat matImage = processing->normalizeByThresh(tempRMat.matImage, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh(), tempRMat.getDataRange());
-    cv::Mat matImageROI = matImage; //(ROI);
-    matImageROI.convertTo(matImageROI, CV_8U, 256.0f/currentROpenGLWidget->getRMatImageList().at(0)->getDataRange());
-    QImage imageROI(matImageROI.data, matImageROI.cols, matImageROI.rows, QImage::Format_Grayscale8);
+    //cv::Mat matImage = processing->normalizeByThresh(tempRMat.matImageGray, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh(), tempRMat.getDataRange());
+    cv::Mat matImageROI;// = matImage; //(ROI);
+    tempRMat.matImageGray.convertTo(matImageROI, CV_8U, 255.0f/tempRMat.getDataMax());
+    QImage imageROI((const uchar *) matImageROI.data, matImageROI.cols, matImageROI.rows, matImageROI.step, QImage::Format_Grayscale8);
     QImage targetImage = imageROI.mirrored(false, true);
     // Instantiate an RGraphicsScene. It allows to draw rectangles with the mouse for ROI selection
     RGraphicsScene *roiScene = new RGraphicsScene();

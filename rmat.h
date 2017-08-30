@@ -27,7 +27,10 @@ public:
     ~RMat();
 
     cv::Mat matImage;
+    cv::Mat matImageGray;
+    cv::Mat matImageRGB;
 
+    void prepImages();
     // Methods for getting some statistics
     void computeHist(int nBins, float minRange, float maxRange);
     float calcMedian();
@@ -116,8 +119,6 @@ private:
    QString date_obs;
    QString time_obs;
    QString date_time;
-
-   cv::Mat matImageGray;
 
    // Image statistics
    cv::Mat matHist;

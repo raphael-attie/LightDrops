@@ -157,6 +157,8 @@ void ROpenGLWidget::initialize()
         }
     }
 
+    painterString = QString("Hello World!");
+
 }
 
 
@@ -169,22 +171,21 @@ void ROpenGLWidget::prepImage()
 
         if (rMatImageList.at(ii)->isBayer())
         {
-            //cv::Mat tempMat16;
-            rMatImageList.at(ii)->matImage.convertTo(tempMatRGB, CV_16U);
-            cv::cvtColor(tempMatRGB, tempMatRGB, CV_BayerBG2RGB);
-            // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
-            // Since FITS images uses the same coordinate frame as the openGL viewport,
-            // it is necessary to flip the DSLR images up-side down.
-            if (rMatImageList.at(ii)->getInstrument() == instruments::DSLR)
-            {
-                cv::flip(tempMatRGB, tempMatRGB, 0);
-            }
-
+            tempMatRGB = rMatImageList.at(ii)->matImageRGB.clone();
         }
         else
         {
-            tempMatRGB = rMatImageList.at(ii)->matImage;
-        }        
+            tempMatRGB = rMatImageList.at(ii)->matImage.clone();
+        }
+        // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
+        // Since FITS images uses the same coordinate frame as the openGL viewport,
+        // it is necessary to flip the DSLR images up-side down.
+        if (rMatImageList.at(ii)->getInstrument() == instruments::DSLR)
+        {
+            // Because of this we are cloning the image above.
+            // One should use instead the viewport or opengl tricks?
+            cv::flip(tempMatRGB, tempMatRGB, 0);
+        }
         matImageListRGB.append(tempMatRGB);
     }
 
@@ -426,11 +427,15 @@ void ROpenGLWidget::loadGLTexture()
 void ROpenGLWidget::paintGL()
 {
 
+
     texture = textureVector.at(frameIndex);
 
     glClear(GL_COLOR_BUFFER_BIT);
 
+
+
     m_shader.bind();
+
     /// When I just move that window around, I'm also using those shaders...
     int alphaLocation = m_shader.uniformLocation("alpha");
     int betaLocation = m_shader.uniformLocation("beta");
@@ -471,16 +476,28 @@ void ROpenGLWidget::paintGL()
     m_shader.setUniformValue(limbGammaLocation, limbGamma);
 
 
+// For drawing over textures with the QPainter, the latter needs to be instantiated before
+// before binding the vao. But the drawing must be detailed at the end.
+
+//    QPainter p(this);
+
     m_vao.bind();
     {
+
         // Profile here
         texture->bind();
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         texture->release(); // unbind?
-        // End Profile here
+        // End Profile here       
     }
+
     m_vao.release();
     m_shader.release(); // unbind?
+
+
+//    p.setPen(Qt::red);
+//    p.drawLine(rect().topLeft(), rect().bottomRight());
+//    p.drawText(0, 0, width(), height(), Qt::AlignCenter, painterString);
 
 }
 
@@ -529,6 +546,10 @@ void ROpenGLWidget::mousePressEvent(QMouseEvent *event)
     imageCoordY = round((float) (cursorY) / (float) (resizeFac));
     qDebug("Image coordinates: (%i, %i)", imageCoordX, imageCoordY);
 
+    painterString = QString("Hello again!");
+
+    this->update();
+
     updateSubQImage();
 
     emit mousePressed();
@@ -545,7 +566,10 @@ void ROpenGLWidget::mouseMoveEvent(QMouseEvent *event)
     imageCoordX = cursorX / resizeFac;
     imageCoordY = cursorY / resizeFac;
 
+    this->update();
+
     updateSubQImage();
+
     emit mousePressed();
 }
 

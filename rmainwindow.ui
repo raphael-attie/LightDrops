@@ -2291,7 +2291,7 @@
             <enum>QTabWidget::West</enum>
            </property>
            <property name="currentIndex">
-            <number>1</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="xCorrTab">
             <attribute name="title">
@@ -2948,8 +2948,8 @@
    <slot>decreaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1444</x>
-     <y>160</y>
+     <x>1437</x>
+     <y>163</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2964,8 +2964,8 @@
    <slot>increaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1484</x>
-     <y>160</y>
+     <x>1470</x>
+     <y>163</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2980,8 +2980,8 @@
    <slot>exportMastersToFits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1539</x>
-     <y>661</y>
+     <x>1543</x>
+     <y>634</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -2996,8 +2996,8 @@
    <slot>minMaxScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>977</x>
-     <y>896</y>
+     <x>1100</x>
+     <y>917</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -3012,8 +3012,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1104</x>
-     <y>906</y>
+     <x>1196</x>
+     <y>921</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -3028,8 +3028,8 @@
    <slot>calibrateOffScreenSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1510</x>
-     <y>688</y>
+     <x>1513</x>
+     <y>668</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -3044,8 +3044,8 @@
    <slot>convertTo8Bit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1079</x>
-     <y>863</y>
+     <x>1202</x>
+     <y>883</y>
     </hint>
     <hint type="destinationlabel">
      <x>962</x>
@@ -3060,8 +3060,8 @@
    <slot>convertToNeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1079</x>
-     <y>896</y>
+     <x>1202</x>
+     <y>917</y>
     </hint>
     <hint type="destinationlabel">
      <x>1253</x>
@@ -3076,8 +3076,8 @@
    <slot>autoScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>977</x>
-     <y>863</y>
+     <x>1100</x>
+     <y>883</y>
     </hint>
     <hint type="destinationlabel">
      <x>840</x>
@@ -3092,8 +3092,8 @@
    <slot>normalizeCurrentSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>977</x>
-     <y>931</y>
+     <x>1100</x>
+     <y>951</y>
     </hint>
     <hint type="destinationlabel">
      <x>723</x>
@@ -3124,8 +3124,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1455</x>
-     <y>469</y>
+     <x>1517</x>
+     <y>676</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3140,8 +3140,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1456</x>
-     <y>465</y>
+     <x>1455</x>
+     <y>471</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3348,8 +3348,8 @@
    <slot>luckyROISlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1442</x>
-     <y>730</y>
+     <x>1454</x>
+     <y>721</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3364,8 +3364,8 @@
    <slot>extractLuckySampleSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1528</x>
-     <y>730</y>
+     <x>1540</x>
+     <y>721</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3380,8 +3380,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1173</x>
-     <y>879</y>
+     <x>1278</x>
+     <y>886</y>
     </hint>
     <hint type="destinationlabel">
      <x>1109</x>
@@ -3396,8 +3396,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1173</x>
-     <y>925</y>
+     <x>1278</x>
+     <y>936</y>
     </hint>
     <hint type="destinationlabel">
      <x>1160</x>

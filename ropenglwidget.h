@@ -233,6 +233,9 @@ private:
     QCPItemText *itemTextHigh;
     QCPItemText *itemTextLow;
 
+    // QPainter-related
+    QString painterString;
+
 
 };
 

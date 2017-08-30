@@ -20,17 +20,7 @@ RMat::RMat(const RMat &rMat)
     rMat.matImage.copyTo(this->matImage);
     this->imageTitle = QString("");
 
-
-    if (matImage.channels() > 1)
-    {
-        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-    }
-    else
-    {
-        matImageGray = matImage;
-    }
-
-    calcStats();
+    prepImages();
 }
 
 
@@ -38,87 +28,45 @@ RMat::RMat(const RMat &rMat)
 RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
     SOLAR_R(0), item(NULL)
 {
-    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = false;
     this->imageTitle = QString("");
     this->instrument = instruments::generic;
 
-    if (matImage.channels() > 1)
-    {
-        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-    }
-    else
-    {
-        matImageGray = matImage;
-    }
-
-    calcStats();
+    prepImages();
 }
 
 RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
     SOLAR_R(0), item(NULL)
 {
-    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("");
     this->instrument = instruments::generic;
 
-    if (matImage.channels() > 1)
-    {
-        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-    }
-    else
-    {
-        matImageGray = matImage;
-    }
-
-    calcStats();
+    prepImages();
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
     bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
 {
-    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("");
     this->instrument = instrument;
 
-    if (matImage.channels() > 1)
-    {
-        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-    }
-    else
-    {
-        matImageGray = matImage;
-    }
-
-
-    calcStats();
+    prepImages();
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP) : dataMin(0), dataMax(0), bscale(1),
     bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
 {
-    //matImage = cv::Mat(cv::Size(mat.cols, mat.rows), mat.type(), mat.data, mat.step);
     mat.copyTo(this->matImage);
     this->bayer = bayer;
     this->imageTitle = QString("");
     this->instrument = instrument;
 
-    if (matImage.channels() > 1)
-    {
-        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
-    }
-    else
-    {
-        matImageGray = matImage;
-    }
-
-
-    calcStats();
+    prepImages();
 }
 
 
@@ -130,6 +78,29 @@ RMat::~RMat()
         qDebug("RMat:: deleting item from QTreeWidget");
         //item->~QTreeWidgetItem();
     }
+}
+
+void RMat::prepImages()
+{
+    if (bayer)
+    {
+        matImage.convertTo(matImageRGB, CV_16U);
+        cv::cvtColor(matImageRGB, matImageRGB, CV_BayerBG2RGB);
+        cv::cvtColor(matImageRGB, matImageGray, CV_RGB2GRAY);
+    }
+    else
+    {
+        matImageGray = matImage;
+    }
+
+    if (matImage.channels() > 1)
+    {
+        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
+        matImageRGB = matImage;
+    }
+
+
+    calcStats();
 }
 
 void RMat::computeHist(int nBins, float minRange, float maxRange)
@@ -161,6 +132,7 @@ void RMat::calcStats()
         matImageGray = matImage;
     }
 
+    // Calculate min and max from matImageGray
     calcMinMax();
     qDebug("RMat::calcStats():: [dataMin , dataMax] = [%f , %f]", (float) dataMin, (float) dataMax);
 
@@ -190,7 +162,7 @@ void RMat::calcStats()
     }
     else if (matType == CV_32F || matType == CV_32FC3)
     {
-        dataRange = (float) (dataMax - dataMin) + 1.0f;
+        dataRange = (float) (dataMax - dataMin);
         /// For normalization / contrast stretching
         /// we assume that no CCD will go beyond 16 bits
         /// thus keeping a maximum 16-bit data range
