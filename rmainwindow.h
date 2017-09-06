@@ -156,6 +156,16 @@ private slots:
 
     void on_actionTemperature_toggled(bool arg1);
 
+    void on_actionROISelect_toggled(bool arg1);
+
+    void on_actionCircle_toggled(bool arg1);
+
+    void on_actionMultiROI_toggled(bool arg1);
+
+    void on_actionSave_ROI_triggered();
+
+    void on_actionClear_ROIs_triggered();
+
 private:
 
     // functions

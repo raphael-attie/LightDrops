@@ -15,7 +15,7 @@
 RProcessing::RProcessing(QObject *parent): QObject(parent),
     masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useROI(false), useXCorr(false),
     radius(0), radius1(0), radius2(0), radius3(0), meanRadius(0), masterWithMean(true), masterWithSigmaClip(false), stackWithMean(true),
-    stackWithSigmaClip(false), blkSize(32), binning(2)
+    stackWithSigmaClip(false), blkSize(32), binning(2), maskCircleX(0), maskCircleY(0), maskCircleRadius(0)
 {
     listImageManager = new RListImageManager();
 }
@@ -2064,6 +2064,47 @@ void RProcessing::setExportCalibrateDir(QString dir)
     qDebug() << "Export calibrated data to: " << exportCalibrateDir;
 }
 
+bool RProcessing::prepRegistration()
+{
+    if (!treeWidget->rMatLightList.isEmpty())
+    {
+        rMatLightList = treeWidget->rMatLightList;
+    }
+    else
+    {
+        emit tempMessageSignal(QString("No lights to register"), 10000);
+        return false;
+    }
+    if (cvRectROIList.isEmpty())
+    {
+        emit tempMessageSignal(QString("ROI undefined"), 10000);
+        return false;
+    }
+    // Clear the resultList if not empty
+    if (!resultList.isEmpty())
+    {
+        qDeleteAll(resultList);
+        resultList.clear();
+    }
+
+    if (rMatLightList.at(0)->isBayer())
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+        resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
+    }
+    else
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+        resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
+    }
+
+    this->normFactor = 1.0f / rMatLightList.at(0)->getXPOSURE();
+
+
+    return true;
+
+}
+
 
 void RProcessing::registerSeries()
 {
@@ -2071,21 +2112,15 @@ void RProcessing::registerSeries()
     /// 1) By Drag and Drop in the QMdiArea
     /// 2) After a calibration like in calibrate()
     /// We use resultList as the (temporary?) output list.
-    if (!treeWidget->rMatLightList.isEmpty())
-    {
-        rMatLightList = treeWidget->rMatLightList;
-    }
-    else
-    {
-        emit tempMessageSignal(QString("No lights to register"));
-        return;
-    }
+
+    bool status = prepRegistration();
+    if (!status) {return;}
 
     int nFrames = rMatLightList.size();
 
     // Define the motion model
     const int warp_mode_1 = cv::MOTION_TRANSLATION;
-    const int warp_mode_2 = cv::MOTION_EUCLIDEAN;
+    const int warp_mode_2 = cv::MOTION_TRANSLATION;
 
     // Specify the number of iterations.
     int number_of_iterations_1 = 50; // stellar
@@ -2108,34 +2143,32 @@ void RProcessing::registerSeries()
 
 
     // Get the 1st image of the rMatLightList as the reference image (and put as 1st element of resultList)
-
     cv::Mat refMat;
     // Normalized version
     cv::Mat refMatN;
 
-    if (rMatLightList.at(0)->isBayer())
-    {
-        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument());
-    }
-    else
-    {
-        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument());
-    }
-
     rMatLightList.at(0)->matImageGray.convertTo(refMat, CV_32F);
     // Normalize to a multiple of the exposure time * median?
     //float lowThresh = rMatLightList.at(0)->getIntensityLow();
-    float highThresh = rMatLightList.at(0)->getIntensityHigh();
-    float normFactor = 1.0f / highThresh;
+    //float highThresh = rMatLightList.at(0)->getIntensityHigh();
+    float normFactor = 1.0f / rMatLightList.at(0)->getXPOSURE();
+
+    if(applyMask & (maskCircleRadius !=0))
+    {
+        refMat = circleMaskMat(refMat, maskCircleX, maskCircleY, maskCircleRadius);
+        //emit resultSignal(refMat, false, instruments::DSLR);
+    }
 
     // Normalize to the normFactor (e.g: the mean, high threshold from rMat->calcStats(), ...)
     refMatN = refMat * normFactor;
     //cv::threshold(refMatN, registeredMatN, 0.9, 0.9, cv::THRESH_TRUNC);
 
+
     // If ROI is used
     if (useROI)
     {
         refMatN = refMatN(cvRectROI);
+        emit resultSignal(refMatN, false, rMatLightList.at(0)->getInstrument());
     }
 
     // Get a resampled version. 1/4 on each axis.
@@ -2147,23 +2180,21 @@ void RProcessing::registerSeries()
     {
         qDebug("Registering image #%i/%i", i, nFrames);
 
-        // Normalize to a multiple of the exposure time
-        float expTime = rMatLightList.at(i)->getExpTime();
-        float mean = rMatLightList.at(i)->getMean();
-        float normFactor = 1.0f / (mean);
-        qDebug("expTime = %f", expTime);
-        qDebug("mean = %f", mean);
-        qDebug("normFactor = %f", normFactor);
-
         cv::Mat registeredMat;
         // Normalized mat image
         cv::Mat registeredMatN;
         // Rebinned mat Image
         cv::Mat registeredMatR;
 
-
         // Registration requires floating points
         rMatLightList.at(i)->matImageGray.convertTo(registeredMat, CV_32F);
+
+        if(applyMask & (maskCircleRadius !=0))
+        {
+            registeredMat = circleMaskMat(registeredMat, maskCircleX, maskCircleY, maskCircleRadius);
+            //emit resultSignal(refMat, false, instruments::DSLR);
+        }
+
         registeredMatN = registeredMat * normFactor;
         // If ROI is used
         if (useROI)
@@ -2214,18 +2245,18 @@ void RProcessing::registerSeries()
             cv::Mat tempMatRGB[3];
             // Split the channels
             cv::split(rMatLightList.at(i)->matImageRGB, tempMatRGB);
-            cv::warpAffine(tempMatRGB[0], tempMatRGB[0], warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
-            cv::warpAffine(tempMatRGB[1], tempMatRGB[1], warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
-            cv::warpAffine(tempMatRGB[2], tempMatRGB[2], warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[0], tempMatRGB[0], warp_matrix_1, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[1], tempMatRGB[1], warp_matrix_1, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[2], tempMatRGB[2], warp_matrix_1, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
 
             tempMatRGB[0].convertTo(tempMatRGB[0], CV_16U);
             tempMatRGB[1].convertTo(tempMatRGB[1], CV_16U);
             tempMatRGB[2].convertTo(tempMatRGB[2], CV_16U);
             vector<cv::Mat> channels;
             // Watch the order. 1st array will be last channel.
-            channels.push_back(tempMatRGB[2]);
-            channels.push_back(tempMatRGB[1]);
             channels.push_back(tempMatRGB[0]);
+            channels.push_back(tempMatRGB[1]);
+            channels.push_back(tempMatRGB[2]);
             cv::Mat registeredMatRGB;
             cv::merge(channels, registeredMatRGB);
             // registeredMat is necessarily non-bayer.
@@ -2233,13 +2264,46 @@ void RProcessing::registerSeries()
         }
         else
         {
-            cv::warpAffine(registeredMat, registeredMat, warp_matrix_1, registeredMat.size(), cv::INTER_NEAREST + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(registeredMat, registeredMat, warp_matrix_1, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
             // registeredMat is necessarily non-bayer.
             resultList << new RMat(registeredMat, false, rMatLightList.at(i)->getInstrument());
             resultList.at(i)->setBscale(normFactor);
 
         }
 
+    }
+
+}
+
+void RProcessing::registerSeriesXCorrPropagate()
+{
+    bool status = prepRegistration();
+    if (!status) {return;}
+
+    cv::Mat refMat;
+    cv::Mat currentMatImage;
+    cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
+    for (int i=0; i < rMatLightList.size()-1; i++)
+    {
+        rMatLightList.at(i)->matImageGray.convertTo(refMat, CV_32F);
+        rMatLightList.at(i+1)->matImageGray.convertTo(currentMatImage, CV_32F);
+
+        cv::Mat refMatN = refMat * normFactor;
+        cv::Mat currentMatImageN = currentMatImage * normFactor;
+
+        //shift = shift + calculateSADShift(refMatN, currentMatImageN, cvRectROIList, 50);
+        cv::Mat warpMat = calculateXCorrShift(refMatN, currentMatImageN, cvRectROIList);
+
+
+        warpMatrixTotal.at<float>(0, 2) += warpMat.at<float>(0, 2);
+        warpMatrixTotal.at<float>(1, 2) += warpMat.at<float>(1, 2);
+
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() ShiftX = " << warpMat.at<float>(0, 2) << std::endl;
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() ShiftY = " << warpMat.at<float>(1, 2) << std::endl;
+
+        cv::Mat shiftedMat = shiftImage(rMatLightList.at(i+1), warpMatrixTotal);
+        resultList << new RMat(shiftedMat, false, rMatLightList.at(i+1)->getInstrument(), rMatLightList.at(i+1)->getXPOSURE(), rMatLightList.at(i+1)->getTEMP());
+        resultList.at(i+1)->setFileInfo(rMatLightList.at(i+1)->getFileInfo());
     }
 
 }
@@ -2399,6 +2463,10 @@ void RProcessing::registerSeriesOnLimbFit()
 
 void RProcessing::registerSeriesByPhaseCorrelation()
 {
+    /// Here we register rMatLightList. It is assigned in two ways:
+    /// 1) By Drag and Drop in the QMdiArea
+    /// 2) After a calibration like in calibrate()
+    /// We use resultList as the (temporary?) output list.
     if (!treeWidget->rMatLightList.isEmpty())
     {
         rMatLightList = treeWidget->rMatLightList;
@@ -2408,51 +2476,419 @@ void RProcessing::registerSeriesByPhaseCorrelation()
         emit tempMessageSignal(QString("No lights to register"));
         return;
     }
-
+    // Clear the resultList if not empty
     if (!resultList.isEmpty())
     {
         qDeleteAll(resultList);
         resultList.clear();
     }
 
-    // Normalize the data to have equivalent statistics / histograms
-    cv::Mat refMat = normalizeByThresh(rMatLightList.at(0)->matImage, rMatLightList.at(0)->getIntensityLow(), rMatLightList.at(0)->getIntensityHigh(), rMatLightList.at(0)->getNormalizeRange());
-    refMat.convertTo(refMat, CV_32F);
+    // Get the 1st image of the rMatLightList as the reference image (and put as 1st element of resultList)
+    cv::Mat refMat;
+    // Normalized version
+    cv::Mat refMatN;
 
-    double sigma = 80.0;
-    cv::Mat refMatHPF = makeImageHPF(refMat, sigma);
+    if (rMatLightList.at(0)->isBayer())
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument());
+    }
+    else
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument());
+    }
 
-    RMat *refRMat = new RMat(*rMatLightList.at(0));
-    refRMat->setImageTitle(QString("Phase-registered image # ") + QString::number(0));
-    refRMat->setDate_time(rMatLightList.at(0)->getDate_time());
-    resultList << refRMat;
+
+    rMatLightList.at(0)->matImageGray.convertTo(refMat, CV_32F);
+    // Normalize to a multiple of the exposure time * median?
+    float normFactor = 1.0f / rMatLightList.at(0)->getXPOSURE();
+    // Normalize to the normFactor (e.g: the mean, high threshold from rMat->calcStats(), ...)
+    refMatN = refMat * normFactor;
+
 
     for (int i=1; i < rMatLightList.size(); i++)
     {
-        cv::Mat matImage = normalizeByThresh(rMatLightList.at(i)->matImage, rMatLightList.at(i)->getIntensityLow(), rMatLightList.at(i)->getIntensityHigh(), rMatLightList.at(i)->getNormalizeRange());
-        matImage.convertTo(matImage, CV_32F);
-        cv::Mat matImageHPF = makeImageHPF(matImage, sigma);
+        cv::Mat currentMatImage;
+        rMatLightList.at(i)->matImageGray.convertTo(currentMatImage, CV_32F);
 
-        cv::Point2d shift = cv::phaseCorrelate(refMatHPF, matImageHPF);
+        cv::Mat currentMatImageN = currentMatImage * normFactor;
+
+        cv::Point2d shift = cv::phaseCorrelate(refMatN, currentMatImageN);
         std::cout << "Shifts = " << shift << std::endl;
 
-        cv::Mat shiftedMatImage;
+        cv::Mat registeredMat;
         cv::Mat warpMat = cv::Mat::eye(2, 3, CV_32F);
         warpMat.at<float>(0, 2) = shift.x;
         warpMat.at<float>(1, 2) = shift.y;
 
-        cv::warpAffine(rMatLightList.at(i)->matImage, shiftedMatImage, warpMat, matImage.size(), cv::INTER_LANCZOS4 + cv::WARP_INVERSE_MAP);
+        if (rMatLightList.at(0)->isBayer())
+        {
+            // RGB array for splitting channels
+            cv::Mat tempMatRGB[3];
+            // Split the channels
+            cv::split(rMatLightList.at(i)->matImageRGB, tempMatRGB);
+            cv::warpAffine(tempMatRGB[0], tempMatRGB[0], warpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[1], tempMatRGB[1], warpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+            cv::warpAffine(tempMatRGB[2], tempMatRGB[2], warpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
 
-        shiftedMatImage.convertTo(shiftedMatImage, rMatLightList.at(i)->matImage.type());
+            tempMatRGB[0].convertTo(tempMatRGB[0], CV_16U);
+            tempMatRGB[1].convertTo(tempMatRGB[1], CV_16U);
+            tempMatRGB[2].convertTo(tempMatRGB[2], CV_16U);
+            vector<cv::Mat> channels;
+            // Watch the order. 1st array will be last channel.
+            channels.push_back(tempMatRGB[0]);
+            channels.push_back(tempMatRGB[1]);
+            channels.push_back(tempMatRGB[2]);
+            cv::Mat registeredMatRGB;
+            cv::merge(channels, registeredMatRGB);
+            // registeredMat is necessarily non-bayer.
+            resultList << new RMat(registeredMatRGB, false, rMatLightList.at(i)->getInstrument());
+        }
+        else
+        {
+            cv::warpAffine(rMatLightList.at(i)->matImage, registeredMat, warpMat, registeredMat.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+            // registeredMat is necessarily non-bayer.
+            resultList << new RMat(registeredMat, false, rMatLightList.at(i)->getInstrument());
+            resultList.at(i)->setBscale(normFactor);
 
-        RMat *resultMat = new RMat(shiftedMatImage, false, rMatLightList.at(i)->getInstrument());
-        resultMat->setImageTitle(QString("Phase-registered image # ") + QString::number(i));
-        resultMat->setDate_time(rMatLightList.at(i)->getDate_time());
-        resultList << resultMat;
+        }
     }
 
+}
+
+void RProcessing::registerSeriesCustom()
+{
+    if (cvRectROI.empty())
+    {
+        emit tempMessageSignal(QString("ROI needs to be defined"));
+        return;
+    }
+
+    if(applyMask & (maskCircleRadius ==0))
+    {
+        emit tempMessageSignal(QString("circular mask not defined"));
+        return;
+    }
+
+    if (!treeWidget->rMatLightList.isEmpty())
+    {
+        rMatLightList = treeWidget->rMatLightList;
+    }
+    else
+    {
+        emit tempMessageSignal(QString("No lights to register"));
+        return;
+    }
+    // Clear the resultList if not empty
+    if (!resultList.isEmpty())
+    {
+        qDeleteAll(resultList);
+        resultList.clear();
+    }
+
+    // Get the 1st image of the rMatLightList as the reference image (and put as 1st element of resultList)
+    cv::Mat refMat;
+    // Normalized version
+    cv::Mat refMatN;
+
+    if (rMatLightList.at(0)->isBayer())
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument());
+    }
+    else
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument());
+    }
+
+    rMatLightList.at(0)->matImageGray.convertTo(refMat, CV_32F);
+
+    float normFactor = 1.0f / rMatLightList.at(0)->getXPOSURE();
+    refMatN = refMat * normFactor;
+
+    std::cout << "cvRectROI = " << cvRectROI << std::endl;
+
+    // Originally I chose to use the first image in the timeline as a reference
+    // During the total eclipse, statistical properties change rapidly, and normalization by exposure time is not enough
+    // (it's also the case with clouds, fire haze passing quickly etc...)
+    // Thus I should opt for a propagating approach, and make a by-pair coalignment, and propagate the shift with respect to the first image
+    // This is the purpose of the function registerSeriesCustomPropagate()
+    for (int i=1; i < rMatLightList.size(); i++)
+    {
+        cv::Mat currentMatImage;
+        rMatLightList.at(i)->matImageGray.convertTo(currentMatImage, CV_32F);
+
+        cv::Mat currentMatImageN = currentMatImage * normFactor;
+        cv::Point shift = calculateSADShift(refMatN, currentMatImageN, cvRectROI, 50);
+        std::cout << "Shifts = " << shift << std::endl;
+
+        cv::Mat shiftedMat = shiftImage(rMatLightList.at(i), shift);
+        resultList << new RMat(shiftedMat, false, rMatLightList.at(i)->getInstrument());
+    }
 
 }
+
+void RProcessing::registerSeriesCustomPropagate()
+{
+    // Purpose:
+    // Originally, in registerSeriesCustom(), I used the first image in the timeline as a reference
+    // During the total eclipse, statistical properties change rapidly, and normalization by exposure time is not enough
+    // (it's also the case with clouds, fire haze passing quickly etc...)
+    // Thus I should opt for a propagating approach, and make a by-pair coalignment, and propagate the shift with respect to the first image
+
+    std::cout << "Starting registerSeriesCustomPropagate()... " << std::endl;
+
+    if (cvRectROIList.empty())
+    {
+        emit tempMessageSignal(QString("ROI needs to be defined"));
+        return;
+    }
+
+    if(applyMask & (maskCircleRadius ==0))
+    {
+        emit tempMessageSignal(QString("circular mask not defined"));
+        return;
+    }
+
+    if (!treeWidget->rMatLightList.isEmpty())
+    {
+        rMatLightList = treeWidget->rMatLightList;
+    }
+    else
+    {
+        emit tempMessageSignal(QString("No lights to register"));
+        return;
+    }
+    // Clear the resultList if not empty
+    if (!resultList.isEmpty())
+    {
+        qDeleteAll(resultList);
+        resultList.clear();
+    }
+
+    std::cout << "registerSeriesCustomPropagate() check passed. " << std::endl;
+
+    cv::Mat refMat;
+    // Normalized version
+    cv::Mat refMatN;
+    cv::Mat currentMatImage;
+    cv::Mat currentMatImageN;
+
+
+    if (rMatLightList.at(0)->isBayer())
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument());
+    }
+    else
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument());
+    }
+
+    float normFactor = 1.0f / rMatLightList.at(0)->getXPOSURE();
+
+    std::cout << "cvRectROI = " << cvRectROI << std::endl;
+    std::cout << "cvRectROIList(0) = " << cvRectROIList.at(0) << std::endl;
+
+    cv::Point shift(0, 0);
+    for (int i=0; i < rMatLightList.size()-1; i++)
+    {
+        rMatLightList.at(i)->matImageGray.convertTo(refMat, CV_32F);
+        refMatN = refMat * normFactor;
+
+        rMatLightList.at(i+1)->matImageGray.convertTo(currentMatImage, CV_32F);
+
+        currentMatImageN = currentMatImage * normFactor;
+        //shift = shift + calculateSADShift(refMatN, currentMatImageN, cvRectROI, 50);
+        shift = shift + calculateSADShift(refMatN, currentMatImageN, cvRectROIList, 50);
+        std::cout << "Shifts = " << shift << std::endl;
+
+        cv::Mat shiftedMat = shiftImage(rMatLightList.at(i+1), shift);
+        resultList << new RMat(shiftedMat, false, rMatLightList.at(i)->getInstrument());
+    }
+}
+
+cv::Point RProcessing::calculateSADShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov, int maxLength)
+{
+
+    cv::Mat mask;
+    if(applyMask)
+    {
+        mask = circleMask(refMat, maskCircleX, maskCircleY, maskCircleRadius);
+        //emit resultSignal(refMat, false, instruments::DSLR);
+    }
+    else
+    {
+        mask = cv::Mat::ones(refMat.size(), CV_8U);
+    }
+
+    cv::GaussianBlur(refMat, refMat, cv::Size(0, 0), 3);
+    cv::GaussianBlur(matImage, matImage, cv::Size(0, 0), 3);
+
+    cv::Mat diffMat;
+    cv::Mat absDiffMat;
+    cv::Mat sMask = mask(fov);
+    cv::Mat sMask2;
+    cv::Mat sRefMat = refMat(fov);
+    cv::Mat sMatImage;
+    cv::Mat SAD = cv::Mat::zeros(maxLength, maxLength, CV_32F);
+    cv::Rect fov2 = fov;
+
+    // Loop through all test shifts using sum of absolute difference
+    // Beware, SAD is initially populated with zeros. So I must not "miss a spot".
+    for (int i=0; i < maxLength; ++i)
+    {
+        int dy = -maxLength / 2 + i;
+        fov2.y = fov.y + dy;
+
+        for (int j=0; j < maxLength; ++j)
+        {
+            int dx = -maxLength/2 + j;
+            fov2.x = fov.x + dx;
+            //std::cout << "[dx, dy] " << "[" << dx << "," << dy << "]" << std::endl;
+
+            sMatImage = matImage(fov2);
+            // Combine the shifted mask and the reference mask into one mask, with zeros wherever one of them is zeros
+            cv::bitwise_and(sMask, mask(fov2), sMask2);
+            cv::subtract(sRefMat, sMatImage, diffMat, sMask2);
+            absDiffMat = cv::abs(diffMat);
+            cv::Scalar sad = cv::sum(absDiffMat) / cv::sum(sMask2);
+            SAD.at<float>(i,j) = (float) sad.val[0];
+        }
+    }
+
+    cv::Point minLoc;
+    cv::Point maxLoc;
+    double minValue;
+    double maxValue;
+    cv::minMaxLoc(SAD, &minValue, &maxValue, &minLoc, &maxLoc);
+    cv::Point shift;
+    shift.x = minLoc.x - maxLength/2;
+    shift.y = minLoc.y - maxLength/2;
+
+    return shift;
+}
+
+cv::Point RProcessing::calculateSADShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList, int maxLength)
+{
+    cv::Point shift;
+    for (int i=0; i < fovList.size(); i++)
+    {
+        cv::Rect fov = fovList.at(i);
+        shift += calculateSADShift(refMat, matImage, fov, maxLength);
+    }
+
+    // Average the shifts
+    shift /= fovList.size();
+    std::cout << "calculateSADShift:: shift = "<< std::endl;
+    std::cout << shift << std::endl;
+
+    return shift;
+}
+
+cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov)
+{
+    cv::GaussianBlur(refMat, refMat, cv::Size(0, 0), 3);
+    cv::GaussianBlur(matImage, matImage, cv::Size(0, 0), 3);
+
+    cv::Mat sRefMat = refMat(fov);
+    cv::Mat sMatImage = matImage(fov);
+
+    double eccEps = 0;
+    // Define the motion mode
+    const int warpMode = cv::MOTION_TRANSLATION;
+    // Specify the number of iterations.
+    int number_of_iterations = 50; // stellar
+    // Specify the threshold of the increment
+    // in the correlation coefficient between two iterations
+    double termination_eps = 1e-2; // stellar
+    // Define termination criteria
+    cv::TermCriteria criteria(cv::TermCriteria::COUNT, number_of_iterations, termination_eps);
+
+    cv::Mat warpMatrix = cv::Mat::eye(2, 3, CV_32F);
+
+    eccEps = cv::findTransformECC(
+                sRefMat,
+                sMatImage,
+                warpMatrix,
+                warpMode,
+                criteria
+                );
+
+    return warpMatrix;
+}
+
+
+cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList)
+{
+
+    cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
+
+    for (int i=0; i < fovList.size(); i++)
+    {
+        cv::Rect fov = fovList.at(i);
+        cv::Mat warpMatrix_i = calculateXCorrShift(refMat, matImage, fov);
+
+        // Translation in 1st dimension (rows? y-axis?)
+        warpMatrixTotal.at<float>(0,2) += warpMatrix_i.at<float>(0, 2);
+        // Translation in 2nd dimension (cols? x-axis?)
+        warpMatrixTotal.at<float>(1,2) += warpMatrix_i.at<float>(1, 2);
+    }
+
+    // Average the shifts
+    warpMatrixTotal.at<float>(0,2) /= fovList.size();
+    warpMatrixTotal.at<float>(1,2) /= fovList.size();
+
+    std::cout << "RProcessing::calculateXCorrShift:: shift X = " << warpMatrixTotal.at<float>(0,2) << std::endl;
+    std::cout << "RProcessing::calculateXCorrShift:: shift Y = " << warpMatrixTotal.at<float>(1,2) << std::endl;
+
+    return warpMatrixTotal;
+
+}
+
+
+
+
+cv::Mat RProcessing::shiftImage(RMat * rMatImage, cv::Mat warpMat)
+{
+    cv::Mat registeredMat;
+    if (rMatImage->isBayer())
+    {
+        // RGB array for splitting channels
+        cv::Mat tempMatRGB[3];
+        // Split the channels
+        cv::split(rMatImage->matImageRGB, tempMatRGB);
+        cv::warpAffine(tempMatRGB[0], tempMatRGB[0], warpMat, tempMatRGB[0].size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+        cv::warpAffine(tempMatRGB[1], tempMatRGB[1], warpMat, tempMatRGB[0].size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+        cv::warpAffine(tempMatRGB[2], tempMatRGB[2], warpMat, tempMatRGB[0].size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+
+        tempMatRGB[0].convertTo(tempMatRGB[0], CV_16U);
+        tempMatRGB[1].convertTo(tempMatRGB[1], CV_16U);
+        tempMatRGB[2].convertTo(tempMatRGB[2], CV_16U);
+        vector<cv::Mat> channels;
+        // Watch the order. 1st array will be last channel.
+        channels.push_back(tempMatRGB[0]);
+        channels.push_back(tempMatRGB[1]);
+        channels.push_back(tempMatRGB[2]);
+
+        cv::merge(channels, registeredMat);
+        // registeredMat is necessarily non-bayer.
+    }
+    else
+    {
+        cv::warpAffine(rMatImage->matImage, registeredMat, warpMat, rMatImage->matImage.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+        // registeredMat is necessarily non-bayer.
+    }
+    return registeredMat;
+}
+
+cv::Mat RProcessing::shiftImage(RMat *rMatImage, cv::Point shift)
+{
+    cv::Mat warpMat = cv::Mat::eye(2, 3, CV_32F);
+    warpMat.at<float>(0, 2) = shift.x;
+    warpMat.at<float>(1, 2) = shift.y;
+    cv::Mat shiftedMat = shiftImage(rMatImage, warpMat);
+    return shiftedMat;
+}
+
+
 
 void RProcessing::cannyEdgeDetectionOffScreen(int thresh)
 {
@@ -3326,6 +3762,47 @@ void RProcessing::fixUset(cv::Mat matImage)
 
 }
 
+void RProcessing::setupMaskingCircle(int circleX, int circleY, int radius)
+{
+    this->maskCircleX = circleX;
+    this->maskCircleY = circleY;
+    this->maskCircleRadius = radius;
+}
+
+void RProcessing::clearROIs()
+{
+    cvRectROIList.clear();
+}
+
+void RProcessing::appendROIList(QRect qRect)
+{
+    cv::Rect cvRect(qRect.x(), qRect.y(), qRect.width(), qRect.height());
+    cvRectROIList << cvRect;
+    for (int i=0; i < cvRectROIList.size(); i++)
+    {
+        std::cout << "RProcessing::appendROIList  cvRect = " << cvRectROIList.at(i) << std::endl;
+    }
+
+}
+
+cv::Mat RProcessing::circleMaskMat(cv::Mat matImage, int circleX, int circleY, int radius)
+{
+    cv::Mat mask = cv::Mat::ones(matImage.size(), CV_8U);
+    cv::Point circleCenter(circleX, circleY);
+    cv::circle(mask, circleCenter, radius, cv::Scalar::all(0), -1);
+    cv::Mat maskedMat;
+    matImage.copyTo(maskedMat, mask);
+    return maskedMat;
+}
+
+cv::Mat RProcessing::circleMask(cv::Mat matImage, int circleX, int circleY, int radius)
+{
+    cv::Mat mask = cv::Mat::ones(matImage.size(), CV_8U);
+    cv::Point circleCenter(circleX, circleY);
+    cv::circle(mask, circleCenter, radius, cv::Scalar::all(0), -1);
+    return mask;
+}
+
 
 // Private member functions
 void RProcessing::normalizeFlat()
@@ -3436,6 +3913,31 @@ void RProcessing::setNBest(int nBest)
 void RProcessing::setQualityMetric(QString qualityMetric)
 {
     this->qualityMetric = qualityMetric;
+}
+
+void RProcessing::setApplyMask(bool status)
+{
+    this->applyMask = status;
+}
+
+void RProcessing::setCvRectROIList(QList<cv::Rect> cvRectList)
+{
+    this->cvRectROIList = cvRectList;
+}
+
+void RProcessing::setMaskCircleX(int circleX)
+{
+    this->maskCircleX = circleX;
+}
+
+void RProcessing::setMaskCircleY(int circleY)
+{
+    this->maskCircleY = circleY;
+}
+
+void RProcessing::setMaskCircleRadius(int circleRadius)
+{
+    this->maskCircleRadius = circleRadius;
 }
 
 void RProcessing::setupMasterWithSigmaClip(bool enabled)

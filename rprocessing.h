@@ -135,6 +135,9 @@ public:
     void rebin2(const af::array &a, af::array & b2);
     void rebin4(const af::array &a, af::array & b4);
     void rebin(RMat *rMatImage, RMat *binnedRMatImage, int binning);
+    // Masking & ROI
+    cv::Mat circleMaskMat(cv::Mat matImage, int circleX, int circleY, int radius);
+    cv::Mat circleMask(cv::Mat matImage, int circleX, int circleY, int radius);
 
 
     /// setters
@@ -155,6 +158,12 @@ public:
     void setBlkSize(int blkSize);
     void setNBest(int nBest);
     void setQualityMetric(QString qualityMetric);
+    void setApplyMask(bool status);
+    // ROI
+    void setCvRectROIList(QList<cv::Rect> cvRectList);
+    void setMaskCircleX(int circleX);
+    void setMaskCircleY(int circleY);
+    void setMaskCircleRadius(int circleRadius);
 
     /// getters
     QString getExportMastersDir();
@@ -221,9 +230,20 @@ public slots:
 
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
+   bool prepRegistration();
    void registerSeries();
+   void registerSeriesXCorrPropagate();
    void registerSeriesOnLimbFit();
    void registerSeriesByPhaseCorrelation();
+   void registerSeriesCustom();
+   void registerSeriesCustomPropagate();
+   cv::Point calculateSADShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov, int maxLength);
+   cv::Point calculateSADShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList, int maxLength);
+   cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov);
+   cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList);
+
+   cv::Mat shiftImage(RMat* rMatImage, cv::Mat warpMat);
+   cv::Mat shiftImage(RMat* rMatImage, cv::Point shift);
    void cannyEdgeDetectionOffScreen(int thresh);
    bool cannyEdgeDetection(int thresh);
    void setupCannyDetection(int i);
@@ -240,6 +260,11 @@ public slots:
    cv::Mat normalizeByThresh(cv::Mat matImage, float oldMin, float oldMax, float newRange);
    cv::Mat normalizeClipByThresh(cv::Mat matImage, float newMin, float newMax, float dataRange);
    void fixUset(cv::Mat matImage);
+    // ROI
+   void setupMaskingCircle(int circleX, int circleY, int radius);
+   void appendROIList(QRect qRect);
+   void clearROIs();
+
 
 private:
 
@@ -291,8 +316,14 @@ private:
     bool stackWithMean, stackWithSigmaClip;
 
     float radius, radius1, radius2, radius3, meanRadius;
-    cv::Rect cvRectROI;
+    // ROI
     bool useROI;
+    bool applyMask;
+    QList<cv::Rect> cvRectROIList;
+    cv::Rect cvRectROI;
+    int maskCircleX, maskCircleY, maskCircleRadius;
+
+
     Circle circleOut;
     QVector<Circle> circleOutList;
 
@@ -316,6 +347,9 @@ private:
     int nBest;
     QList<RMat*> luckyBlkList;
     QString qualityMetric;
+
+    // Normalization of the images
+    double normFactor;
 
 
 };

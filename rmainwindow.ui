@@ -2274,6 +2274,13 @@
           <number>0</number>
          </property>
          <item>
+          <widget class="QCheckBox" name="applyMaskCheckBox">
+           <property name="text">
+            <string>Apply mask</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QTabWidget" name="registrationTabWidget">
            <property name="minimumSize">
             <size>
@@ -2341,6 +2348,20 @@
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="SADCheckBox">
+                 <property name="text">
+                  <string>use SAD</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="propagateCheckBox">
+                 <property name="text">
+                  <string>Propagative</string>
+                 </property>
+                </widget>
                </item>
                <item>
                 <widget class="QCheckBox" name="limbFitCheckBox">
@@ -2846,6 +2867,10 @@
    <addaction name="actionHeader"/>
    <addaction name="actionROISelect"/>
    <addaction name="actionROIExtract"/>
+   <addaction name="actionMultiROI"/>
+   <addaction name="actionSave_ROI"/>
+   <addaction name="actionClear_ROIs"/>
+   <addaction name="actionCircle"/>
    <addaction name="actionTemperature"/>
   </widget>
   <action name="actionTileView">
@@ -2915,6 +2940,57 @@
    </property>
    <property name="text">
     <string>Temperature</string>
+   </property>
+  </action>
+  <action name="actionCircle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="ressources.qrc">
+     <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (126).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (126).png</iconset>
+   </property>
+   <property name="text">
+    <string>Circle</string>
+   </property>
+  </action>
+  <action name="actionMultiROI">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="ressources.qrc">
+     <normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (58).png</normaloff>:/icons/Icons/icons3/PNG/Grey/48px/Stroke icons by Dreamstale (58).png</iconset>
+   </property>
+   <property name="text">
+    <string>multiROI</string>
+   </property>
+   <property name="toolTip">
+    <string>multiple ROI can be selected</string>
+   </property>
+  </action>
+  <action name="actionSave_ROI">
+   <property name="icon">
+    <iconset resource="ressources.qrc">
+     <normaloff>:/icons/Icons/icons4/SVG/layers.svg</normaloff>:/icons/Icons/icons4/SVG/layers.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Save ROI</string>
+   </property>
+   <property name="toolTip">
+    <string>Append ROI to list for co-alignment</string>
+   </property>
+  </action>
+  <action name="actionClear_ROIs">
+   <property name="icon">
+    <iconset resource="ressources.qrc">
+     <normaloff>:/icons/Icons/icons2/SVG/trash_bin.svg</normaloff>:/icons/Icons/icons2/SVG/trash_bin.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Clear ROIs</string>
+   </property>
+   <property name="toolTip">
+    <string>Clear the list of ROIs</string>
    </property>
   </action>
  </widget>
@@ -3141,7 +3217,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1455</x>
-     <y>471</y>
+     <y>567</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3220,8 +3296,8 @@
    <slot>solarLimbFit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1477</x>
-     <y>578</y>
+     <x>1455</x>
+     <y>466</y>
     </hint>
     <hint type="destinationlabel">
      <x>1459</x>
@@ -3236,8 +3312,8 @@
    <slot>solarLimbRegisterSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1477</x>
-     <y>603</y>
+     <x>1455</x>
+     <y>471</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3252,7 +3328,7 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>522</x>
+     <x>425</x>
      <y>904</y>
     </hint>
     <hint type="destinationlabel">

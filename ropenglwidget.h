@@ -86,6 +86,8 @@ public:
     float getRadius();
     float getScaleLimb();
 
+    QRect getFovRect() const;
+
     //setters
     void setRMatImageList(QList<RMat*> rMatImageList);
     void setNewMax(float newMax);
@@ -121,6 +123,12 @@ public:
     void setTableSize(QSize size);
     void setRadius(float radius);
 
+    //ROI
+    void setRoiSelected(bool isSelected);
+    void setCircleSelected(bool isSelected);
+    void setUseMultiROI(bool isSelected);
+    void clearROIs();
+
 signals:
 
     void mousePressed();
@@ -128,6 +136,9 @@ signals:
     void sendSubQImage(QImage *image, float intensity, int x, int y);
     void sendTableWidget(QTableWidget* tableWidget);
     void sendNewTitle(QString title);
+    void roiSignal(QRect rect);
+    void roiSignal(QList<QRect> rectList);
+    void circleSignal(int circleX, int circleY, int circleRadius);
 
 protected:
     void initializeGL();
@@ -136,10 +147,12 @@ protected:
 
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
 
 public slots:
     void setupTableWidget(int value);
     void changeFrame(int frameIndex);
+
 
 private:
     void prepImage();
@@ -214,8 +227,7 @@ private:
     qint32 naxis2;
     uint subNaxis;
 
-    quint32 imageCoordX;
-    quint32 imageCoordY;
+
 
     RSubWindow *tableRSubWindow;
     QTableWidget *tableWidget;
@@ -233,8 +245,39 @@ private:
     QCPItemText *itemTextHigh;
     QCPItemText *itemTextLow;
 
-    // QPainter-related
+    // ROI QPainter-related
+    bool roiSelected;
+    bool circleSelected;
+    bool useMultiROI;
     QString painterString;
+
+    QPoint initCursorPos;
+    int initCursorX;
+    int initCursorY;
+    int currentCursorX;
+    int currentCursorY;
+
+    QList<QRect> painterRectList;
+    QRect painterRect;
+    QRect circleRect;
+
+
+
+    // Field of view in the image reference frame corresponding to the selection rectangle in QOpenGLWidget
+    QList<QRect> fovRectList;
+    QRect fovRect;
+    QRect fovCircleRect;
+    int circleX;
+    int circleY;
+    quint32 circleDiameter;
+    quint32 circleRadius;
+
+    quint32 imageCoordX;
+    quint32 imageCoordY;
+    quint32 imageCircleX;
+    quint32 imageCircleY;
+    quint32 imageCircleDiameter;
+    quint32 imageCircleRadius;
 
 
 };

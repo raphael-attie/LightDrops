@@ -147,12 +147,19 @@ void RMat::calcStats()
         normalizeRange = 4096.0f;
         maxHistRange = 4095.0f;
     }
-    else if (instrument == instruments::DSLR)
+    else if (instrument == instruments::DSLR && (matType != CV_32F))
     {
         // DSLRs like Canon EOS are typically 14-bit sensors = 16384
         dataRange = 16384.0f;
         normalizeRange = 16384.0f;
         maxHistRange = 16383.0f;
+    }
+    else if (instrument == instruments::DSLR && (matType == CV_32F))
+    {
+        // DSLRs like Canon EOS are typically 14-bit sensors = 16384
+        dataRange = (float) (dataMax - dataMin);
+        normalizeRange = 16384.0f;
+        maxHistRange = (float) dataMax;
     }
     else if (matType == CV_16U || matType == CV_16UC3)
     {
@@ -181,6 +188,7 @@ void RMat::calcStats()
     }
 
     minHistRange = (float) dataMin;
+
 
     cv::Scalar meanScalar;
     cv::Scalar stdDevScalar;

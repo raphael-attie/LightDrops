@@ -53,7 +53,7 @@ void RGraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
     int mouseY = event->scenePos().y();
 
     int width  = abs(mouseX - origPoint.x());
-    int height = abs(mouseY -origPoint.y());
+    int height = abs(mouseY - origPoint.y());
 
 
 

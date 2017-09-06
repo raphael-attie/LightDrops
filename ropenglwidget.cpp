@@ -32,6 +32,8 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
+    , roiSelected(false)
+    , circleSelected(false)
 {
     //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rListImageManager = rListImageManager;
@@ -51,6 +53,8 @@ ROpenGLWidget::ROpenGLWidget(QList<RMat *> rMatImageList, QWidget *parent)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
+    , roiSelected(false)
+    , circleSelected(false)
 {
     //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rMatImageList = rMatImageList;
@@ -65,6 +69,8 @@ ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
     , m_vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
+    , roiSelected(false)
+    , circleSelected(false)
 {
     //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rMatImageList << rMatImage;
@@ -133,6 +139,9 @@ void ROpenGLWidget::initialize()
     imageCoordX = naxis1/2;
     imageCoordY = naxis2/2;
     radius = 0.0f;
+    imageCircleX = 0;
+    imageCircleY = 0;
+    imageCircleRadius = 0;
 
     prepImage();
     matImageRGB = matImageListRGB.at(frameIndex);
@@ -426,13 +435,9 @@ void ROpenGLWidget::loadGLTexture()
 
 void ROpenGLWidget::paintGL()
 {
-
-
     texture = textureVector.at(frameIndex);
 
     glClear(GL_COLOR_BUFFER_BIT);
-
-
 
     m_shader.bind();
 
@@ -475,11 +480,15 @@ void ROpenGLWidget::paintGL()
     m_shader.setUniformValue(betaLimbLocation, betaLimb);
     m_shader.setUniformValue(limbGammaLocation, limbGamma);
 
-
 // For drawing over textures with the QPainter, the latter needs to be instantiated before
 // before binding the vao. But the drawing must be detailed at the end.
 
-//    QPainter p(this);
+    QPainter p(this);
+    QPen pen( Qt::green );
+    pen.setWidth(2);
+    p.setPen(pen);
+    p.setRenderHints(QPainter::Antialiasing, true);
+    p.setRenderHints(QPainter::HighQualityAntialiasing, true);
 
     m_vao.bind();
     {
@@ -494,11 +503,28 @@ void ROpenGLWidget::paintGL()
     m_vao.release();
     m_shader.release(); // unbind?
 
+    if (roiSelected || useMultiROI)
+    {
+        //p.setPen(Qt::green);
+    //    p.drawLine(rect().topLeft(), rect().bottomRight());
+    //    p.drawText(0, 0, width(), height(), Qt::AlignCenter, painterString);
+        if (painterRect.isValid() || !painterRect.isEmpty())
+        {
+            p.drawRect(painterRect);
+        }
+    }
+    if (useMultiROI && !painterRectList.empty())
+    {
+        for (int i=0; i < painterRectList.size(); i++)
+        {
+            p.drawRect(painterRectList.at(i));
+        }
+    }
 
-//    p.setPen(Qt::red);
-//    p.drawLine(rect().topLeft(), rect().bottomRight());
-//    p.drawText(0, 0, width(), height(), Qt::AlignCenter, painterString);
-
+    if (circleSelected)
+    {
+        p.drawEllipse(QPoint(circleX, circleY), circleRadius, circleRadius);
+    }
 }
 
 void ROpenGLWidget::resizeGL(int w, int h)
@@ -538,16 +564,16 @@ void ROpenGLWidget::mousePressEvent(QMouseEvent *event)
     setCursor(Qt::CrossCursor);
     //Coordinates in pixels in the local (resized) Widget
     // They are not in image coordinates.
-    int cursorX = event->x();
-    int cursorY = event->y();
-    //qDebug("Mouse at (%i, %i)", cursorX, cursorY);
+    initCursorX = event->x();
+    initCursorY = event->y();
+    //qDebug("Mouse at (%i, %i)", initCursorX, cursorY);
+    initCursorPos = event->localPos().toPoint();
 
-    imageCoordX = round((float) (cursorX) / (float) (resizeFac));
-    imageCoordY = round((float) (cursorY) / (float) (resizeFac));
-    qDebug("Image coordinates: (%i, %i)", imageCoordX, imageCoordY);
+    imageCoordX = round((float) (initCursorX) / (float) (resizeFac));
+    imageCoordY = naxis2 - round((float) (initCursorY) / (float) (resizeFac)) -1;
 
-    painterString = QString("Hello again!");
 
+    painterRect = QRect();
     this->update();
 
     updateSubQImage();
@@ -560,17 +586,105 @@ void ROpenGLWidget::mouseMoveEvent(QMouseEvent *event)
     setCursor(Qt::CrossCursor);
     //Coordinates in pixels in the local (resized) Widget
     // They are not in image coordinates.
-    int cursorX = event->x();
-    int cursorY = event->y();
+    currentCursorX = event->x();
+    currentCursorY = event->y();
+    imageCoordX = currentCursorX / resizeFac;
+    imageCoordY = naxis2 - currentCursorY / resizeFac - 1;
 
-    imageCoordX = cursorX / resizeFac;
-    imageCoordY = cursorY / resizeFac;
+    if (roiSelected || useMultiROI)
+    {
+        QPoint currentCursorPos = event->localPos().toPoint();
+        int rectWidth = abs(currentCursorX - initCursorX) + 1;
+        int rectHeight = abs(currentCursorY - initCursorY) + 1;
+        // Need to check where is top left and bottom right to setup the rectangle
+        // Account for the fact that x increases from top to bottom of opengl viewer.
+        if (currentCursorPos.x() < initCursorPos.x() && currentCursorPos.y() < initCursorPos.y())
+        {
+            // current cursor is top left, init cursor is bottom right
+            QPoint topLeft = currentCursorPos;
+            QPoint bottomRight = initCursorPos;
+            painterRect = QRect(topLeft, bottomRight);
+
+            QPoint fovTopLeft = topLeft / resizeFac;
+            QPoint fovBottomRight = bottomRight / resizeFac;
+            fovRect = QRect(fovTopLeft, fovBottomRight);
+
+        }
+        else if (currentCursorPos.x() < initCursorPos.x() && currentCursorPos.y() > initCursorPos.y())
+        {
+            // current cursor is bottom left, init cursor is top right
+            QPoint topLeft = currentCursorPos - QPoint(0, rectHeight);
+            QPoint bottomRight = initCursorPos + QPoint(0, rectHeight);
+            painterRect = QRect(topLeft, bottomRight);
+
+            QPoint fovTopLeft = topLeft / resizeFac;
+            QPoint fovBottomRight = bottomRight / resizeFac;
+            fovRect = QRect(fovTopLeft, fovBottomRight);
+        }
+        else if (currentCursorPos.x() > initCursorPos.x() && currentCursorPos.y() > initCursorPos.y())
+        {
+            // current cursor is bottom right, init cursor is top left
+            QPoint topLeft = initCursorPos;
+            QPoint bottomRight = currentCursorPos;
+            painterRect = QRect(topLeft, bottomRight);
+
+            QPoint fovTopLeft = topLeft / resizeFac;
+            QPoint fovBottomRight = bottomRight / resizeFac;
+            fovRect = QRect(fovTopLeft, fovBottomRight);
+
+        }
+        else if (currentCursorPos.x() > initCursorPos.x() && currentCursorPos.y() < initCursorPos.y())
+        {
+            // current cursor is top right, init cursor is bottom left
+            QPoint topLeft = currentCursorPos - QPoint(rectWidth, 0);
+            QPoint bottomRight = initCursorPos + QPoint(rectWidth, 0);
+            painterRect = QRect(topLeft, bottomRight);
+
+            QPoint fovTopLeft = topLeft / resizeFac;
+            QPoint fovBottomRight = bottomRight / resizeFac;
+            fovRect = QRect(fovTopLeft, fovBottomRight);
+        }
+
+
+
+        if (fovRect.isValid() && !fovRect.isEmpty())
+        {
+            emit roiSignal(fovRect);
+        }
+    }
+
+    if (circleSelected && !roiSelected && !useMultiROI)
+    {
+        int rectWidth = abs(currentCursorX - initCursorX) + 1;
+        int rectHeight = abs(currentCursorY - initCursorY) + 1;
+        circleDiameter = (quint32) sqrt((double) pow(rectWidth, 2) + pow(rectHeight, 2));
+        circleRadius = (quint32) round( (float) circleDiameter / 2.0f);
+        circleX = (quint32) round( (float) (initCursorX + currentCursorX) / 2.0f);
+        circleY = (quint32) round( (float) (initCursorY + currentCursorY) / 2.0f);
+
+        imageCircleDiameter = (quint32) round( (float) circleDiameter / resizeFac);
+        imageCircleRadius = (quint32) round( (float) imageCircleDiameter / 2.0f);
+        imageCircleX = (quint32) round( (float) circleX / resizeFac);
+        imageCircleY = (quint32) round( (float) circleY / resizeFac);
+
+        emit circleSignal(imageCircleX, imageCircleY, imageCircleRadius);
+    }
+
 
     this->update();
-
     updateSubQImage();
 
     emit mousePressed();
+}
+
+void ROpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (useMultiROI)
+    {
+        painterRectList << painterRect;
+    }
+
+    qDebug("FOV image coordinates (imageCoordX, imageCoordY) = (%i, %i)", imageCoordX, imageCoordY);
 }
 
 void ROpenGLWidget::setupTableWidget(int value)
@@ -664,6 +778,7 @@ void ROpenGLWidget::updateSubQImage()
 {
 
     matImageRGB = matImageListRGB.at(frameIndex);
+    // Copy the image into the matFrame, taking into the new borders of width subNaxis/2;
     matImageRGB.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
 
     int channels = matFrame.channels();
@@ -671,9 +786,9 @@ void ROpenGLWidget::updateSubQImage()
     float alpha2 = (float) (255.0f * alpha);
     float beta2 = (float) (255.0f * beta);
 
-    // Convert the cursor coord. in the large frame coord. system
-    int x = (imageCoordX - subNaxis/2) + subNaxis/2 ;
-    int y = (naxis2 - imageCoordY) - (subNaxis/2 + 1) + subNaxis/2 ;
+    // Convert the cursor coord. in the original image array reference frane
+    int x = imageCoordX;
+    int y = imageCoordY;
 
     // Define the Xmax, Ymax value that the coordinate of the top left rectangle vertex must not exceed.
     // And constrain that vertex coordinate  (x,y) to be within [0 ; Xmax] and [0 ; Ymax].
@@ -712,10 +827,6 @@ void ROpenGLWidget::updateSubQImage()
              subQImage->setPixel(j, i, pcolor);
          }
      }
-
-     // update info
-     x = imageCoordX;
-     y = naxis2 - (int) (imageCoordY -1);
 
      x = std::max(std::min(x, naxis1-1), 0);
      y = std::max(std::min(y, naxis2-1), 0);
@@ -1026,6 +1137,11 @@ float ROpenGLWidget::getScaleLimb()
     return scaleLimb;
 }
 
+QRect ROpenGLWidget::getFovRect() const
+{
+    return fovRect;
+}
+
 void ROpenGLWidget::setRMatImageList(QList<RMat *> rMatImageList)
 {
     this->rMatImageList = rMatImageList;
@@ -1175,5 +1291,27 @@ void ROpenGLWidget::setTableSize(QSize size)
 void ROpenGLWidget::setRadius(float radius)
 {
     this->radius = radius;
+}
+
+void ROpenGLWidget::setRoiSelected(bool isSelected)
+{
+    this->roiSelected = isSelected;
+}
+
+void ROpenGLWidget::setCircleSelected(bool isSelected)
+{
+    this->circleSelected = isSelected;
+}
+
+void ROpenGLWidget::setUseMultiROI(bool isSelected)
+{
+    this->useMultiROI = isSelected;
+}
+
+void ROpenGLWidget::clearROIs()
+{
+    painterRectList.clear();
+    fovRect = QRect();
+    painterRect = QRect();
 }
 

@@ -343,34 +343,40 @@ void RMainWindow::selectROI(bool isSquare, int blkSize)
 
 
     lastROpenGLWidget = currentROpenGLWidget;
-    /// Use copy constructor of the RMat to copy the current RMat image.
-    RMat tempRMat(*currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()));
-    // Setup image display with QImage and not openGL to allow easier drawings
-    //cv::Mat matImage = processing->normalizeByThresh(tempRMat.matImageGray, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh(), tempRMat.getDataRange());
-    cv::Mat matImageROI;// = matImage; //(ROI);
-    tempRMat.matImageGray.convertTo(matImageROI, CV_8U, 255.0f/tempRMat.getDataMax());
-    QImage imageROI((const uchar *) matImageROI.data, matImageROI.cols, matImageROI.rows, matImageROI.step, QImage::Format_Grayscale8);
-    QImage targetImage = imageROI.mirrored(false, true);
-    // Instantiate an RGraphicsScene. It allows to draw rectangles with the mouse for ROI selection
-    RGraphicsScene *roiScene = new RGraphicsScene();
-    if (isSquare)
-    {
-        roiScene->squareMode = isSquare;
-        roiScene->blkSize = blkSize;
-    }
-    QMdiSubWindow *roiSubWindow = new QMdiSubWindow();
-    roiSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
-    displayQImage(targetImage, roiScene, roiSubWindow, QString("Select ROI"));
+    currentROpenGLWidget->setRoiSelected(true);
 
-    connect(roiScene, SIGNAL(ROIsignal(QRect)), this, SLOT(setRect(QRect)));
-    connect(roiSubWindow, SIGNAL(destroyed(QObject*)), this, SLOT(disableROIaction()));
+//    /// Use copy constructor of the RMat to copy the current RMat image.
+//    RMat tempRMat(*currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()));
+//    // Setup image display with QImage and not openGL to allow easier drawings
+//    //cv::Mat matImage = processing->normalizeByThresh(tempRMat.matImageGray, tempRMat.getIntensityLow(), tempRMat.getIntensityHigh(), tempRMat.getDataRange());
+//    cv::Mat matImageROI;// = matImage; //(ROI);
+//    tempRMat.matImageGray.convertTo(matImageROI, CV_8U, 255.0f/tempRMat.getDataMax());
+//    QImage imageROI((const uchar *) matImageROI.data, matImageROI.cols, matImageROI.rows, matImageROI.step, QImage::Format_Grayscale8);
+//    QImage targetImage = imageROI.mirrored(false, true);
+//    // Instantiate an RGraphicsScene. It allows to draw rectangles with the mouse for ROI selection
+//    RGraphicsScene *roiScene = new RGraphicsScene();
+//    if (isSquare)
+//    {
+//        roiScene->squareMode = isSquare;
+//        roiScene->blkSize = blkSize;
+//    }
+//    QMdiSubWindow *roiSubWindow = new QMdiSubWindow();
+//    roiSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
+//    displayQImage(targetImage, roiScene, roiSubWindow, QString("Select ROI"));
+
+//    connect(roiScene, SIGNAL(ROIsignal(QRect)), this, SLOT(setRect(QRect)));
+//    connect(roiSubWindow, SIGNAL(destroyed(QObject*)), this, SLOT(disableROIaction()));
+
+    // the ROpenGLWidget should send the selection rectangle once the selection is done
+    connect(currentROpenGLWidget, SIGNAL(roiSignal(QRect)), this, SLOT(setRect(QRect)));
+
 }
 
 
 
 void RMainWindow::setRect(QRect rect)
 {
-    qDebug("RMainWindow::setRect() rect.x(), rect.y(), rect.width(), rect.height() = [%i, %i, %i, %i]", rect.x(), rect.y(), rect.width(), rect.height());
+    //qDebug("RMainWindow::setRect() rect.x(), rect.y(), rect.width(), rect.height() = [%i, %i, %i, %i]", rect.x(), rect.y(), rect.width(), rect.height());
     this->rect = rect;
     cv::Rect cvRectROI(rect.x(), rect.y(), rect.width(), rect.height());
     processing->setCvRectROI(cvRectROI);
@@ -404,13 +410,14 @@ void RMainWindow::extractNewImageROI()
     {
         cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(i)->matImage;
         cv::Mat matImageROI = matImage(cvRectROI);
-        RMat *tempRMat = new RMat(matImageROI, false, currentROpenGLWidget->getRMatImageList().at(i)->getInstrument());
+        // Bayer status of the extracted image should be the same as the original image
+        // Actually, one cannot really extract a bayer image. It has to be debayerized otherwise we mess up the bayer matrix (cut through it)
+        RMat *tempRMat = new RMat(matImageROI, currentROpenGLWidget->getRMatImageList().at(i)->isBayer(), currentROpenGLWidget->getRMatImageList().at(i)->getInstrument());
         tempRMat->setImageTitle(QString("ROI "));
         roiList << tempRMat;
     }
 
     createNewImage(roiList);
-    autoScale();
 }
 
 void RMainWindow::disableROIaction()
@@ -500,8 +507,6 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 
     connect(rOpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(changeROpenGLWidget(ROpenGLWidget*)));
     connect(rOpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
-
-
 }
 
 
@@ -669,10 +674,11 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     ui->limbSliderLow->blockSignals(true);
 
 
-    if ( rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::DSLR ||
+    if ( rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::DSLR &&
         (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32F && rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32FC3) )
     {
-        sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange();
+        //sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange();
+        sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getMaxHistRange();
         ui->sliderHigh->setRange(1, sliderRange);
         ui->sliderLow->setRange(1, sliderRange);
 
@@ -1505,6 +1511,8 @@ void RMainWindow::autoScale(ROpenGLWidget *rOpenGLWidget)
     ui->sliderLow->setValue(sliderValueLow);
     ui->sliderGamma->setValue(sliderValueGamma);
 
+    qDebug("RMainWindow::autoScale() intensityHigh = %f , intensityLow = %f", rOpenGLWidget->getRMatImageList().at(0)->getIntensityHigh(), rOpenGLWidget->getRMatImageList().at(0)->getIntensityLow());
+    qDebug("RMainWindow::autoScale() newMax = %f , newMin = %f", rOpenGLWidget->getNewMax(), rOpenGLWidget->getNewMin());
     qDebug("RMainWindow::autoScale() sliderValueHigh = %i , sliderValueLow = %i", sliderValueHigh, sliderValueLow);
 
     /// Limb sliders
@@ -2142,19 +2150,33 @@ void RMainWindow::calibrateOffScreenSlot()
 
 void RMainWindow::registerSlot()
 {
+    processing->setUseROI(ui->roiRadioButton->isChecked());
+    processing->setApplyMask(ui->applyMaskCheckBox->isChecked());
+
     if (this->sender() != ui->phaseCorrPushB)
     {
-        processing->setUseROI(ui->roiRadioButton->isChecked());
-
         if (ui->limbFitCheckBox->isChecked())
         {
             processing->registerSeriesOnLimbFit();
             createNewImage(processing->getLimbFitResultList2());
             autoScale();
         }
+        else if (ui->SADCheckBox->isChecked())
+        {
+            processing->registerSeriesCustomPropagate();
+            createNewImage(processing->getResultList());
+            autoScale();
+        }
         else
         {
-            processing->registerSeries();
+            if (ui->propagateCheckBox->isChecked())
+            {
+                processing->registerSeriesXCorrPropagate();
+            }
+            else
+            {
+                processing->registerSeries();
+            }
             createNewImage(processing->getResultList());
             autoScale();
         }
@@ -2308,7 +2330,23 @@ void RMainWindow::on_actionTileView_triggered()
 
 void RMainWindow::on_actionROISelect_triggered()
 {
-    selectROI();
+
+}
+
+void RMainWindow::on_actionROISelect_toggled(bool arg1)
+{
+    if (arg1)
+    {
+        selectROI();
+    }
+    else
+    {
+        currentROpenGLWidget->setRoiSelected(false);
+        currentROpenGLWidget->update();
+        currentSubWindow->update();
+    }
+
+    connect(currentROpenGLWidget, SIGNAL(roiSignal(QList<QRect>)), processing, SLOT(setupROILists(QList<QRect>)));
 }
 
 void RMainWindow::on_actionROIExtract_triggered()
@@ -2343,4 +2381,60 @@ void RMainWindow::on_actionTemperature_toggled(bool arg1)
             plotSubWindow->hide();
         }
     }
+}
+
+
+
+void RMainWindow::on_actionCircle_toggled(bool arg1)
+{
+    if (arg1)
+    {
+        currentROpenGLWidget->setCircleSelected(true);
+        connect(currentROpenGLWidget, SIGNAL(circleSignal(int,int,int)), processing, SLOT(setupMaskingCircle(int,int,int)));
+        ui->actionROISelect->setChecked(false);
+        ui->actionMultiROI->setChecked(false);
+        currentROpenGLWidget->setRoiSelected(false);
+    }
+    else
+    {
+        currentROpenGLWidget->setCircleSelected(false);
+        currentROpenGLWidget->update();
+        currentSubWindow->update();
+    }
+}
+
+void RMainWindow::on_actionMultiROI_toggled(bool arg1)
+{
+    if (arg1)
+    {
+        currentROpenGLWidget->setUseMultiROI(true);
+    }
+    else
+    {
+        currentROpenGLWidget->setUseMultiROI(false);
+    }
+}
+
+void RMainWindow::on_actionSave_ROI_triggered()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    if (!currentROpenGLWidget->getFovRect().isValid() || currentROpenGLWidget->getFovRect().isEmpty())
+    {
+        tempMessageSignal(QString("Empty ROI. Need to select at least one ROI"), 10000);
+        return;
+    }
+
+    processing->appendROIList(currentROpenGLWidget->getFovRect());
+}
+
+void RMainWindow::on_actionClear_ROIs_triggered()
+{
+    processing->clearROIs();
+    currentROpenGLWidget->clearROIs();
+    currentROpenGLWidget->update();
+    currentSubWindow->update();
 }
