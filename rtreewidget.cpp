@@ -108,9 +108,13 @@ void RTreeWidget::rMatFromFlatRButton(QList<RMat*> rMatImageList)
     flatDir = rMatImageList.at(0)->getFileInfo().absoluteDir();
 }
 
+void RTreeWidget::removeItem(QTreeWidgetItem *treeItem)
+{
+    delete treeItem->parent()->takeChild(treeItem->parent()->indexOfChild(treeItem));
+}
+
 void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageList)
 {
-
     for (int i = 0 ; i < rMatImageList.size() ; i++)
     {
         if (rMatImageList.at(i)->getItem() != NULL)
@@ -124,8 +128,8 @@ void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageLi
         QTreeWidgetItem *treeItem = new QTreeWidgetItem(parentItem);
         treeItem->setText(0, rMatImageList.at(i)->getImageTitle());
         rMatImageList[i]->setItem(treeItem);
-    }
 
+    }
 }
 
 

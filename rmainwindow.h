@@ -61,6 +61,9 @@ private slots:
     void extractNewImageROI();
     void disableROIaction();
 
+    //TreeWidget
+    //void removeTreeWidgetItems(QTreeWidgetItem* item);
+
     //void addEllipseToScene(cv::RotatedRect rect);
 
     //void createNewImage(QImage *image);
@@ -84,6 +87,7 @@ private slots:
     void exportFrames();
     void exportFramesToJpeg();
     void exportFramesToFits();
+    void exportFramesToTiff();
     void convertTo8Bit();
     cv::Mat convertTo8Bit(RMat *rMatImage);
     void convertToNeg();
@@ -182,6 +186,7 @@ private:
     void setupSubImage();
     void updateCustomPlotLineItems();
     void updateInvGaussianParams();
+
 
 
     // properties

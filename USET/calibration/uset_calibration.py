@@ -1080,17 +1080,18 @@ def filter_hanning(image, w, filter_type):
     cutoff = 0
 
     # Get the fourier transform
-    Fimage = np.fft.fftshift(np.fft.fftn(image))
+    fimage = np.fft.fftshift(np.fft.fftn(image))
 
     # grid of radial distances
     r = np.sqrt((xgrid - (n / 2 - 0.5)) ** 2 + (ygrid - (n / 2 - 0.5)) ** 2)
-    han2D = 0.5 + 0.5 * np.cos(np.pi * (r - cutoff) / (2 * w))
+    han2d = 0.5 + 0.5 * np.cos(np.pi * (r - cutoff) / (2 * w))
+    # Cut high frequencies
     mask_r = r > cutoff + 2 * w
-    han2D[mask_r] = 0
+    han2d[mask_r] = 0
 
     # Apply 2D Hanning window to fourier transform
-    windowed_Fimage = Fimage * han2D
-    filtered_image = np.real(np.fft.ifftn(np.fft.ifftshift((windowed_Fimage))))
+    windowed_fimage = fimage * han2d
+    filtered_image = np.real(np.fft.ifftn(np.fft.ifftshift(windowed_fimage)))
 
     return filtered_image
 

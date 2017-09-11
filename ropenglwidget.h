@@ -122,12 +122,15 @@ public:
 
     void setTableSize(QSize size);
     void setRadius(float radius);
+    void setDisplayOnlyFirst(bool status);
 
     //ROI
     void setRoiSelected(bool isSelected);
     void setCircleSelected(bool isSelected);
     void setUseMultiROI(bool isSelected);
     void clearROIs();
+
+
 
 signals:
 
@@ -210,6 +213,7 @@ private:
 //    GLuint ebo;
 //    GLuint texture;
 
+    bool displayOnlyFirst;
     QOpenGLShaderProgram m_shader;
     QOpenGLVertexArrayObject m_vao;
     QOpenGLBuffer m_vertexBuffer;

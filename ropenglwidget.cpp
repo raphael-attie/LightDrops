@@ -34,6 +34,7 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
     , tableRSubWindow(NULL), tableWidget(NULL)
     , roiSelected(false)
     , circleSelected(false)
+    , displayOnlyFirst(false)
 {
     //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rListImageManager = rListImageManager;
@@ -55,6 +56,7 @@ ROpenGLWidget::ROpenGLWidget(QList<RMat *> rMatImageList, QWidget *parent)
     , tableRSubWindow(NULL), tableWidget(NULL)
     , roiSelected(false)
     , circleSelected(false)
+    , displayOnlyFirst(false)
 {
     //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rMatImageList = rMatImageList;
@@ -71,6 +73,7 @@ ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
     , tableRSubWindow(NULL), tableWidget(NULL)
     , roiSelected(false)
     , circleSelected(false)
+    , displayOnlyFirst(false)
 {
     //this->setAttribute(Qt::WA_DeleteOnClose, true);
     this->rMatImageList << rMatImage;
@@ -347,7 +350,14 @@ void ROpenGLWidget::loadGLTexture()
 //        textureVector.clear();
 //    }
 
-    for (int ii =0; ii < nFrames; ii++)
+    int nFrames2 = nFrames;
+
+    if (displayOnlyFirst)
+    {
+        nFrames2 = 1;
+    }
+
+    for (int ii =0; ii < nFrames2; ii++)
     {
         cv::Mat tempImageRGB = matImageListRGB.at(ii);
 
@@ -1291,6 +1301,11 @@ void ROpenGLWidget::setTableSize(QSize size)
 void ROpenGLWidget::setRadius(float radius)
 {
     this->radius = radius;
+}
+
+void ROpenGLWidget::setDisplayOnlyFirst(bool status)
+{
+    this->displayOnlyFirst = status;
 }
 
 void ROpenGLWidget::setRoiSelected(bool isSelected)

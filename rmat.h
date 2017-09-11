@@ -96,8 +96,6 @@ public:
     void setTime_obs(QString time_obs);
     void setDate_time(QString date_time);
 
-
-
 private:
 
    bool bayer;

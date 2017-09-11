@@ -151,6 +151,11 @@ QString RProcessing::setupFileName(QFileInfo fileInfo, QString format)
 void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
 {
 
+    if (rMatImage->matImage.channels() == 3)
+    {
+        emit tempMessageSignal(QString("Multi-channel image. Select another image type (e.g Tiff)"));
+        return;
+    }
     // Write fits files
     // To do: need to add FITS keyword about bayer type.
     std::string strFilename(QStrFilename.toStdString());
@@ -177,18 +182,23 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         // Write the array data into the file.
         fits_write_img(fptr, TUSHORT, fpixel, nPixels, (ushort*)tempImage16.data, &status);
     }
-    else if (rMatImage->matImage.type() == CV_16U)
+    else if (rMatImage->matImage.type() == CV_16UC1)
     {
         fits_create_img(fptr, USHORT_IMG, naxis, naxes, &status);
         // Write the array data into the file.
         fits_write_img(fptr, TUSHORT, fpixel, nPixels, (ushort*)rMatImage->matImage.data, &status);
     }
-    else
+    else if (rMatImage->matImage.type() == CV_32FC1)
     {
         //  Create the primary array image (32-bit float  pixels)
         fits_create_img(fptr, FLOAT_IMG, naxis, naxes, &status);
         // Write the array data into the file.
         fits_write_img(fptr, TFLOAT, fpixel, nPixels, (float*)rMatImage->matImage.data, &status);
+    }
+    else
+    {
+        emit tempMessageSignal(QString("Image type not recognized"));
+        return;
     }
 
     // Write header BAYER keyword
@@ -275,6 +285,29 @@ void RProcessing::batchExportToFits(QList<QUrl> urls, QString exportDir)
         ImageManager fitsManager(filePathQStr);
         exportToFits(fitsManager.getRMatImage(), filePath);
     }
+}
+
+void RProcessing::exportToTiff(RMat *rMatImage, QString QStrFilename)
+{
+    std::string strFilename(QStrFilename.toStdString());
+    cv::Mat matImage16;
+    rMatImage->matImage.convertTo(matImage16, CV_16U);
+    if (rMatImage->matImage.channels() == 3)
+    {
+        cv::cvtColor(matImage16, matImage16, CV_RGB2BGR);
+    }
+    else
+    {
+        cv::cvtColor(matImage16, matImage16, CV_GRAY2BGR);
+    }
+
+    try {
+            cv::imwrite(strFilename, matImage16);
+        }
+        catch (runtime_error& ex) {
+            fprintf(stderr, "Exception converting image to Tiff: %s\n", ex.what());
+            return;
+        }
 }
 
 void RProcessing::loadMasterBias()
@@ -2070,6 +2103,10 @@ bool RProcessing::prepRegistration()
     {
         rMatLightList = treeWidget->rMatLightList;
     }
+    else if(!treeWidget->getLightUrls().empty())
+    {
+        loadRMatLightList(treeWidget->getLightUrls());
+    }
     else
     {
         emit tempMessageSignal(QString("No lights to register"), 10000);
@@ -2279,6 +2316,11 @@ void RProcessing::registerSeriesXCorrPropagate()
 {
     bool status = prepRegistration();
     if (!status) {return;}
+    if (cvRectROIList.empty())
+    {
+        emit tempMessageSignal(QString("ROIs need to be defined"));
+        return;
+    }
 
     cv::Mat refMat;
     cv::Mat currentMatImage;

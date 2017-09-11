@@ -198,6 +198,7 @@ void RMainWindow::closeEvent(QCloseEvent *event)
 void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 {
     currentROpenGLWidget = new ROpenGLWidget(newRListImageManager, this);
+    currentROpenGLWidget->setDisplayOnlyFirst(ui->displayFirstCheckBox->isChecked());
     addImage(currentROpenGLWidget);
     displayPlotWidget(currentROpenGLWidget);
     currentSubWindow->show();
@@ -207,6 +208,11 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
     //dispatchRMatImages(currentROpenGLWidget->getRMatImageList());
     processing->rMatLightList = newRListImageManager->getRMatImageList();
     ui->treeWidget->rMatFromLightRButton(newRListImageManager->getRMatImageList());
+    // Connect it to the removal of that item when the ROpenGLWidget is closed
+
+    //RMat* currentRMat = newRListImageManager->getRMatImageList().at(0);
+    //connect(currentRMat, SIGNAL(itemSignal(QTreeWidgetItem*)), this, SLOT(removeTreeWidgetItems(QTreeWidgetItem*)));
+
 
     ///--- Test of Fourier Filtering ---///
 //    cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(0)->matImage.clone();
@@ -424,6 +430,11 @@ void RMainWindow::disableROIaction()
 {
     ui->actionROISelect->setChecked(false);
 }
+
+//void RMainWindow::removeTreeWidgetItems(QTreeWidgetItem* item)
+//{
+//    ui->treeWidget->removeItem(item);
+//}
 
 //void RMainWindow::addEllipseToScene(cv::RotatedRect rect)
 //{
@@ -1808,6 +1819,10 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
 
 void RMainWindow::updateFrameInSeries(int frameIndex)
 {
+    if (!ui->displayFirstCheckBox->isChecked())
+    {
+        return;
+    }
     /// Updates the display of the currentROpenGLWidget: change current image in the series, subImage, and histogram
     // The sliderValue minimum is 1. The frameIndex minimum is 0;
     ui->imageLabel->setText(QString::number(frameIndex+1) + QString("/") + QString::number(currentROpenGLWidget->getRMatImageList().size()));
@@ -1849,6 +1864,11 @@ void RMainWindow::exportFrames()
         if (ui->fitsExportCheckBox->isChecked())
         {
             exportFramesToFits();
+        }
+
+        if (ui->tiffExport->isChecked())
+        {
+            exportFramesToTiff();
         }
     }
     else
@@ -1911,6 +1931,26 @@ void RMainWindow::exportFramesToFits()
         QFileInfo fileInfo(exportDir.filePath(fileName));
         QString filePath = processing->setupFileName(fileInfo, format);
         processing->exportToFits(currentROpenGLWidget->getRMatImageList().at(i), filePath);
+    }
+}
+
+void RMainWindow::exportFramesToTiff()
+{
+    QDir exportDir(ui->exportDirEdit->text());
+    QString format("tiff");
+
+    for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
+    {
+        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
+        QString fileName(QString("image_") + indexQStr + QString(".") + format);
+        if (ui->baseNameCheckBox->isChecked())
+        {
+            QString baseName = currentROpenGLWidget->getRMatImageList().at(i)->getFileInfo().baseName();
+            fileName = baseName + QString("_C") + QString(".") + format;
+        }
+        QFileInfo fileInfo(exportDir.filePath(fileName));
+        QString filePath = processing->setupFileName(fileInfo, format);
+        processing->exportToTiff(currentROpenGLWidget->getRMatImageList().at(i), filePath);
     }
 }
 

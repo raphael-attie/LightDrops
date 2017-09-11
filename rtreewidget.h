@@ -51,6 +51,7 @@ public slots:
     void rMatFromBiasRButton(QList<RMat*> rMatImageList);
     void rMatFromDarkRButton(QList<RMat*> rMatImageList);
     void rMatFromFlatRButton(QList<RMat*> rMatImageList);
+    void removeItem(QTreeWidgetItem *treeItem);
 
 
 private:
