@@ -12,8 +12,7 @@ RListImageManager::RListImageManager(QList<QUrl> urlList)
 
     for (long ii = 0; ii < urlList.size(); ii++)
     {
-        QString filePathQStr = urlList.at(ii).toLocalFile();
-        ImageManager* newImageManager = new ImageManager(filePathQStr);
+        ImageManager* newImageManager = new ImageManager(urlList.at(ii));
 
         if (!newImageManager->getError())
         {
@@ -62,7 +61,7 @@ void RListImageManager::loadData(QList<QUrl> urlList)
         QString filePathQStr = urlList.at(ii).toLocalFile();
         qDebug() << "RListImageManager::RListImageManager():: File: " << filePathQStr;
 
-        ImageManager* newImageManager = new ImageManager(filePathQStr);
+        ImageManager* newImageManager = new ImageManager(urlList.at(ii));
 
         if (!newImageManager->getError())
         {

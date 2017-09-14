@@ -447,6 +447,11 @@ QString RMat::getDate_time() const
     return date_time;
 }
 
+QUrl RMat::getUrl() const
+{
+    return url;
+}
+
 
 // Setters
 void RMat::setBayer(bool bayer)
@@ -542,6 +547,11 @@ void RMat::setTime_obs(QString time_obs)
 void RMat::setDate_time(QString date_time)
 {
     this->date_time = date_time;
+}
+
+void RMat::setUrl(QUrl url)
+{
+    this->url = url;
 }
 
 

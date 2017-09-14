@@ -2,6 +2,7 @@
 #define RMAT_H
 
 #include "winsockwrapper.h"
+#include <QUrl>
 #include <QString>
 #include <QTreeWidgetItem>
 #include <QFileInfo>
@@ -72,6 +73,7 @@ public:
     QString getDate_obs() const;
     QString getTime_obs() const;
     QString getDate_time() const;
+    QUrl getUrl() const;
 
 
 
@@ -95,6 +97,7 @@ public:
     void setDate_obs(QString date_obs);
     void setTime_obs(QString time_obs);
     void setDate_time(QString date_time);
+    void setUrl(QUrl url);
 
 private:
 
@@ -114,6 +117,7 @@ private:
    instruments instrument;
    QString imageTitle;
    QFileInfo fileInfo;
+   QUrl url;
    QString date_obs;
    QString time_obs;
    QString date_time;

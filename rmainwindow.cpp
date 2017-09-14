@@ -206,8 +206,14 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
     autoScale(currentROpenGLWidget);
 
     //dispatchRMatImages(currentROpenGLWidget->getRMatImageList());
+
+    //Default is to add as Lights
     processing->rMatLightList = newRListImageManager->getRMatImageList();
+    // It can be argued that both below should be linked together. For flexibility with non-url images (e.g. a result of processing)
+    // I keep it separate for now. One can create a function that encompasses these two of course.
     ui->treeWidget->rMatFromLightRButton(newRListImageManager->getRMatImageList());
+    ui->treeWidget->dispatchUrls(ui->treeWidget->getLightItem(), newRListImageManager->getUrlList());
+
     // Connect it to the removal of that item when the ROpenGLWidget is closed
 
     //RMat* currentRMat = newRListImageManager->getRMatImageList().at(0);
@@ -450,7 +456,7 @@ void RMainWindow::disableROIaction()
 
 void RMainWindow::dispatchRMatImages(QList<RMat*> rMatList)
 {
-    //emit radioLightImages(rMatList);
+    emit radioLightImages(rMatList);
     ui->treeWidget->rMatLightList = rMatList;
     processing->rMatLightList = rMatList;
 
@@ -2211,6 +2217,10 @@ void RMainWindow::registerSlot()
         {
             if (ui->propagateCheckBox->isChecked())
             {
+                // If displayFirstCheckBox is checked, we can as well load from the treeWidget.
+                // This enables batch processing by adding as many different urls in there as we want
+                // e.g coming from different directories <-> different drag'n'drops movements.
+                processing->setUseUrlsFromTreeWidget(ui->batchProcessCheckBox);
                 processing->registerSeriesXCorrPropagate();
             }
             else

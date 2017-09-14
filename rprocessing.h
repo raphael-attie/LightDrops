@@ -165,6 +165,8 @@ public:
     void setMaskCircleX(int circleX);
     void setMaskCircleY(int circleY);
     void setMaskCircleRadius(int circleRadius);
+    // TreeWidget
+    void setUseUrlsFromTreeWidget(bool status);
 
     /// getters
     QString getExportMastersDir();
@@ -301,6 +303,7 @@ private:
     QVector< std::vector< std::vector<cv::Point> > > selectedContoursList;
 
     RTreeWidget *treeWidget;
+    bool useUrlsFromTreeWidget;
     ROpenGLWidget *currentROpenGLWidget;
 
     QString exportMastersDir;

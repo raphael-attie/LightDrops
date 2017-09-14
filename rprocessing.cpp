@@ -15,7 +15,7 @@
 RProcessing::RProcessing(QObject *parent): QObject(parent),
     masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useROI(false), useXCorr(false),
     radius(0), radius1(0), radius2(0), radius3(0), meanRadius(0), masterWithMean(true), masterWithSigmaClip(false), stackWithMean(true),
-    stackWithSigmaClip(false), blkSize(32), binning(2), maskCircleX(0), maskCircleY(0), maskCircleRadius(0)
+    stackWithSigmaClip(false), blkSize(32), binning(2), maskCircleX(0), maskCircleY(0), maskCircleRadius(0), useUrlsFromTreeWidget(false)
 {
     listImageManager = new RListImageManager();
 }
@@ -2099,12 +2099,16 @@ void RProcessing::setExportCalibrateDir(QString dir)
 
 bool RProcessing::prepRegistration()
 {
-    if (!treeWidget->rMatLightList.isEmpty())
+    // If the treeWidget is not empty, it can also be from a currentROpenGLWidget
+    // It makes sense to use the displayFirstCheckBox button to determine whether
+    // we load it from the treeWidget or from that currentROpenGLWidget.
+    if (!treeWidget->rMatLightList.isEmpty() && !useUrlsFromTreeWidget)
     {
         rMatLightList = treeWidget->rMatLightList;
     }
     else if(!treeWidget->getLightUrls().empty())
     {
+        emit tempMessageSignal(QString("Batch processing %1 images").arg(rMatLightList.size()), 10000);
         loadRMatLightList(treeWidget->getLightUrls());
     }
     else
@@ -3980,6 +3984,11 @@ void RProcessing::setMaskCircleY(int circleY)
 void RProcessing::setMaskCircleRadius(int circleRadius)
 {
     this->maskCircleRadius = circleRadius;
+}
+
+void RProcessing::setUseUrlsFromTreeWidget(bool status)
+{
+    this->useUrlsFromTreeWidget = status;
 }
 
 void RProcessing::setupMasterWithSigmaClip(bool enabled)

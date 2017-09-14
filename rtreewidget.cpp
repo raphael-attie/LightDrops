@@ -115,6 +115,9 @@ void RTreeWidget::removeItem(QTreeWidgetItem *treeItem)
 
 void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageList)
 {
+    // This only add treeWidget items based on image titles.
+    // It does not populate a global list of urls. This has caused trouble in batch processing
+    // The images dropped in the QMdiArea aren't added to the list of urls!
     for (int i = 0 ; i < rMatImageList.size() ; i++)
     {
         if (rMatImageList.at(i)->getItem() != NULL)
@@ -128,7 +131,6 @@ void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageLi
         QTreeWidgetItem *treeItem = new QTreeWidgetItem(parentItem);
         treeItem->setText(0, rMatImageList.at(i)->getImageTitle());
         rMatImageList[i]->setItem(treeItem);
-
     }
 }
 

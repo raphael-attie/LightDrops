@@ -19,18 +19,19 @@
 class ImageManager
 {
 public:
-    ImageManager(QString filePathQStre);
+    ImageManager(QUrl url);
     ~ImageManager();
 
 
     // getters
-    bool getError();
-    MyFitsImage* getNewFitsImage();
-    QString getFileName();
+    bool getError() const;
+    MyFitsImage* getNewFitsImage() const;
+    QUrl getUrl() const;
+    QString getFileName() const;
     QTableWidget *getTableWidget() const;
-    RMat* getRMatImage();
-    QString getDate_obs();
-    QString getTime_obs();
+    RMat* getRMatImage() const;
+    QString getDate_obs() const;
+    QString getTime_obs() const;
 
     float getWbRed() const;
     float getWbGreen() const;
@@ -49,6 +50,7 @@ private:
     RMat* rMatImage;
     QList<QString> fitsExtList;
     QList<QString> rawExtList;
+    QUrl url;
     QString filePathQStr;
     QString fileName;
     QString fileExt;

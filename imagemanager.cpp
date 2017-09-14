@@ -4,15 +4,18 @@
 #include <QFileInfo>
 #include <QHeaderView>
 
-ImageManager::ImageManager(QString filePathQStr) :
-    error(0), newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL), rMatImage(NULL)
+ImageManager::ImageManager(QUrl url) :
+    error(0), url(url), newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL), rMatImage(NULL)
 {
 
-    if (filePathQStr.isEmpty())
+
+    if (url.isEmpty())
     {
         qDebug("filePath is empty");
         return;
     }
+
+    this->filePathQStr = url.toLocalFile();
 
     fitsExtList = QList<QString>();
     fitsExtList << "fits" << "fts" << "fit";
@@ -38,8 +41,7 @@ ImageManager::ImageManager(QString filePathQStr) :
     }
     else if (rawExtList.contains(fileExt))
     {
-        loadRaw();
-        rMatImage->setFileInfo(fileInfo);
+        loadRaw();     
     }
     else
     {
@@ -47,7 +49,8 @@ ImageManager::ImageManager(QString filePathQStr) :
         error = 1;
         return;
     }
-
+    rMatImage->setFileInfo(fileInfo);
+    rMatImage->setUrl(url);
 
     createTableWidget();
 
@@ -69,7 +72,12 @@ ImageManager::~ImageManager()
 
 }
 
-bool ImageManager::getError()
+QUrl ImageManager::getUrl() const
+{
+    return url;
+}
+
+bool ImageManager::getError() const
 {
     return error;
 }
@@ -271,12 +279,12 @@ void ImageManager::fixUset()
 
 }
 
-MyFitsImage* ImageManager::getNewFitsImage()
+MyFitsImage* ImageManager::getNewFitsImage() const
 {
     return newFitsImage;
 }
 
-QString ImageManager::getFileName()
+QString ImageManager::getFileName() const
 {
     return fileName;
 }
@@ -286,17 +294,17 @@ QTableWidget* ImageManager::getTableWidget() const
     return tableWidget;
 }
 
-RMat *ImageManager::getRMatImage()
+RMat *ImageManager::getRMatImage() const
 {
     return rMatImage;
 }
 
-QString ImageManager::getDate_obs()
+QString ImageManager::getDate_obs() const
 {
     return date_obs;
 }
 
-QString ImageManager::getTime_obs()
+QString ImageManager::getTime_obs() const
 {
     return time_obs;
 }
