@@ -85,8 +85,9 @@ private slots:
     void setupExportCalibrateDir();
     void exportMastersToFits();
     void exportFrames();
-    void exportFramesToJpeg();
+    QString makeFilePath(QString basename, int frameNumber);
     void exportFramesToFits();
+    void exportFramesToJpeg();
     void exportFramesToTiff();
     void convertTo8Bit();
     cv::Mat convertTo8Bit(RMat *rMatImage);

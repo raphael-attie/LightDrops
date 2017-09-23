@@ -287,9 +287,21 @@ void RProcessing::batchExportToFits(QList<QUrl> urls, QString exportDir)
     }
 }
 
+cv::Mat RProcessing::rescaleForExport8Bits(cv::Mat matImage, float alpha, float beta)
+{
+    int channels = matImage.channels();
+    float alpha2 = (float) (255.0f * alpha);
+    float beta2 = (float) (255.0f * beta);
+    cv::Mat tempMat = matImage.clone();
+    tempMat.convertTo(tempMat, CV_8UC(channels), alpha2, beta2);
+
+    return tempMat;
+}
+
 void RProcessing::exportToTiff(RMat *rMatImage, QString QStrFilename)
 {
-    std::string strFilename(QStrFilename.toStdString());
+    QString tiffFilename = QStrFilename + QString(".tiff");
+    std::string strFilename(tiffFilename.toStdString());
     cv::Mat matImage16;
     rMatImage->matImage.convertTo(matImage16, CV_16U);
     if (rMatImage->matImage.channels() == 3)
@@ -307,8 +319,42 @@ void RProcessing::exportToTiff(RMat *rMatImage, QString QStrFilename)
         catch (runtime_error& ex) {
             fprintf(stderr, "Exception converting image to Tiff: %s\n", ex.what());
             return;
-        }
+    }
 }
+
+void RProcessing::exportToJpeg(RMat *rMatImage, QString QStrFilename)
+{
+    QString jpegFilename = QStrFilename + QString(".jpg");
+    std::string strFilename(jpegFilename.toStdString());
+    cv::Mat matImage16;
+
+    if (rMatImage->matImage.channels() == 3)
+    {
+        rMatImage->matImage.convertTo(matImage16, CV_16U);
+        cv::cvtColor(matImage16, matImage16, CV_RGB2BGR);
+        std::cout << "exportToJpeg:: cv::cvtColor(matImage16, matImage16, CV_RGB2BGR)" << std::endl;
+    }
+    else
+    {
+        rMatImage->matImageRGB.convertTo(matImage16, CV_16U);
+        cv::cvtColor(matImage16, matImage16, CV_RGB2BGR);
+        std::cout << "exportToJpeg:: cv::cvtColor(matImage16, matImage16, CV_GRAY2BGR)" << std::endl;
+    }
+    float alpha = currentROpenGLWidget->getAlpha();
+    float beta = currentROpenGLWidget->getBeta();
+    cv::Mat exportMat = rescaleForExport8Bits(matImage16, alpha, beta);
+
+    try {
+            cv::imwrite(strFilename, exportMat);
+        }
+        catch (runtime_error& ex) {
+            fprintf(stderr, "Exception converting image to jpeg: %s\n", ex.what());
+            return;
+    }
+
+}
+
+// Make a function to write image
 
 void RProcessing::loadMasterBias()
 {

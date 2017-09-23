@@ -1862,14 +1862,14 @@ void RMainWindow::exportFrames()
 {
     if (currentROpenGLWidget != NULL)
     {
-        if (ui->jpegExportCheckBox->isChecked())
-        {
-            exportFramesToJpeg();
-        }
-
         if (ui->fitsExportCheckBox->isChecked())
         {
             exportFramesToFits();
+        }
+
+        if (ui->jpegExportCheckBox->isChecked())
+        {
+            exportFramesToJpeg();
         }
 
         if (ui->tiffExport->isChecked())
@@ -1894,31 +1894,20 @@ void RMainWindow::exportFrames()
 
 }
 
-void RMainWindow::exportFramesToJpeg()
+QString RMainWindow::makeFilePath(QString basename, int frameNumber)
 {
     QDir exportDir(ui->exportDirEdit->text());
-
-    QString format("jpg");
-
-    for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
+    QString indexQStr = QString("%1").arg(frameNumber, 5, 10, QChar('0'));
+    QString fileName(basename + indexQStr);
+    if (ui->baseNameCheckBox->isChecked())
     {
-        QString fileName(QString("image_") + QString::number(i) + QString(".") + format);
-        QFileInfo fileInfo(exportDir.filePath(fileName));
-        QString filePath = processing->setupFileName(fileInfo, format);
-        qDebug() << "RMainWindow::exportFrames():: filePath =" << filePath;
-        QImage newQImage = currentROpenGLWidget->grabFramebuffer();
-
-//        QPainter painter( &newQImage);
-//        painter.setPen(QColor(255, 255, 255, 255));
-//        painter.setFont( QFont("Arial", 16) );
-//        painter.drawText( QPoint(10, 20), QString("USET / ROB ") + currentROpenGLWidget->getRMatImageList().at(i)->getDate_time() + QString(" UT"));
-
-//        createNewImage(newQImage);
-        newQImage.save(filePath, "JPG", 100);
-        ui->sliderFrame->setValue(ui->sliderFrame->value() + 1);
-
+        QString baseName = currentROpenGLWidget->getRMatImageList().at(frameNumber)->getFileInfo().baseName();
+        fileName = baseName + QString("_C");
     }
+    QString filePath = exportDir.filePath(fileName);
+    return filePath;
 }
+
 
 void RMainWindow::exportFramesToFits()
 {
@@ -1940,25 +1929,25 @@ void RMainWindow::exportFramesToFits()
     }
 }
 
-void RMainWindow::exportFramesToTiff()
+void RMainWindow::exportFramesToJpeg()
 {
-    QDir exportDir(ui->exportDirEdit->text());
-    QString format("tiff");
-
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {
-        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
-        QString fileName(QString("image_") + indexQStr + QString(".") + format);
-        if (ui->baseNameCheckBox->isChecked())
-        {
-            QString baseName = currentROpenGLWidget->getRMatImageList().at(i)->getFileInfo().baseName();
-            fileName = baseName + QString("_C") + QString(".") + format;
-        }
-        QFileInfo fileInfo(exportDir.filePath(fileName));
-        QString filePath = processing->setupFileName(fileInfo, format);
+        QString filePath = makeFilePath(QString("image_"), i);
+        processing->exportToJpeg(currentROpenGLWidget->getRMatImageList().at(i), filePath);
+    }
+}
+
+void RMainWindow::exportFramesToTiff()
+{
+    for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
+    {
+        QString filePath = makeFilePath(QString("image_"), i);
         processing->exportToTiff(currentROpenGLWidget->getRMatImageList().at(i), filePath);
     }
 }
+
+
 
 void RMainWindow::convertTo8Bit()
 {

@@ -47,9 +47,17 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
         qDebug() << "Error at fits_get_hdu_type";
         printerror(status);
     }
+    status = 0;
 
 	
-    //printHDUType(hduType);
+    printHDUType(hduType);
+    int nhdus;
+    if(fits_get_num_hdus(fptr, &nhdus, &status))
+    {
+        qDebug() << "Error at fits_get_num_hdus";
+        printerror(status);
+    }
+    std::cout << "nhdus = " << nhdus << std::endl;
 
 	// If ZCMPTYPE does not exist, data are uncompressed -> Read NAXIS
 	// else, data are compressed, read ZNAXIS. 

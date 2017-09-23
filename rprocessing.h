@@ -117,7 +117,9 @@ public:
     void exportMastersToFits();
     void exportToFits(RMat *rMatImage, QString QStrFilename);
     void batchExportToFits(QList<QUrl> urls, QString exportDir);
+    cv::Mat rescaleForExport8Bits(cv::Mat matImage, float alpha, float beta);
     void exportToTiff(RMat *rMatImage, QString QStrFilename);
+    void exportToJpeg(RMat *rMatImage, QString QStrFilename);
     QString setupFileName(QFileInfo fileInfo, QString format);
     void loadMasterBias();
     void loadMasterDark();
