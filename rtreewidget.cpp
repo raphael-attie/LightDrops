@@ -49,29 +49,37 @@ void RTreeWidget::dispatchUrls(QTreeWidgetItem *parentItem, QList<QUrl> urls)
     {
         QTreeWidgetItem *treeItem = new QTreeWidgetItem(parentItem);
         treeItem->setText(0, urls.at(i).fileName());
+        qDebug() << "url =" << urls.at(i).toLocalFile();
     }
 
     QFileInfo filesInfo(urls.at(0).toLocalFile());
 
     if (parentItem == lightItem)
     {
+        qDebug("RTreeWidget:: append to lights");
         lightUrls.append(urls);
         lightsDir = filesInfo.absoluteDir();
     }
     else if (parentItem == biasItem)
     {
+        qDebug("RTreeWidget:: append to bias");
         biasUrls.append(urls);
         biasDir = filesInfo.absoluteDir();
+
     }
     else if (parentItem == darkItem)
     {
+        qDebug("RTreeWidget:: append to dark");
         darkUrls.append(urls);
         darkDir = filesInfo.absoluteDir();
     }
     else if (parentItem == flatItem)
     {
+        qDebug("RTreeWidget:: append to flat");
         flatUrls.append(urls);
         flatDir = filesInfo.absoluteDir();
+        qDebug() << "RTreeWidget:: flatDir (path):" << flatDir.path();
+        qDebug() << "RTreeWidget:: flatPath:" << flatDir.filePath(QString("masterFlat.fits"));
     }
 }
 
@@ -118,6 +126,8 @@ void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageLi
     // This only add treeWidget items based on image titles.
     // It does not populate a global list of urls. This has caused trouble in batch processing
     // The images dropped in the QMdiArea aren't added to the list of urls!
+    QList<QUrl> urls;
+
     for (int i = 0 ; i < rMatImageList.size() ; i++)
     {
         if (rMatImageList.at(i)->getItem() != NULL)
@@ -131,6 +141,37 @@ void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageLi
         QTreeWidgetItem *treeItem = new QTreeWidgetItem(parentItem);
         treeItem->setText(0, rMatImageList.at(i)->getImageTitle());
         rMatImageList[i]->setItem(treeItem);
+
+        urls.append(rMatImageList.at(i)->getUrl());
+
+    }
+
+    QFileInfo filesInfo(urls.at(0).toLocalFile());
+
+    if (parentItem == lightItem)
+    {
+        qDebug("RTreeWidget:: append to lights");
+        lightUrls.append(urls);
+        lightsDir = filesInfo.absoluteDir();
+    }
+    else if (parentItem == biasItem)
+    {
+        qDebug("RTreeWidget:: append to bias");
+        biasUrls.append(urls);
+        biasDir = filesInfo.absoluteDir();
+
+    }
+    else if (parentItem == darkItem)
+    {
+        qDebug("RTreeWidget:: append to dark");
+        darkUrls.append(urls);
+        darkDir = filesInfo.absoluteDir();
+    }
+    else if (parentItem == flatItem)
+    {
+        qDebug("RTreeWidget:: append to flat");
+        flatUrls.append(urls);
+        flatDir = filesInfo.absoluteDir();
     }
 }
 

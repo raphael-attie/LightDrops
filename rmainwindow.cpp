@@ -212,8 +212,7 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
     // It can be argued that both below should be linked together. For flexibility with non-url images (e.g. a result of processing)
     // I keep it separate for now. One can create a function that encompasses these two of course.
     ui->treeWidget->rMatFromLightRButton(newRListImageManager->getRMatImageList());
-    ui->treeWidget->dispatchUrls(ui->treeWidget->getLightItem(), newRListImageManager->getUrlList());
-
+    //ui->treeWidget->dispatchUrls(ui->treeWidget->getLightItem(), newRListImageManager->getUrlList());
     // Connect it to the removal of that item when the ROpenGLWidget is closed
 
     //RMat* currentRMat = newRListImageManager->getRMatImageList().at(0);
@@ -1825,7 +1824,7 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
 
 void RMainWindow::updateFrameInSeries(int frameIndex)
 {
-    if (!ui->displayFirstCheckBox->isChecked())
+    if (ui->displayFirstCheckBox->isChecked())
     {
         return;
     }
@@ -1911,22 +1910,20 @@ QString RMainWindow::makeFilePath(QString basename, int frameNumber)
 
 void RMainWindow::exportFramesToFits()
 {
-    QDir exportDir(ui->exportDirEdit->text());
-    QString format("fits");
-
-    for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
+    QDir exportDir;
+    if (ui->exportDirEdit->text().isEmpty())
     {
-        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
-        QString fileName(QString("image_") + indexQStr + QString(".") + format);
-        if (ui->baseNameCheckBox->isChecked())
-        {
-            QString baseName = currentROpenGLWidget->getRMatImageList().at(i)->getFileInfo().baseName();
-            fileName = baseName + QString("_C") + QString(".") + format;
-        }
-        QFileInfo fileInfo(exportDir.filePath(fileName));
-        QString filePath = processing->setupFileName(fileInfo, format);
-        processing->exportToFits(currentROpenGLWidget->getRMatImageList().at(i), filePath);
+        tempMessageSignal(QString("Export directory empty. Using input directory"));
+        exportDir = currentROpenGLWidget->getRMatImageList().at(0)->getFileInfo().absoluteDir();
+        exportDir = ui->treeWidget->getLightsDir();
+
     }
+    else
+    {
+        exportDir = QDir(ui->exportDirEdit->text());
+    }
+
+    processing->exportFramesToFits(currentROpenGLWidget->getRMatImageList(), exportDir, ui->baseNameCheckBox->isChecked());
 }
 
 void RMainWindow::exportFramesToJpeg()
@@ -2232,12 +2229,13 @@ void RMainWindow::registerSlot()
 
 
 void RMainWindow::stepForward()
-{
+{   
     int newValue = ui->sliderFrame->value() + 1;
     if (newValue > ui->sliderFrame->maximum())
     {
         newValue = 0;
     }
+    qDebug() << "Slider frame Value = " << newValue;
     ui->sliderFrame->setValue(newValue);
     updateFrameInSeries(newValue);
 }

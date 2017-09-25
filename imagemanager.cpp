@@ -45,6 +45,7 @@ ImageManager::ImageManager(QUrl url) :
     }
     else
     {
+        std::cout << "ImageManager:: filePathQStr=" << filePathQStr.toStdString() << std::endl;
         qDebug("Unknown file extension");
         error = 1;
         return;

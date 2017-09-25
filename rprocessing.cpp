@@ -103,17 +103,20 @@ void RProcessing::exportMastersToFits()
     if (masterBias != NULL && !masterBias->matImage.empty())
     {
         QFileInfo fileInfo(treeWidget->getBiasDir().filePath(QString("masterBias.fits")));
-        masterBiasPath = setupFileName(fileInfo, QString("fits"));
+        QString masterBiasPath = setupFileName(fileInfo);
 
         exportToFits(masterBias, masterBiasPath);
+        std::cout << "Bias dir: " << treeWidget->getBiasDir().rootPath().toStdString() << std::endl;
+        std::cout << "masterBias exported at: " << masterBiasPath.toStdString() << std::endl;
     }
 
     if (masterDark != NULL && !masterDark->matImage.empty())
     {
         QFileInfo fileInfo(treeWidget->getDarkDir().filePath(QString("masterDark.fits")));
-        masterDarkPath = setupFileName(fileInfo, QString("fits"));
+        QString masterDarkPath = setupFileName(fileInfo);
 
         exportToFits(masterDark, masterDarkPath);
+        std::cout << "masterDark exported at: " << masterDarkPath.toStdString() << std::endl;
 
     }
 
@@ -121,15 +124,34 @@ void RProcessing::exportMastersToFits()
     {
 
         QFileInfo fileInfo(treeWidget->getFlatDir().filePath(QString("masterFlat.fits")));
-        masterFlatPath = setupFileName(fileInfo, QString("fits"));
+        QString masterFlatPath = setupFileName(fileInfo);
 
         exportToFits(masterFlat, masterFlatPath);
+        std::cout << "masterFlat exported at: " << masterFlatPath.toStdString() << std::endl;
     }
 
     tempMessageSignal(QString("Exported master calibration frames"), 0);
 }
 
-QString RProcessing::setupFileName(QFileInfo fileInfo, QString format)
+void RProcessing::exportFramesToFits(QList<RMat *> rMatImageList, QDir exportDir, bool useBasename)
+{
+
+    for (int i = 0 ; i < rMatImageList.size() ; i++)
+    {
+        QString indexQStr = QString("%1").arg(i, 5, 10, QChar('0'));
+        QString fileName(QString("image_") + indexQStr + QString(".fits"));
+        if (useBasename)
+        {
+            fileName = rMatImageList.at(i)->getFileInfo().baseName() + QString("_C.fits");
+        }
+        QFileInfo fileInfo(exportDir.filePath(fileName));
+        QString filePath = setupFileName(fileInfo);
+
+        exportToFits(rMatImageList.at(i), filePath);
+    }
+}
+
+QString RProcessing::setupFileName(QFileInfo fileInfo)
 {
     QString filePath = fileInfo.filePath();
 
@@ -138,7 +160,7 @@ QString RProcessing::setupFileName(QFileInfo fileInfo, QString format)
     while (fileInfoTest.exists())
     {
         QString baseName = fileInfo.baseName() + QString("_") + QString::number(fileNumber) +QString(".");
-        filePath = fileInfo.absoluteDir().filePath(baseName + format);
+        filePath = fileInfo.absoluteDir().filePath(baseName + fileInfoTest.suffix());
         fileInfoTest = QFileInfo(filePath);
         fileNumber++;
         qDebug() << "RProcessing::setupFileName():: filePath =" << filePath;
@@ -264,6 +286,8 @@ void RProcessing::batchExportToFits(QList<QUrl> urls, QString exportDir)
     {
 
         QUrl url = urls.at(i);
+        // Import file
+        ImageManager iManager(url);
 
         if (useInputDirectory)
         {
@@ -274,16 +298,13 @@ void RProcessing::batchExportToFits(QList<QUrl> urls, QString exportDir)
 
         QFileInfo fileInfo1(url.fileName());
         QString basename = fileInfo1.baseName();
-        QString filePathQStr = url.toLocalFile();
-
         QString fileName(basename + QString(".") + format);
         QFileInfo fileInfo2(exportQDir.filePath(fileName));
         // Check if file does not really exist, rename if that is the cases
-        QString filePath = setupFileName(fileInfo2, format);
+        QString filePath = setupFileName(fileInfo2);
 
-        // Import FITS file
-        ImageManager fitsManager(filePathQStr);
-        exportToFits(fitsManager.getRMatImage(), filePath);
+        // export
+        exportToFits(iManager.getRMatImage(), filePath);
     }
 }
 
@@ -362,7 +383,8 @@ void RProcessing::loadMasterBias()
     /// So the url must exist in the treeWidget
     if (treeWidget->getBiasUrls().size() == 1)
     {
-        masterBiasPath = treeWidget->getBiasUrls().at(0).toLocalFile();
+        masterBiasUrl = treeWidget->getBiasUrls().at(0);
+        std::cout << "RProcessing::loadMasterBias() masterBiasUrl = " << masterBiasUrl.toLocalFile().toStdString() << std::endl;
     }
     else if (treeWidget->getBiasUrls().empty())
     {
@@ -371,10 +393,16 @@ void RProcessing::loadMasterBias()
         tempMessageSignal(QString("You need at least one Bias image in the calibration tree"));
         return;
     }
+    else
+    {
+        qDebug("Master Bias unknown");
+        tempMessageSignal(QString("master Bias unknown"));
+        return;
+    }
 
     /// Let the ImageManager on the stack, (so we don't have to call delete).
     ///  and make a deep copy of the data in RMat before leaving this function.
-    ImageManager imageManager(masterBiasPath);
+    ImageManager imageManager(masterBiasUrl);
 
     masterBias = new RMat(*imageManager.getRMatImage());
 }
@@ -385,7 +413,7 @@ void RProcessing::loadMasterDark()
     /// So the url must exist in the treeWidget
     if (treeWidget->getDarkUrls().size() == 1)
     {
-        masterDarkPath = treeWidget->getDarkUrls().at(0).toLocalFile();
+        masterDarkUrl = treeWidget->getDarkUrls().at(0);
     }
     else if (treeWidget->getDarkUrls().empty())
     {
@@ -394,10 +422,15 @@ void RProcessing::loadMasterDark()
         tempMessageSignal(QString("You need at least one Dark image in the calibration tree"));
         return;
     }
+    else
+    {
+        qDebug("Master Dark unknown");
+        tempMessageSignal(QString("master Dark unknown"));
+    }
 
     /// Let the ImageManager on the stack, (so we don't have to call delete).
     ///  and make a deep copy of the data in RMat before leaving this function.
-    ImageManager imageManager(masterDarkPath);
+    ImageManager imageManager(masterDarkUrl);
 
     masterDark = new RMat(*imageManager.getRMatImage());
 
@@ -409,7 +442,7 @@ void RProcessing::loadMasterFlat()
     /// So the url must exist in the treeWidget
     if (treeWidget->getFlatUrls().size() == 1)
     {
-        masterFlatPath = treeWidget->getFlatUrls().at(0).toLocalFile();
+        masterFlatUrl = treeWidget->getFlatUrls().at(0);
     }
     else if (treeWidget->getFlatUrls().empty())
     {
@@ -417,10 +450,15 @@ void RProcessing::loadMasterFlat()
         tempMessageSignal(QString("You need at least one Flat image in the calibration tree"));
         return;
     }
+    else
+    {
+        qDebug("Master Flat unknown");
+        tempMessageSignal(QString("master Flat unknown"));
+    }
 
     /// Let the ImageManager on the stack, (so we don't have to call delete).
     ///  and make a deep copy of the data in RMat before leaving this function.
-    ImageManager imageManager(masterFlatPath);
+    ImageManager imageManager(masterFlatUrl);
 
     masterFlat = new RMat(*imageManager.getRMatImage());
 
@@ -766,6 +804,10 @@ void RProcessing::stack(QList<RMat *> rMatImageList)
 
 RMat* RProcessing::average(QList<RMat*> rMatList)
 {
+    if (rMatList.size() == 1)
+    {
+        return rMatList.at(0);
+    }
     /// Averages a series of cv::Mat images using arithmetic mean.
     int naxis1 = rMatList.at(0)->matImage.cols;
     int naxis2 = rMatList.at(0)->matImage.rows;
@@ -2034,17 +2076,20 @@ void RProcessing::calibrateOffScreen()
 
     if (masterBias == NULL)
     {
+        std::cout << "Loading master Bias..." << std::endl;
         loadMasterBias();
     }
 
     if (masterDark == NULL)
     {
+        std::cout << "Loading master Dark..." << std::endl;
         loadMasterDark();
     }
 
 
     if (masterFlat == NULL)
     {
+        std::cout << "Loading master Flat..." << std::endl;
         loadMasterFlat();
     }
 
@@ -2076,10 +2121,10 @@ void RProcessing::calibrate()
         resultList.clear();
     }
 
+    std::cout << "Calibrating Lights..." << std::endl;
     for(int i = 0; i < treeWidget->getLightUrls().size(); i++)
     {
-        QString filePathQStr = treeWidget->getLightUrls().at(i).toLocalFile();
-        ImageManager lightManager(filePathQStr);
+        ImageManager lightManager(treeWidget->getLightUrls().at(i));
         cv::Mat matResult;
         cv::Mat lightMat = lightManager.getRMatImage()->matImage;
 
@@ -3008,8 +3053,7 @@ void RProcessing::cannyEdgeDetectionOffScreen(int thresh)
     for(int i = 0; i < treeWidget->getLightUrls().size(); i++)
     {
         qDebug("RProcessing:: cannyEdgeDetection() on image #%i", i);
-        QString filePathQStr = treeWidget->getLightUrls().at(i).toLocalFile();
-        ImageManager *newImageManager = new ImageManager(filePathQStr);
+        ImageManager *newImageManager = new ImageManager(treeWidget->getLightUrls().at(i));
         imageManagerList << newImageManager;
         rMatLightList << newImageManager->getRMatImage();
         setupCannyDetection(i);

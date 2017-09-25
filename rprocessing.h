@@ -115,12 +115,13 @@ public:
 
     /// export methods
     void exportMastersToFits();
+    void exportFramesToFits(QList<RMat*> rMatImageList, QDir exportDir, bool useBasename);
     void exportToFits(RMat *rMatImage, QString QStrFilename);
     void batchExportToFits(QList<QUrl> urls, QString exportDir);
     cv::Mat rescaleForExport8Bits(cv::Mat matImage, float alpha, float beta);
     void exportToTiff(RMat *rMatImage, QString QStrFilename);
     void exportToJpeg(RMat *rMatImage, QString QStrFilename);
-    QString setupFileName(QFileInfo fileInfo, QString format);
+    QString setupFileName(QFileInfo fileInfo);
     void loadMasterBias();
     void loadMasterDark();
     void loadMasterFlat();
@@ -312,7 +313,7 @@ private:
     QString exportCalibrateDir;
     QDir exportQDir;
 
-    QString masterBiasPath, masterDarkPath, masterFlatPath;
+    QUrl masterBiasUrl, masterDarkUrl, masterFlatUrl;
 
     bool biasSuccess, darkSuccess, flatSuccess;
     bool showContours, showLimb;
