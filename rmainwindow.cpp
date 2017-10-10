@@ -238,6 +238,9 @@ void RMainWindow::createNewImage(QList<RMat*> newRMatImageList)
     setupSliders(currentROpenGLWidget);
     //currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 
+    // Testing interpolation routine
+
+
 }
 
 void RMainWindow::createNewImage(RMat *rMatImage)
@@ -933,7 +936,8 @@ void RMainWindow::updateLimbResults()
 void RMainWindow::normalizeCurrentSeries()
 {
 
-    QList<RMat*> normalizedRMatList = processing->normalizeSeriesByStats(currentROpenGLWidget->getRMatImageList());
+//    QList<RMat*> normalizedRMatList = processing->normalizeSeriesByStats(currentROpenGLWidget->getRMatImageList());
+    QList<RMat*> normalizedRMatList = processing->normalizeSeriesToXposure(currentROpenGLWidget->getRMatImageList());
     createNewImage(normalizedRMatList);
     autoScale();
 }
@@ -2182,6 +2186,7 @@ void RMainWindow::calibrateOffScreenSlot()
 
 void RMainWindow::registerSlot()
 {
+    /// WHAT A MESS!!!!!!
     processing->setUseROI(ui->roiRadioButton->isChecked());
     processing->setApplyMask(ui->applyMaskCheckBox->isChecked());
 
@@ -2196,6 +2201,20 @@ void RMainWindow::registerSlot()
         else if (ui->SADCheckBox->isChecked())
         {
             processing->registerSeriesCustomPropagate();
+            createNewImage(processing->getResultList());
+            autoScale();
+        }
+        else if (ui->templateMatchCheckBox->isChecked())
+        {
+            if (ui->propagateCheckBox->isChecked())
+            {
+                processing->registerSeriesByTemplateMatchingPropagate();
+            }
+            else
+            {
+                processing->registerSeriesByTemplateMatching();
+            }
+
             createNewImage(processing->getResultList());
             autoScale();
         }
@@ -2383,7 +2402,7 @@ void RMainWindow::on_actionROISelect_toggled(bool arg1)
         currentSubWindow->update();
     }
 
-    connect(currentROpenGLWidget, SIGNAL(roiSignal(QList<QRect>)), processing, SLOT(setupROILists(QList<QRect>)));
+    //connect(currentROpenGLWidget, SIGNAL(roiSignal(QList<QRect>)), processing, SLOT(setupROILists(QList<QRect>)));
 }
 
 void RMainWindow::on_actionROIExtract_triggered()

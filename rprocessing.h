@@ -209,6 +209,8 @@ public:
     cv::Mat wSolarColorize(cv::Mat matImage, char filter);
     QList<RMat*> wSolarColorizeSeries(QList<RMat*> rMatImageList, char filter);
 
+
+
 signals:
 
    void resultSignal(RMat* rMatResult);
@@ -236,6 +238,9 @@ public slots:
 
    void setExportMastersDir(QString dir);
    void setExportCalibrateDir(QString dir);
+
+   /// Registration
+   // Ultimately I need to use function pointers. It will get messy otherwise.
    bool prepRegistration();
    void registerSeries();
    void registerSeriesXCorrPropagate();
@@ -247,6 +252,13 @@ public slots:
    cv::Point calculateSADShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList, int maxLength);
    cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov);
    cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList);
+   cv::Mat shiftToWarp(cv::Point shift);
+
+   // Template Matching
+   void registerSeriesByTemplateMatching();
+   void registerSeriesByTemplateMatchingPropagate();
+   cv::Point templateMatch(cv::Mat img, cv::Mat templ, int matchMethod);
+   cv::Mat calculateTemplateMatchShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov);
 
    cv::Mat shiftImage(RMat* rMatImage, cv::Mat warpMat);
    cv::Mat shiftImage(RMat* rMatImage, cv::Point shift);
@@ -262,6 +274,8 @@ public slots:
    void blurRMat(RMat* rMat);
    QList<RMat*> normalizeSeriesByStats(QList<RMat*> rMatImageList);
    RMat* normalizeByStats(RMat* rMat);
+   RMat* normalizeToXposure(RMat* rMat);
+   QList<RMat*> normalizeSeriesToXposure(QList<RMat*> rMatImageList);
    void normalizeByStatsInPlace(RMat* rMat);
    cv::Mat normalizeByThresh(cv::Mat matImage, float oldMin, float oldMax, float newRange);
    cv::Mat normalizeClipByThresh(cv::Mat matImage, float newMin, float newMax, float dataRange);

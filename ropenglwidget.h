@@ -251,8 +251,8 @@ private:
 
     // ROI QPainter-related
     bool roiSelected;
-    bool circleSelected;
     bool useMultiROI;
+    bool circleSelected;
     QString painterString;
 
     QPoint initCursorPos;

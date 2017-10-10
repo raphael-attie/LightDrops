@@ -33,6 +33,7 @@ ROpenGLWidget::ROpenGLWidget(RListImageManager *rListImageManager, QWidget *pare
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
     , roiSelected(false)
+    , useMultiROI(false)
     , circleSelected(false)
     , displayOnlyFirst(false)
 {
@@ -55,6 +56,7 @@ ROpenGLWidget::ROpenGLWidget(QList<RMat *> rMatImageList, QWidget *parent)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
     , roiSelected(false)
+    , useMultiROI(false)
     , circleSelected(false)
     , displayOnlyFirst(false)
 {
@@ -72,6 +74,7 @@ ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
     , m_indexBuffer(QOpenGLBuffer::IndexBuffer)
     , tableRSubWindow(NULL), tableWidget(NULL)
     , roiSelected(false)
+    , useMultiROI(false)
     , circleSelected(false)
     , displayOnlyFirst(false)
 {
@@ -192,7 +195,7 @@ void ROpenGLWidget::prepImage()
         // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
         // Since FITS images uses the same coordinate frame as the openGL viewport,
         // it is necessary to flip the DSLR images up-side down.
-        if (rMatImageList.at(ii)->getInstrument() == instruments::DSLR)
+        if (rMatImageList.at(ii)->getInstrument() == instruments::DSLR || rMatImageList.at(ii)->flip)
         {
             // Because of this we are cloning the image above.
             // One should use instead the viewport or opengl tricks?

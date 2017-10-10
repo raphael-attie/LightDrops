@@ -2209,8 +2209,15 @@ bool RProcessing::prepRegistration()
     }
     if (cvRectROIList.isEmpty())
     {
-        emit tempMessageSignal(QString("ROI undefined"), 10000);
-        return false;
+        if (!cvRectROI.empty())
+        {
+            cvRectROIList.append(cvRectROI);
+        }
+        else
+        {
+            emit tempMessageSignal(QString("ROI not defined"), 10000);
+            return false;
+        }
     }
     // Clear the resultList if not empty
     if (!resultList.isEmpty())
@@ -2229,8 +2236,6 @@ bool RProcessing::prepRegistration()
         resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
         resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
     }
-
-    this->normFactor = 1.0f / rMatLightList.at(0)->getXPOSURE();
 
 
     return true;
@@ -2409,11 +2414,14 @@ void RProcessing::registerSeries()
 
 void RProcessing::registerSeriesXCorrPropagate()
 {
+    /// Register by pairs of nearest frames (in time) and propagate up to the first so that the series
+    /// is coaligned with the first image.
+
+    // Check that registration is properly setup, including normalization.
     bool status = prepRegistration();
-    if (!status) {return;}
-    if (cvRectROIList.empty())
+
+    if (!status)
     {
-        emit tempMessageSignal(QString("ROIs need to be defined"));
         return;
     }
 
@@ -2425,16 +2433,16 @@ void RProcessing::registerSeriesXCorrPropagate()
         rMatLightList.at(i)->matImageGray.convertTo(refMat, CV_32F);
         rMatLightList.at(i+1)->matImageGray.convertTo(currentMatImage, CV_32F);
 
-        cv::Mat refMatN = refMat * normFactor;
-        cv::Mat currentMatImageN = currentMatImage * normFactor;
+        cv::Mat refMatN = refMat / rMatLightList.at(i)->getXPOSURE();
+        cv::Mat currentMatImageN = currentMatImage / rMatLightList.at(i+1)->getXPOSURE();
 
         //shift = shift + calculateSADShift(refMatN, currentMatImageN, cvRectROIList, 50);
         cv::Mat warpMat = calculateXCorrShift(refMatN, currentMatImageN, cvRectROIList);
-
-
         warpMatrixTotal.at<float>(0, 2) += warpMat.at<float>(0, 2);
         warpMatrixTotal.at<float>(1, 2) += warpMat.at<float>(1, 2);
 
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() frame # " << i << std::endl;
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() file: " << rMatLightList.at(i)->getFileInfo().baseName().toStdString() << std::endl;
         std::cout << "RProcessing::registerSeriesXCorrPropagate() ShiftX = " << warpMat.at<float>(0, 2) << std::endl;
         std::cout << "RProcessing::registerSeriesXCorrPropagate() ShiftY = " << warpMat.at<float>(1, 2) << std::endl;
 
@@ -2696,7 +2704,7 @@ void RProcessing::registerSeriesCustom()
 {
     if (cvRectROI.empty())
     {
-        emit tempMessageSignal(QString("ROI needs to be defined"));
+        emit tempMessageSignal(QString("ROI not defined"));
         return;
     }
 
@@ -2775,7 +2783,7 @@ void RProcessing::registerSeriesCustomPropagate()
 
     if (cvRectROIList.empty())
     {
-        emit tempMessageSignal(QString("ROI needs to be defined"));
+        emit tempMessageSignal(QString("ROI not defined"));
         return;
     }
 
@@ -2932,12 +2940,16 @@ cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::R
     // Define the motion mode
     const int warpMode = cv::MOTION_TRANSLATION;
     // Specify the number of iterations.
-    int number_of_iterations = 50; // stellar
+    //int number_of_iterations = 50; // stellar
+    int number_of_iterations = 1000; // stellar
     // Specify the threshold of the increment
     // in the correlation coefficient between two iterations
     double termination_eps = 1e-2; // stellar
+
+
     // Define termination criteria
     cv::TermCriteria criteria(cv::TermCriteria::COUNT, number_of_iterations, termination_eps);
+    //cv::TermCriteria criteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, number_of_iterations, termination_eps);
 
     cv::Mat warpMatrix = cv::Mat::eye(2, 3, CV_32F);
 
@@ -2978,6 +2990,145 @@ cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList
 
     return warpMatrixTotal;
 
+}
+
+cv::Mat RProcessing::shiftToWarp(cv::Point shift)
+{
+    cv::Mat warpMat = cv::Mat::eye(2, 3, CV_32F);
+    warpMat.at<float>(0, 2) = shift.x;
+    warpMat.at<float>(1, 2) = shift.y;
+
+    return warpMat;
+}
+
+void RProcessing::registerSeriesByTemplateMatching()
+{
+    /// The reason of trying this method in addition to the X-correlation rose from saturated image during the eclipse.
+    /// The longer the exposure, the farther the off-limb coronal features saturate.
+    /// Thus it becomes necessary to exclude a larger saturated part. Experience shows that enhanced X-Correlation fails
+    /// when the ROI(s) become(s) small, and the other similarity metrics offered by template matching offer alternatives.
+
+    /// Work with a single ROI for now. Check if it exists.
+    if (cvRectROI.empty())
+    {
+        emit tempMessageSignal(QString("ROI not defined"));
+        return;
+    }
+    resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument());
+    // Reference image
+    cv::Mat refMatN;
+    rMatLightList.at(0)->matImageGray.convertTo(refMatN, CV_32F);
+    refMatN = refMatN / rMatLightList.at(0)->getXPOSURE();
+
+    for (int i = 1; i < rMatLightList.size(); ++i)
+    {
+        cv::Mat currentMatImageN;
+        rMatLightList.at(i)->matImageGray.convertTo(currentMatImageN, CV_32F);
+        currentMatImageN = currentMatImageN / rMatLightList.at(i)->getXPOSURE();
+
+        cv::Mat warpMat = calculateTemplateMatchShift(refMatN, currentMatImageN, cvRectROI);
+        cv::Mat shiftedMat = shiftImage(rMatLightList.at(i), warpMat);
+        resultList << new RMat(shiftedMat, false, rMatLightList.at(i)->getInstrument());
+    }
+}
+
+void RProcessing::registerSeriesByTemplateMatchingPropagate()
+{
+    /// Work if a single ROI for now. Check that it exists
+    if (cvRectROI.empty())
+    {
+        emit tempMessageSignal(QString("ROI not defined"));
+        return;
+    }
+
+    if (rMatLightList.at(0)->isBayer())
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+        resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
+    }
+    else
+    {
+        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+        resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
+    }
+
+    cv::Mat refMat;
+    cv::Mat currentMatImage;
+    cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
+
+    for (int i=0; i < rMatLightList.size()-1; i++)
+    {
+        rMatLightList.at(i)->matImageGray.convertTo(refMat, CV_32F);
+        rMatLightList.at(i+1)->matImageGray.convertTo(currentMatImage, CV_32F);
+
+        cv::Mat refMatN = refMat / rMatLightList.at(i)->getXPOSURE();
+        cv::Mat currentMatImageN = currentMatImage / rMatLightList.at(i+1)->getXPOSURE();
+
+        cv::Mat warpMat = calculateTemplateMatchShift(refMatN, currentMatImageN, cvRectROI);
+        warpMatrixTotal.at<float>(0, 2) += warpMat.at<float>(0, 2);
+        warpMatrixTotal.at<float>(1, 2) += warpMat.at<float>(1, 2);
+
+        cv::Mat shiftedMat = shiftImage(rMatLightList.at(i+1), warpMatrixTotal);
+        resultList << new RMat(shiftedMat, false, rMatLightList.at(i+1)->getInstrument(), rMatLightList.at(i+1)->getXPOSURE(), rMatLightList.at(i+1)->getTEMP());
+        resultList.at(i+1)->setFileInfo(rMatLightList.at(i+1)->getFileInfo());
+    }
+
+}
+
+
+
+cv::Point RProcessing::templateMatch(cv::Mat img, cv::Mat templ, int matchMethod)
+{
+    cv::Mat result;
+    /// Create the result matrix
+    int result_cols =  img.cols - templ.cols + 1;
+    int result_rows = img.rows - templ.rows + 1;
+
+    result.create( result_rows, result_cols, CV_32FC1 );
+
+    /// Do the Matching and Normalize
+    cv::matchTemplate( img, templ, result, matchMethod );
+    cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+    /// Localizing the best match with minMaxLoc
+    double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+    cv::Point matchLoc;
+
+    cv::minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
+
+    /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+    if( matchMethod  == CV_TM_SQDIFF || matchMethod == CV_TM_SQDIFF_NORMED )
+    { matchLoc = minLoc; }
+    else
+    { matchLoc = maxLoc; }
+
+    return matchLoc;
+}
+
+cv::Mat RProcessing::calculateTemplateMatchShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov)
+{
+    // Template image. Extract patch with the cv::Rect fov.
+    // Testing with the reference image itself
+    cv::Mat templ = matImage(fov);
+    templ.convertTo(templ, CV_32F);
+
+    cv::Point matchLoc = templateMatch(refMat, templ, CV_TM_SQDIFF);
+
+//        std::cout << "cvRectROI = " << cvRectROI << std::endl;
+//        std::cout << "cv::Point matchLoc = " << matchLoc << std::endl;
+
+    // Convert that location into a shift with respect to the original image
+    // If the current has moved by a, the algorithm gives a shift of -a.
+    // So we need to invert the result to know by how much the current image is shifted with respect to the reference image
+    // Finally, by using WARP_INVERSE when warping the image in shiftImage(), the shift given need not to be inverted again.
+    cv::Point shift;
+    shift.x = -(matchLoc.x - cvRectROI.x);
+    shift.y = -(matchLoc.y - cvRectROI.y);
+    std::cout << "registerSeriesByTemplateMatching():: shift = " << shift << std::endl;
+
+    // Shift the image
+    cv::Mat warpMatrix = shiftToWarp(shift);
+
+    return warpMatrix;
 }
 
 
@@ -3794,6 +3945,7 @@ RMat* RProcessing::normalizeByStats(RMat *rMat)
     /// This is like normalizeByThresh() using newMin and newMax as intensityLow and
     /// intensityHigh from RMat::calcStats()
 
+
     cv::Mat matImage = normalizeByThresh(rMat->matImage, rMat->getIntensityLow(), rMat->getIntensityHigh(), rMat->getNormalizeRange());
 
     RMat* normalizeRMat = new RMat(matImage, rMat->isBayer(), rMat->getInstrument());
@@ -3803,6 +3955,43 @@ RMat* RProcessing::normalizeByStats(RMat *rMat)
     showMinMax(matImage);
 
     return normalizeRMat;
+}
+
+RMat *RProcessing::normalizeToXposure(RMat *rMat)
+{
+    cv::Mat normalizedMatImage;
+    rMat->matImage.convertTo(normalizedMatImage, CV_32F);
+    normalizedMatImage = normalizedMatImage / rMat->getXPOSURE();
+
+    RMat* normalizedRMat = new RMat(normalizedMatImage, rMat->isBayer());
+    normalizedRMat->setImageTitle(QString("Normalized image "));
+    normalizedRMat->setDate_time(rMat->getDate_time());
+    normalizedRMat->setSOLAR_R(rMat->getSOLAR_R());
+
+    // If original image was DSLR, it is now 32F and thus becomes generic. Yet it must still be flipped like DSLR, if it was such.
+    if (rMat->getInstrument() == instruments::DSLR)
+    {
+        normalizedRMat->flip = true;
+    }
+
+    return normalizedRMat;
+}
+
+QList<RMat *> RProcessing::normalizeSeriesToXposure(QList<RMat *> rMatImageList)
+{
+    QList<RMat*> normalizedRMatImageList;
+
+    for (int i =0 ; i < rMatImageList.size() ; ++i)
+    {
+        normalizedRMatImageList << normalizeToXposure(rMatImageList.at(i));
+        //normalizedRMatImageList.at(i)->setInstrument(rMatImageList.at(i)->getInstrument());
+        normalizedRMatImageList.at(i)->setSOLAR_R(rMatImageList.at(i)->getSOLAR_R());
+        normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("# %1").arg(i));
+        normalizedRMatImageList.at(i)->setDate_time(rMatImageList.at(i)->getDate_time());
+
+    }
+
+    return normalizedRMatImageList;
 }
 
 void RProcessing::normalizeByStatsInPlace(RMat *rMat)
@@ -4432,6 +4621,8 @@ QList<RMat*> RProcessing::wSolarColorizeSeries(QList<RMat *> rMatImageList, char
 
     return rMat8BitList;
 }
+
+
 
 void RProcessing::makeAlignedStack2(af::array &stackedBlks, const af::array &arfSeries, const af::array &qualityBinnedSeries, const af::array &arDim, const af::array &xRange, const af::array &yRange, const int nBest, const int &blkSize, const int &binnedBlkSize, const int &binning, int &x, int &y)
 {

@@ -127,6 +127,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
 
     firstPixel	= 1;
 
+    // Use C++ array initialization (https://stackoverflow.com/questions/2204176/how-to-initialise-memory-with-new-operator-in-c)
     if (bitpix == USHORT_IMG)
     {
         image1D_ushort = new ushort[nPixels]();
@@ -186,6 +187,24 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
         matFits.convertTo(matFits, CV_16U);
     }
 
+//    float *image = new float[nPixels]();
+//    for (uint i=0; i < nPixels; i++)
+//    {
+//        image[i] = (float) image1D_float[i];
+//    }
+
+//    int nPts = 2;
+//    float *xout = new float[nPts]{10.3, 10.2};
+//    float *yout = new float[nPts]{20.5, 15.4};
+//    float *values = new float[nPts]();
+
+//    bilin_interp(values, image, xout, yout, naxis1, nPts);
+
+//    std::cout<< "naxis1 = " << naxis1 << std::endl;
+//    std::cout<< "values[0] = " << values[0] << std::endl;
+//    std::cout<< "values[1] = " << values[1] << std::endl;
+
+//    delete[] image;
 }
 
 MyFitsImage::~MyFitsImage()
@@ -282,4 +301,42 @@ QVector<QString> MyFitsImage::getKeyValues() const
 QVector<QString> MyFitsImage::getKeyComments() const
 {
     return keyComments;
+}
+
+void MyFitsImage::bilin_interp(float *values, float *image, float *xout, float *yout, const int NX, const int npts)
+{
+        for (int k=0; k<npts; k++){
+
+            const int   x0 = floor(xout[k]);
+            const int   y0 = floor(yout[k]);
+            // Get the 4 nearest neighbours
+            float h00, h01, h10, h11;
+            // Left
+            h00 = image[y0*NX + x0];
+            // Right
+            h10 = image[y0*NX + x0 + 1];
+            // Bottom?
+            h01 = image[(y0+1)*NX + x0];
+            // Top?
+            h11 = image[(y0+1)*NX + x0 + 1];
+
+            printf("image[%i, %i] = %f\n", x0, y0, h00);
+
+            // Calculate the weights for each pixel
+
+            float fx = xout[k] - x0;
+            float fy = yout[k] - y0;
+            float fx1 = 1.0f - fx;
+            float fy1 = 1.0f - fy;
+
+            float w1 = fx1 * fy1;
+            float w2 = fx * fy1;
+            float w3 = fx1 * fy;
+            float w4 = fx * fy;
+
+            // Calculate the weighted sum of pixels
+            values[k] = h00 * w1 + h10 * w2 + h01 * w3 + h11 * w4;
+        }
+
+        return;
 }

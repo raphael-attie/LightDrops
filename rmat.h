@@ -40,6 +40,10 @@ public:
     void calcStats();
     void calcMinMax();
 
+    // Used to know when to flip image upside down
+    // Yeah I know, it's disgusting... but i'm tired!
+    bool flip;
+
 
     // getters
     bool isBayer() const;
@@ -139,6 +143,8 @@ private:
 
    // for QTreeWidget
    QTreeWidgetItem* item;
+
+
 
 
 };

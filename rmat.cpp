@@ -10,12 +10,13 @@ RMat::RMat()
     this->bzero = 0;
     this->imageTitle = QString("");
     this->instrument = instruments::generic;
+    this->flip = false;
 
 }
 
 RMat::RMat(const RMat &rMat)
     : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP),
-       SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL)
+       SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL), flip(false)
 {
     rMat.matImage.copyTo(this->matImage);
     this->imageTitle = QString("");
@@ -26,7 +27,7 @@ RMat::RMat(const RMat &rMat)
 
 
 RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
-    SOLAR_R(0), item(NULL)
+    SOLAR_R(0), item(NULL), flip(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = false;
@@ -37,7 +38,7 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
 }
 
 RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
-    SOLAR_R(0), item(NULL)
+    SOLAR_R(0), item(NULL), flip(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -48,7 +49,7 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
+    bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flip(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -59,7 +60,7 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL)
+    bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flip(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;

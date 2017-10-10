@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>0</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -2262,7 +2262,7 @@
           <x>0</x>
           <y>0</y>
           <width>200</width>
-          <height>287</height>
+          <height>303</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -2291,6 +2291,13 @@
           <widget class="QCheckBox" name="applyMaskCheckBox">
            <property name="text">
             <string>Apply mask</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="templateMatchCheckBox">
+           <property name="text">
+            <string>Use template matching</string>
            </property>
           </widget>
          </item>
@@ -3214,8 +3221,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1517</x>
-     <y>676</y>
+     <x>1508</x>
+     <y>714</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3230,8 +3237,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1455</x>
-     <y>567</y>
+     <x>1457</x>
+     <y>509</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3310,8 +3317,8 @@
    <slot>solarLimbFit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1455</x>
-     <y>466</y>
+     <x>1457</x>
+     <y>504</y>
     </hint>
     <hint type="destinationlabel">
      <x>1459</x>
@@ -3326,8 +3333,8 @@
    <slot>solarLimbRegisterSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1455</x>
-     <y>471</y>
+     <x>1457</x>
+     <y>509</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3342,8 +3349,8 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>425</x>
-     <y>904</y>
+     <x>602</x>
+     <y>914</y>
     </hint>
     <hint type="destinationlabel">
      <x>524</x>

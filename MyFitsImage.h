@@ -47,6 +47,10 @@ public:
 	static void printerror(int status);
 	static void printHDUType(int hduType);
 
+    /// Interpolation
+    void bilin_interp(float *values, float *image, float *xout, float *yout, const int NX, const int npts);
+
+
 private:
 
 	//valarray<float> *fitsValArray;
