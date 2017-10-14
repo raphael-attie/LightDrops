@@ -14,7 +14,7 @@
 //using namespace cv;
 
 
-enum class instruments {generic, MAG, DSLR, USET};
+enum class instruments {generic, MAG, DSLR, USET, TIFF};
 
 class RMat
 {

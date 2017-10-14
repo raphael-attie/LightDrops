@@ -5,7 +5,7 @@
 #include <QHeaderView>
 
 ImageManager::ImageManager(QUrl url) :
-    error(0), url(url), newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL), rMatImage(NULL)
+    error(0), url(url), newFitsImage(NULL), fitsSeries(NULL), newRawImage(NULL), rMatImage(NULL), nKeys(1)
 {
 
 
@@ -43,6 +43,10 @@ ImageManager::ImageManager(QUrl url) :
     {
         loadRaw();     
     }
+    else if (fileExt == QString("tiff"))
+    {
+        loadTiff();
+    }
     else
     {
         std::cout << "ImageManager:: filePathQStr=" << filePathQStr.toStdString() << std::endl;
@@ -52,13 +56,11 @@ ImageManager::ImageManager(QUrl url) :
     }
     rMatImage->setFileInfo(fileInfo);
     rMatImage->setUrl(url);
-
     createTableWidget();
 
     rMatImage->calcStats();
-
     rMatImage->setImageTitle(fileName);
-    rMatImage->setFileInfo(fileInfo);
+
 
 
 }
@@ -183,6 +185,13 @@ void ImageManager::loadRaw()
 
 }
 
+void ImageManager::loadTiff()
+{
+    cv::Mat tiffImage = cv::imread(filePathQStr.toStdString(), CV_LOAD_IMAGE_COLOR);
+    rMatImage = new RMat(tiffImage, false, instruments::TIFF);
+
+}
+
 void ImageManager::createTableWidget()
 {
     // The table widget displays the header keywords/value pairs.
@@ -215,9 +224,13 @@ void ImageManager::createTableWidget()
     {
         setupRawTableWidget();
     }
+    else if (fileExt == QString("tiff"))
+    {
+        setupTiffTableWidget();
+    }
     else
     {
-        qDebug("Unknown file extension");
+        qDebug("Unsupported file extension");
         error = 1;
         return;
     }
@@ -263,6 +276,11 @@ void ImageManager::setupRawTableWidget()
        tableWidget->setRowHeight(ii, rowHeight);
     }
     tableWidget->setMinimumHeight((nKeys + 3) * rowHeight);
+}
+
+void ImageManager::setupTiffTableWidget()
+{
+
 }
 
 void ImageManager::fixUset()

@@ -42,9 +42,11 @@ private:
     bool error;
     void loadFits();
     void loadRaw();
+    void loadTiff();
     void createTableWidget();
     void setupFitsTableWidget();
     void setupRawTableWidget();
+    void setupTiffTableWidget();
     void fixUset();
 
     RMat* rMatImage;

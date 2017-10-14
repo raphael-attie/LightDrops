@@ -195,6 +195,16 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
     fits_create_file(&fptr, strFilename.c_str(), &status);
 
     // If the images is still bayer (CFA), should convert back to original DSLR precision of 16 bits unsigned to save memory.
+
+    /// UPDATE: I realize a bit late that I made a very stupid mistake with this, because of the flat-fielding.
+    /// The flat-fielding change the image to floating points with a completely different range of values.
+    /// Converting to integers without any other modification will totally mess up the image.
+    /// I could stick to floating points in FITS but ultimately I need to convert to TIFF imposes to restore the dynamic.
+    /// That dynamic depends on the instrument
+    /// If the image is stacked, it gains precision. If it is e.g originally a 12 bit image, then stretching the image linearly
+    /// so it fits within 16-bit/channel should be reasonnable.
+    /// But then... when do I do it. What values do I choose when stretching?...
+    /// I need revisit the flat-fielding operation to make things more rigourous.
     if (rMatImage->isBayer())
     {
         cv::Mat tempImage16;
@@ -2152,6 +2162,10 @@ void RProcessing::calibrate()
 
         if (masterFlatN != NULL)
         {
+            /// A flat field completely modify the range of the image.
+            /// We could restore that range and continue treating the image with an integral type
+            /// or we could treat it as float as long as we stay consistent.
+
             cv::divide(matResult, masterFlatN->matImage, matResult);
         }
 

@@ -83,20 +83,30 @@ RMat::~RMat()
 
 void RMat::prepImages()
 {
-    if (bayer)
+    if (matImage.channels() == 1)
     {
-        matImage.convertTo(matImageRGB, CV_16U);
-        cv::cvtColor(matImageRGB, matImageRGB, CV_BayerBG2RGB);
-        cv::cvtColor(matImageRGB, matImageGray, CV_RGB2GRAY);
+        if (bayer)
+        {
+            matImage.convertTo(matImageRGB, CV_16U);
+            cv::cvtColor(matImageRGB, matImageRGB, CV_BayerBG2RGB);
+            cv::cvtColor(matImageRGB, matImageGray, CV_RGB2GRAY);
+        }
+        else
+        {
+            matImageGray = matImage;
+        }
     }
-    else
+    else // Assumes 3 channels?
     {
-        matImageGray = matImage;
-    }
-
-    if (matImage.channels() > 1)
-    {
-        cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
+        if (instrument != instruments::TIFF)
+        {
+            cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
+        }
+        else
+        {
+            cv::cvtColor(matImage, matImageGray, CV_BGR2GRAY);
+        }
+        // The image has 3 channels so matImage and matImageRGB must be the same.
         matImageRGB = matImage;
     }
 
