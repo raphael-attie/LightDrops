@@ -472,17 +472,19 @@ void RProcessing::loadMasterFlat()
 
     masterFlat = new RMat(*imageManager.getRMatImage());
 
-    normalizeFlat();
+    //normalizeFlat();
     qDebug("RProcessing::loadMasterFlat():: min / max of normalized flat:");
-    showMinMax(masterFlatN->matImage);
+    //showMinMax(masterFlat->matImage);
     //emit resultSignal(masterFlatN);
 }
 
 void RProcessing::showMinMax(const cv::Mat &matImage)
 {
+    std::cout<< "Show Min/Max" << std::endl;
     double min, max;
     cv::minMaxLoc(matImage, &min, &max);
-    qDebug("RProcessing::showMinMax:: min =%f , max =%f", min, max);
+    qDebug("[Min , Max] = [%f , %f]", min, max);
+    emit tempMessageSignal(QString("[Min , Max] = [%1 , %2]").arg(min, 0, 'f', 2).arg(max, 0, 'f', 2), 0);
 }
 
 cv::Mat RProcessing::histogram(cv::Mat matVector, int &nBins, float &width)
@@ -723,16 +725,6 @@ bool RProcessing::makeMasterFlat()
             masterFlat->setImageTitle( QString("master Flat (sigma-clipped average)") );
         }
 
-        if (masterBias != NULL)
-        {
-            cv::Mat tempMatFlat;
-            cv::Mat tempMatBias;
-
-            masterBias->matImage.convertTo(tempMatFlat, CV_32F);
-            masterFlat->matImage.convertTo(tempMatBias, CV_32F);
-
-            cv::subtract(tempMatFlat, tempMatBias, masterFlat->matImage);
-        }
     }
     else if (treeWidget->getFlatUrls().empty() && !treeWidget->rMatFlatList.empty())
     {   /// Images already in memory,
@@ -2125,6 +2117,7 @@ void RProcessing::calibrateOffScreen()
 
 void RProcessing::calibrate()
 {
+    std::cout << "RProcessing::calibrate()" << std::endl;
     if (!resultList.isEmpty())
     {
         qDeleteAll(resultList);
@@ -2135,12 +2128,13 @@ void RProcessing::calibrate()
     for(int i = 0; i < treeWidget->getLightUrls().size(); i++)
     {
         ImageManager lightManager(treeWidget->getLightUrls().at(i));
-        cv::Mat matResult;
+        //cv::Mat matResult;
         cv::Mat lightMat = lightManager.getRMatImage()->matImage;
 
         if (lightMat.type() != CV_32F)
         {
             lightMat.convertTo(lightMat, CV_32F);
+            std::cout << "Converted light to CV_32F" << std::endl;
         }
 
         if (masterDark!=NULL )
@@ -2149,7 +2143,7 @@ void RProcessing::calibrate()
             {
                 masterDark->matImage.convertTo(masterDark->matImage, CV_32F);
             }
-            cv::subtract(lightMat, masterDark->matImage, matResult);
+            cv::subtract(lightMat, masterDark->matImage, lightMat);
         }
         else if (masterBias != NULL)
         {
@@ -2157,30 +2151,42 @@ void RProcessing::calibrate()
             {
                 masterBias->matImage.convertTo(masterBias->matImage, CV_32F);
             }
-            cv::subtract(lightMat, masterBias->matImage, matResult);
+            cv::subtract(lightMat, masterBias->matImage, lightMat);
         }
 
-        if (masterFlatN != NULL)
+        if (masterFlat != NULL)
         {
+            if (masterFlat->matImage.type() != CV_32F)
+            {
+                masterFlat->matImage.convertTo(masterFlat->matImage, CV_32F);
+            }
+            /// Flat fielding needs also to have at least the bias removed.
+            //cv::subtract(masterFlatN->matImage, masterBias->matImage, masterFlatN->matImage);
+
             /// A flat field completely modify the range of the image.
             /// We could restore that range and continue treating the image with an integral type
             /// or we could treat it as float as long as we stay consistent.
+            /// In case we treat as float, demosaicing with openCV needs image to range from 0 and 1
+            cv::Scalar oldMean = cv::mean(lightMat);
+            std::cout << "Dividing by flat-field..." << std::endl;
+            cv::divide(lightMat, masterFlat->matImage, lightMat);
+            cv::Scalar newMean = cv::mean(lightMat);
+            cv::Scalar scale = oldMean/newMean;
+            lightMat = lightMat * (float)scale.val[0];
 
-            cv::divide(matResult, masterFlatN->matImage, matResult);
+
         }
 
-        cv::threshold(matResult, matResult, 0, 0, cv::THRESH_TOZERO);
+        cv::threshold(lightMat, lightMat, 0, 0, cv::THRESH_TOZERO);
 
         /// Copy the result into the list.
         /// This may be an overkill. We could output directly into the elements of the list
-        resultList << new RMat(matResult, lightManager.getRMatImage()->isBayer(), lightManager.getRMatImage()->getInstrument(), lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());
+        resultList << new RMat(lightMat, lightManager.getRMatImage()->isBayer(), instruments::generic, lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());
+        resultList.at(i)->flip = lightManager.getRMatImage()->flip;
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
         resultList.at(i)->setFileInfo(lightManager.getRMatImage()->getFileInfo());
-        if (masterFlatN != NULL)
-        {
-            resultList.at(i)->setBscale(masterFlatN->getDataMax()/masterFlat->getDataMax());
-        }
+        showMinMax(resultList.at(i)->matImageGray);
     }
     /// We can assign the result as the rMatLightList since the processing is off-screen,
     /// and thus we do not overwrite anything.
@@ -4157,11 +4163,11 @@ void RProcessing::normalizeFlat()
     qDebug() << "ProcessingWidget:: meanValueF=" << meanValueF;
     //cv::normalize(rMatImage->matImage, rMatImageNorm.matImage, 0.5, 1.5, cv::NORM_MINMAX, CV_32F);
     masterFlatN->matImage.convertTo(masterFlatN->matImage, CV_32F);
-    masterFlatN->matImage = masterFlatN->matImage / meanValueF; // Strange...
+    masterFlatN->matImage = masterFlatN->matImage / meanValueF;
     masterFlatN->calcMinMax();
     masterFlatN->setImageTitle(QString("Master Flat normalized"));
-    float bScale = (float) masterFlat->getDataMax() / meanValueF;
-    masterFlatN->setBscale(bScale);
+    float bscale = (float) masterFlat->getDataMax() / meanValueF;
+    masterFlatN->setBscale(bscale);
     masterFlatN->calcMinMax();
     masterFlatN->calcStats();
 }

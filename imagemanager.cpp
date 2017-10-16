@@ -61,7 +61,7 @@ ImageManager::ImageManager(QUrl url) :
     rMatImage->calcStats();
     rMatImage->setImageTitle(fileName);
 
-
+    std::cout << "ImageManager:: Loaded image: " << fileName.toStdString()  << std::endl;
 
 }
 
@@ -109,6 +109,7 @@ void ImageManager::loadFits()
     else if (newFitsImage->getKeyValues().contains(QString("DSLR")))
     {
         instrument = instruments::DSLR;
+        rMatImage->flip = true;
     }
     else if (rMatImage->getDataMin() < -100.0)
     {

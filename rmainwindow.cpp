@@ -730,7 +730,9 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
         limbSliderScale = 1.0;
         limbSliderToScaleMinimum = dataMin;
 
-        // update the number of decimals in the spinBox High and Low
+        /// update the number of decimals in the spinBox High and Low
+        /// This is just to remind visually that we're dealing with floating points
+        /// and not integers.
         decimals = 2;
     }
 
@@ -1568,6 +1570,9 @@ void RMainWindow::minMaxScale()
     ui->limbSliderLow->setValue(sliderValueLow +1);
     ui->limbSliderLow->setValue(sliderValueLow);
 
+    processing->showMinMax(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->matImage);
+    processing->showMinMax(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value())->matImageGray);
+    //showMinMax(currentROpenGLWidget->getRMatImageList().at(ui->sliderFrame->value()));
 }
 
 void RMainWindow::rangeScale()
