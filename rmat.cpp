@@ -1,5 +1,6 @@
 #include "rmat.h"
 #include <qdebug.h>
+#include <iostream>
 
 RMat::RMat()
 {
@@ -10,13 +11,13 @@ RMat::RMat()
     this->bzero = 0;
     this->imageTitle = QString("");
     this->instrument = instruments::generic;
-    this->flip = false;
+    this->flipUD = false;
 
 }
 
 RMat::RMat(const RMat &rMat)
     : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP),
-       SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL), flip(false)
+       SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL), flipUD(false)
 {
     rMat.matImage.copyTo(this->matImage);
     this->imageTitle = QString("");
@@ -27,7 +28,7 @@ RMat::RMat(const RMat &rMat)
 
 
 RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
-    SOLAR_R(0), item(NULL), flip(false)
+    SOLAR_R(0), item(NULL), flipUD(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = false;
@@ -38,7 +39,7 @@ RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0
 }
 
 RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
-    SOLAR_R(0), item(NULL), flip(false)
+    SOLAR_R(0), item(NULL), flipUD(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -49,7 +50,7 @@ RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flip(false)
+    bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flipUD(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -60,7 +61,7 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMa
 }
 
 RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flip(false)
+    bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flipUD(false)
 {
     mat.copyTo(this->matImage);
     this->bayer = bayer;
@@ -152,25 +153,20 @@ void RMat::calcStats()
     /// These params depend on the instrument's sensor (different bit depths).
 
     int matType = matImage.type();
+    /// Histogram bin counts
+
     if (instrument == instruments::USET)
     {
         dataRange = 4096.0f;
         normalizeRange = 4096.0f;
         maxHistRange = 4095.0f;
     }
-    else if (instrument == instruments::DSLR && (matType != CV_32F))
+    else if (instrument == instruments::DSLR)
     {
         // DSLRs like Canon EOS are typically 14-bit sensors = 16384
         dataRange = 16384.0f;
         normalizeRange = 16384.0f;
         maxHistRange = 16383.0f;
-    }
-    else if (instrument == instruments::DSLR && (matType == CV_32F))
-    {
-        // DSLRs like Canon EOS are typically 14-bit sensors = 16384
-        dataRange = (float) (dataMax - dataMin);
-        normalizeRange = 16384.0f;
-        maxHistRange = (float) dataMax;
     }
     else if (matType == CV_16U || matType == CV_16UC3)
     {
@@ -198,7 +194,8 @@ void RMat::calcStats()
         maxHistRange = (float) dataMax;
     }
 
-    minHistRange = (float) dataMin;
+    // The histogram may start from negative values, so the minimum may not always be 0;
+    minHistRange = std::min(0.0f, (float) dataMin) ;
 
 
     cv::Scalar meanScalar;
@@ -208,16 +205,21 @@ void RMat::calcStats()
     stdDev = (float) stdDevScalar.val[0];
     nPixels = (uint) matImage.cols * matImage.rows;
 
-    /// Histogram bin counts
-    int nBins = 256;
+
 
     // Get histogram
-    computeHist(nBins, minHistRange, maxHistRange + 1);
+    int nBins = (int) dataRange;
+    std::cout << "Calculating histogram..." << std::endl;
+    std::cout << "minHistRange = " << minHistRange << std::endl;
+    std::cout << "maxHistRange = " << maxHistRange << std::endl;
+    computeHist(nBins, minHistRange, maxHistRange);
+    histWidth = (maxHistRange - minHistRange)/(double) (nBins);
+
    // Calculate median
     median = calcMedian();
-
-    histWidth = (maxHistRange - minHistRange)/(double) (nBins -1);
-
+    std::cout << "Median = " << median << std::endl;
+    float median2 = calcThreshold(50.0f, histWidth, minHistRange);
+    std::cout << "Median2 = " << median2 << std::endl;
     /// Define percentiles for the low and high thresholds
     /// i.e, pertcentage of pixels below the lowest intensity
     /// and above the highest intensity
@@ -259,13 +261,22 @@ void RMat::calcMinMax()
 
 float RMat::calcMedian()
 {
+    std::cout << "Calculating median..." << std::endl;
     float cdf = 0;
     int nBins = matHist.rows;
+    std::cout << "nBins = " << nBins << std::endl;
+
     float medianLimit = std::round((float)nBins/2.0f);
+    std::cout << "medianLimit = " << medianLimit << std::endl;
 
     float medianVal = -1;
-    for (int i = 1; i < nBins && medianVal < 0.0; i++){
+    for (int i = 1; i < nBins && medianVal < 0.0; i++)
+    {
         cdf += matHist.at<float>(i);
+
+        QString qs = QString("cdf(i=%1) = %2").arg(i).arg(cdf);
+        std::cout << qs.toStdString() << std::endl;
+
         if (cdf > medianLimit) { medianVal = i;}
     }
 

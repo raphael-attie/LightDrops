@@ -195,7 +195,7 @@ void ROpenGLWidget::prepImage()
         // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
         // Since FITS images uses the same coordinate frame as the openGL viewport,
         // it is necessary to flip the DSLR images up-side down.
-        if (rMatImageList.at(ii)->getInstrument() == instruments::DSLR || rMatImageList.at(ii)->flip)
+        if (rMatImageList.at(ii)->flipUD)
         {
             // Because of this we are cloning the image above.
             // One should use instead the viewport or opengl tricks?

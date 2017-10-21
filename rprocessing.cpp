@@ -199,12 +199,14 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
     /// UPDATE: I realize a bit late that I made a very stupid mistake with this, because of the flat-fielding.
     /// The flat-fielding change the image to floating points with a completely different range of values.
     /// Converting to integers without any other modification will totally mess up the image.
-    /// I could stick to floating points in FITS but ultimately I need to convert to TIFF imposes to restore the dynamic.
-    /// That dynamic depends on the instrument
-    /// If the image is stacked, it gains precision. If it is e.g originally a 12 bit image, then stretching the image linearly
+    /// I could stick to floating points in FITS but ultimately I need to convert to TIFF so must restore a range of integers
+    /// That range depends on the instrument. 14 bits, 16 bits, etc...
+    /// If the image is stacked, it gains precision. If it is e.g originally a 14 bit image, then stretching the image linearly
     /// so it fits within 16-bit/channel should be reasonnable.
     /// But then... when do I do it. What values do I choose when stretching?...
     /// I need revisit the flat-fielding operation to make things more rigourous.
+    /// UPDATE2: The flat fielding makes much more sense now, as it gives me much more natural colors without
+    /// touching any of the r,g,b white balance values. And the range is restored.
     if (rMatImage->isBayer())
     {
         cv::Mat tempImage16;
@@ -233,8 +235,10 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         return;
     }
 
-    // Write header BAYER keyword
+    // Write BAYER keyword
     fits_write_key(fptr, TLOGICAL, keyname, &bayer, NULL, &status);
+    // Write flipUD keyword
+    fits_write_key(fptr, TLOGICAL, "FLIPUD", &rMatImage->flipUD, NULL, &status);
 
     if (rMatImage->getInstrument() == instruments::USET)
     {
@@ -271,6 +275,7 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
 
     // Close the file
     fits_close_file(fptr, &status);
+
 }
 
 void RProcessing::batchExportToFits(QList<QUrl> urls, QString exportDir)
@@ -816,7 +821,8 @@ RMat* RProcessing::average(QList<RMat*> rMatList)
 
     /// Need to create a Mat image that will host the result of the average.
     /// It needs to be the same type, and has the number of channels as the Mat images of the series.
-    cv::Mat avgImg = cv::Mat::zeros(naxis2, naxis1, CV_32F);
+    cv::Mat avgImg = cv::Mat::zeros(naxis2, naxis1, rMatList.at(0)->matImage.type());
+    avgImg.convertTo(avgImg, CV_32F);
 
     for(int i = 0; i < rMatList.size(); i++)
     {
@@ -2139,6 +2145,7 @@ void RProcessing::calibrate()
 
         if (masterDark!=NULL )
         {
+            std::cout << "Subtracting Dark..." << std::endl;
             if (masterDark->matImage.type() != CV_32F)
             {
                 masterDark->matImage.convertTo(masterDark->matImage, CV_32F);
@@ -2156,12 +2163,22 @@ void RProcessing::calibrate()
 
         if (masterFlat != NULL)
         {
+            std::cout << "Flat fielding..." << std::endl;
             if (masterFlat->matImage.type() != CV_32F)
             {
-                masterFlat->matImage.convertTo(masterFlat->matImage, CV_32F);
+                std::cout << "Converting Flat to CV_32F..." << std::endl;
+                masterFlat->matImage.convertTo(masterFlat->matImage, CV_32F);              
             }
             /// Flat fielding needs also to have at least the bias removed.
-            //cv::subtract(masterFlatN->matImage, masterBias->matImage, masterFlatN->matImage);
+            if (masterBias !=NULL)
+            {
+                if (masterBias->matImage.type() != CV_32F)
+                {
+                    masterBias->matImage.convertTo(masterBias->matImage, CV_32F);
+                }
+                std::cout << "Subtracking Bias to Flat..." << std::endl;
+                cv::subtract(masterFlat->matImage, masterBias->matImage, masterFlat->matImage);
+            }
 
             /// A flat field completely modify the range of the image.
             /// We could restore that range and continue treating the image with an integral type
@@ -2181,15 +2198,13 @@ void RProcessing::calibrate()
 
         /// Copy the result into the list.
         /// This may be an overkill. We could output directly into the elements of the list
-        resultList << new RMat(lightMat, lightManager.getRMatImage()->isBayer(), instruments::generic, lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());
-        resultList.at(i)->flip = lightManager.getRMatImage()->flip;
+        resultList << new RMat(lightMat, lightManager.getRMatImage()->isBayer(), instruments::generic, lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());  
+        resultList.at(i)->flipUD = lightManager.getRMatImage()->flipUD;
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
         resultList.at(i)->setFileInfo(lightManager.getRMatImage()->getFileInfo());
         showMinMax(resultList.at(i)->matImageGray);
     }
-    /// We can assign the result as the rMatLightList since the processing is off-screen,
-    /// and thus we do not overwrite anything.
 
 }
 
@@ -3987,12 +4002,7 @@ RMat *RProcessing::normalizeToXposure(RMat *rMat)
     normalizedRMat->setImageTitle(QString("Normalized image "));
     normalizedRMat->setDate_time(rMat->getDate_time());
     normalizedRMat->setSOLAR_R(rMat->getSOLAR_R());
-
-    // If original image was DSLR, it is now 32F and thus becomes generic. Yet it must still be flipped like DSLR, if it was such.
-    if (rMat->getInstrument() == instruments::DSLR)
-    {
-        normalizedRMat->flip = true;
-    }
+    normalizedRMat->flipUD = rMat->flipUD;
 
     return normalizedRMat;
 }
@@ -4641,6 +4651,7 @@ QList<RMat*> RProcessing::wSolarColorizeSeries(QList<RMat *> rMatImageList, char
 
     return rMat8BitList;
 }
+
 
 
 

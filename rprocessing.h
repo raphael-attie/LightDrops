@@ -209,8 +209,6 @@ public:
     cv::Mat wSolarColorize(cv::Mat matImage, char filter);
     QList<RMat*> wSolarColorizeSeries(QList<RMat*> rMatImageList, char filter);
 
-
-
 signals:
 
    void resultSignal(RMat* rMatResult);

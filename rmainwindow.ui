@@ -92,13 +92,13 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>1516</width>
+     <width>1522</width>
      <height>182</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
-     <width>2500</width>
+     <width>1920</width>
      <height>182</height>
     </size>
    </property>
@@ -117,13 +117,13 @@
    <widget class="QWidget" name="dockWidgetContents_2">
     <property name="minimumSize">
      <size>
-      <width>0</width>
+      <width>1000</width>
       <height>160</height>
      </size>
     </property>
     <property name="maximumSize">
      <size>
-      <width>16777215</width>
+      <width>1920</width>
       <height>160</height>
      </size>
     </property>
@@ -145,13 +145,13 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>100</height>
+         <height>130</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>1200</width>
-         <height>130</height>
+         <width>2000</width>
+         <height>140</height>
         </size>
        </property>
        <property name="tabPosition">
@@ -194,6 +194,12 @@
            </item>
            <item row="0" column="1">
             <widget class="QSlider" name="sliderHigh">
+             <property name="maximumSize">
+              <size>
+               <width>1900</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="minimum">
               <number>1</number>
              </property>
@@ -1151,6 +1157,47 @@
            </item>
           </layout>
          </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_4">
+           <property name="maximumSize">
+            <size>
+             <width>60</width>
+             <height>140</height>
+            </size>
+           </property>
+           <property name="title">
+            <string>Binning</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_19">
+            <property name="leftMargin">
+             <number>5</number>
+            </property>
+            <property name="topMargin">
+             <number>5</number>
+            </property>
+            <property name="rightMargin">
+             <number>5</number>
+            </property>
+            <property name="bottomMargin">
+             <number>5</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="binning2PButton">
+              <property name="text">
+               <string>2x2</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="binning4PButton">
+              <property name="text">
+               <string>4x4</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
         </layout>
        </widget>
        <widget class="QWidget" name="exportTab">
@@ -1387,42 +1434,138 @@
       </widget>
      </item>
      <item>
-      <widget class="QGroupBox" name="groupBox_4">
+      <widget class="QGroupBox" name="statGroupBox">
+       <property name="minimumSize">
+        <size>
+         <width>120</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="maximumSize">
         <size>
-         <width>60</width>
+         <width>100</width>
          <height>140</height>
         </size>
        </property>
        <property name="title">
-        <string>Binning</string>
+        <string>Stats</string>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_19">
+       <layout class="QVBoxLayout" name="verticalLayout_21">
         <property name="leftMargin">
-         <number>5</number>
+         <number>4</number>
         </property>
         <property name="topMargin">
-         <number>5</number>
+         <number>2</number>
         </property>
         <property name="rightMargin">
-         <number>5</number>
+         <number>4</number>
         </property>
         <property name="bottomMargin">
-         <number>5</number>
+         <number>2</number>
         </property>
         <item>
-         <widget class="QPushButton" name="binning2PButton">
-          <property name="text">
-           <string>2x2</string>
+         <layout class="QFormLayout" name="formLayout_2">
+          <property name="formAlignment">
+           <set>Qt::AlignCenter</set>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="binning4PButton">
-          <property name="text">
-           <string>4x4</string>
+          <property name="topMargin">
+           <number>0</number>
           </property>
-         </widget>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_28">
+            <property name="text">
+             <string>Min:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="minStatLabel">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_31">
+            <property name="text">
+             <string>Max:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="maxStatLabel">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_33">
+            <property name="text">
+             <string>Mean:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="meanStatLabel">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_35">
+            <property name="text">
+             <string>Sigma:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="sigmaStatLabel">
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_29">
+            <property name="text">
+             <string>Median:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="medianStatLabel">
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -1470,19 +1613,6 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QRadioButton" name="biasRButton">
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Bias</string>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="0">
          <widget class="QRadioButton" name="darkRButton">
           <property name="maximumSize">
@@ -1509,6 +1639,19 @@
           </property>
           <property name="checked">
            <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QRadioButton" name="biasRButton">
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Bias</string>
           </property>
          </widget>
         </item>

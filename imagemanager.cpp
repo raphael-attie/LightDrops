@@ -109,7 +109,7 @@ void ImageManager::loadFits()
     else if (newFitsImage->getKeyValues().contains(QString("DSLR")))
     {
         instrument = instruments::DSLR;
-        rMatImage->flip = true;
+        rMatImage->flipUD = true;
     }
     else if (rMatImage->getDataMin() < -100.0)
     {
@@ -120,6 +120,20 @@ void ImageManager::loadFits()
         instrument = instruments::generic;
     }
     rMatImage->setInstrument(instrument);
+
+    if (newFitsImage->getKeyNames().contains(QString("FLIPUD")))
+    {
+        int keyInd = newFitsImage->getKeyNames().indexOf("FLIPUD");
+        if (newFitsImage->getKeyValues().at(keyInd).toStdString() == "T")
+        {
+            rMatImage->flipUD = true;
+        }
+        else
+        {
+            rMatImage->flipUD = false;
+        }
+
+    }
 
     if (newFitsImage->getKeyNames().contains(QString("SOLAR_R")))
     {
@@ -175,9 +189,11 @@ void ImageManager::loadRaw()
     newRawImage = new RawImage(filePathQStr);
     //newRawImage = new RawImage2();
     rMatImage = new RMat(newRawImage->getMatCFA(), true, instruments::DSLR);
+    rMatImage->flipUD = true;
     rMatImage->setTEMP(newRawImage->getTEMP());
     rMatImage->setXPOSURE(newRawImage->getXPOSURE());
     nKeys = newRawImage->getKeyNames().size();
+
 
 //    rMatImage->setWbRed(newRawImage->getWbRed());
 //    rMatImage->setWbGreen(newRawImage->getWbGreen());

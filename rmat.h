@@ -42,7 +42,7 @@ public:
 
     // Used to know when to flip image upside down
     // Yeah I know, it's disgusting... but i'm tired!
-    bool flip;
+    bool flipUD;
 
 
     // getters

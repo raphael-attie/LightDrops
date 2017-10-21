@@ -301,7 +301,7 @@ void RawImage::extractExif()
     dispatchMetaDatum("DATE", dt.toString("MMMM d yyyy hh:mm:ss t"));
     dispatchMetaDatum("NAXIS1", QString::number(rawProcess->imgdata.sizes.width), "Image width (px)");
     dispatchMetaDatum("NAXIS2", QString::number(rawProcess->imgdata.sizes.height), "Image height (px)");
-    dispatchMetaDatum("Flip", QString::number(rawProcess->imgdata.sizes.flip), "0: 0 deg; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW");
+    dispatchMetaDatum("flip", QString::number(rawProcess->imgdata.sizes.flip), "0: 0 deg; 3: 180 deg; 5: 90 deg CCW; 6: 90 deg CW");
     dispatchMetaDatum("Order", QString::number(rawProcess->imgdata.other.shot_order), "Shot ordered number");
     dispatchMetaDatum("ISO", QString::number(rawProcess->imgdata.other.iso_speed));
     dispatchMetaDatum("XPOSURE", QString::number(rawProcess->imgdata.other.shutter), "Exposure time (s)");

@@ -526,6 +526,14 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
 
     connect(rOpenGLWidget, SIGNAL(gotSelected(ROpenGLWidget*)), this, SLOT(changeROpenGLWidget(ROpenGLWidget*)));
     connect(rOpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
+
+    // Update stats
+    ui->minStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getDataMin()));
+    ui->maxStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getDataMax()));
+    ui->meanStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getMean()));
+    ui->sigmaStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getStdDev()));
+    ui->medianStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getMedian()));
+
 }
 
 
@@ -1827,7 +1835,8 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
         ui->actionHeader->setChecked(false);
     }
 
-
+    // Update stats
+    ui->minStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getDataMin()));
 
 }
 
@@ -1933,6 +1942,7 @@ void RMainWindow::exportFramesToFits()
     }
 
     processing->exportFramesToFits(currentROpenGLWidget->getRMatImageList(), exportDir, ui->baseNameCheckBox->isChecked());
+    tempMessageSignal(QString("Files exported."), 0);
 }
 
 void RMainWindow::exportFramesToJpeg()
