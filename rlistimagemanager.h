@@ -23,6 +23,9 @@ public:
     QList<QTableWidget*> getTableWidgetList() const;
     QList<RMat*> getRMatImageList();
 
+    QVector<double> getMeanSeries() const;
+
+
 private:
 
     void cleanLists();

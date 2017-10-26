@@ -420,6 +420,10 @@ void RProcessing::loadMasterBias()
     ImageManager imageManager(masterBiasUrl);
 
     masterBias = new RMat(*imageManager.getRMatImage());
+    if (masterBias->matImage.type() != CV_32F)
+    {
+        masterBias->matImage.convertTo(masterBias->matImage, CV_32F);
+    }
 }
 
 void RProcessing::loadMasterDark()
@@ -448,6 +452,10 @@ void RProcessing::loadMasterDark()
     ImageManager imageManager(masterDarkUrl);
 
     masterDark = new RMat(*imageManager.getRMatImage());
+    if (masterDark->matImage.type() != CV_32F)
+    {
+        masterDark->matImage.convertTo(masterDark->matImage, CV_32F);
+    }
 
 }
 
@@ -477,10 +485,10 @@ void RProcessing::loadMasterFlat()
 
     masterFlat = new RMat(*imageManager.getRMatImage());
 
-    //normalizeFlat();
-    qDebug("RProcessing::loadMasterFlat():: min / max of normalized flat:");
-    //showMinMax(masterFlat->matImage);
-    //emit resultSignal(masterFlatN);
+    if (masterFlat->matImage.type() != CV_32F)
+    {
+        masterFlat->matImage.convertTo(masterFlat->matImage, CV_32F);
+    }
 }
 
 void RProcessing::showMinMax(const cv::Mat &matImage)
@@ -2099,6 +2107,13 @@ void RProcessing::calibrateOffScreen()
     {
         std::cout << "Loading master Flat..." << std::endl;
         loadMasterFlat();
+
+        /// Flat fielding needs also to have at least the bias removed.
+        if (masterBias !=NULL)
+        {
+            std::cout << "Subtracking Bias to Flat..." << std::endl;
+            cv::subtract(masterFlat->matImage, masterBias->matImage, masterFlat->matImage);
+        }
     }
 
 //    for (int i = 0 ; i < treeWidget->getLightUrls().size() ; i++)
@@ -2146,40 +2161,16 @@ void RProcessing::calibrate()
         if (masterDark!=NULL )
         {
             std::cout << "Subtracting Dark..." << std::endl;
-            if (masterDark->matImage.type() != CV_32F)
-            {
-                masterDark->matImage.convertTo(masterDark->matImage, CV_32F);
-            }
             cv::subtract(lightMat, masterDark->matImage, lightMat);
         }
         else if (masterBias != NULL)
         {
-            if (masterBias->matImage.type() != CV_32F)
-            {
-                masterBias->matImage.convertTo(masterBias->matImage, CV_32F);
-            }
             cv::subtract(lightMat, masterBias->matImage, lightMat);
         }
 
         if (masterFlat != NULL)
         {
             std::cout << "Flat fielding..." << std::endl;
-            if (masterFlat->matImage.type() != CV_32F)
-            {
-                std::cout << "Converting Flat to CV_32F..." << std::endl;
-                masterFlat->matImage.convertTo(masterFlat->matImage, CV_32F);              
-            }
-            /// Flat fielding needs also to have at least the bias removed.
-            if (masterBias !=NULL)
-            {
-                if (masterBias->matImage.type() != CV_32F)
-                {
-                    masterBias->matImage.convertTo(masterBias->matImage, CV_32F);
-                }
-                std::cout << "Subtracking Bias to Flat..." << std::endl;
-                cv::subtract(masterFlat->matImage, masterBias->matImage, masterFlat->matImage);
-            }
-
             /// A flat field completely modify the range of the image.
             /// We could restore that range and continue treating the image with an integral type
             /// or we could treat it as float as long as we stay consistent.

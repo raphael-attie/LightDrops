@@ -101,7 +101,9 @@ private slots:
     ///  Graphs
     void changeZoomAxisSlot();
     QVector<double> extractTemperatureFromSeries();
+    QVector<double> extractMeanFromSeries();
     void displayTemperatureSeries();
+    void displayMeanSeries();
     void plotData(QVector<double> data, QString xLabel, QString yLabel);
 
     // Processing
@@ -139,6 +141,9 @@ private slots:
     void increaseFps();
     void decreaseFps();
 
+    //Statistics
+    void updateStats(int frameNumber);
+
 
 
     void stopButtonPressed();
@@ -170,6 +175,8 @@ private slots:
     void on_actionSave_ROI_triggered();
 
     void on_actionClear_ROIs_triggered();
+
+    void on_actionplot_metadata_triggered();
 
 private:
 

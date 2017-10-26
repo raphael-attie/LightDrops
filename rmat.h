@@ -34,7 +34,7 @@ public:
     void prepImages();
     // Methods for getting some statistics
     void computeHist(int nBins, float minRange, float maxRange);
-    float calcMedian();
+    float calcMedian(double histWidth, float minRange);
     float calcThreshold(float cutOff, double histWidth, float minRange);
 
     void calcStats();

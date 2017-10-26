@@ -172,10 +172,16 @@ void RMat::calcStats()
     {
         dataRange = 65536.0f;
         normalizeRange = 65536.0f;
-        maxHistRange = 65535;
+        maxHistRange = 65535.0f;
     }
     else if (matType == CV_32F || matType == CV_32FC3)
     {
+        if (dataMin >= 0 && dataMax <= 1)
+        {
+            // Image is considered normalized. Restore positive integral values ranging over 16 bit
+            matImage = matImage * 65535.0f;
+            calcMinMax();
+        }
         dataRange = (float) (dataMax - dataMin);
         /// For normalization / contrast stretching
         /// we assume that no CCD will go beyond 16 bits
@@ -194,10 +200,6 @@ void RMat::calcStats()
         maxHistRange = (float) dataMax;
     }
 
-    // The histogram may start from negative values, so the minimum may not always be 0;
-    minHistRange = std::min(0.0f, (float) dataMin) ;
-
-
     cv::Scalar meanScalar;
     cv::Scalar stdDevScalar;
     cv::meanStdDev(matImageGray, meanScalar, stdDevScalar);
@@ -206,20 +208,20 @@ void RMat::calcStats()
     nPixels = (uint) matImage.cols * matImage.rows;
 
 
-
+    // The histogram may start from negative values, so the minimum may not always be 0;
+    minHistRange = std::min(0.0f, (float) dataMin) ;
     // Get histogram
     int nBins = (int) dataRange;
+    histWidth = (maxHistRange - minHistRange)/(double) (nBins);
     std::cout << "Calculating histogram..." << std::endl;
     std::cout << "minHistRange = " << minHistRange << std::endl;
     std::cout << "maxHistRange = " << maxHistRange << std::endl;
     computeHist(nBins, minHistRange, maxHistRange);
-    histWidth = (maxHistRange - minHistRange)/(double) (nBins);
 
    // Calculate median
-    median = calcMedian();
+    median = calcMedian(histWidth, minHistRange);
     std::cout << "Median = " << median << std::endl;
-    float median2 = calcThreshold(50.0f, histWidth, minHistRange);
-    std::cout << "Median2 = " << median2 << std::endl;
+
     /// Define percentiles for the low and high thresholds
     /// i.e, pertcentage of pixels below the lowest intensity
     /// and above the highest intensity
@@ -259,28 +261,29 @@ void RMat::calcMinMax()
 
 
 
-float RMat::calcMedian()
+float RMat::calcMedian(double histWidth, float minRange)
 {
-    std::cout << "Calculating median..." << std::endl;
-    float cdf = 0;
-    int nBins = matHist.rows;
-    std::cout << "nBins = " << nBins << std::endl;
+//    std::cout << "Calculating median..." << std::endl;
+//    float cdf = 0;
+//    int nBins = matHist.rows;
+//    std::cout << "nBins = " << nBins << std::endl;
 
-    float medianLimit = std::round((float)nBins/2.0f);
-    std::cout << "medianLimit = " << medianLimit << std::endl;
+//    float medianLimit = std::round((float)nBins/2.0f);
+//    std::cout << "medianLimit = " << medianLimit << std::endl;
 
-    float medianVal = -1;
-    for (int i = 1; i < nBins && medianVal < 0.0; i++)
-    {
-        cdf += matHist.at<float>(i);
+//    float medianVal = -1;
+//    for (int i = 1; i < nBins && medianVal < 0.0; i++)
+//    {
+//        cdf += matHist.at<float>(i);
 
-        QString qs = QString("cdf(i=%1) = %2").arg(i).arg(cdf);
-        std::cout << qs.toStdString() << std::endl;
+//        QString qs = QString("cdf(i=%1) = %2").arg(i).arg(cdf);
+//        std::cout << qs.toStdString() << std::endl;
 
-        if (cdf > medianLimit) { medianVal = i;}
-    }
+//        if (cdf > medianLimit) { medianVal = i;}
+//    }
+    float median = calcThreshold(50.0f, histWidth, minRange);
 
-    return medianVal;
+    return median;
 }
 
 float RMat::calcThreshold(float cutOff, double histWidth, float minRange)

@@ -528,12 +528,7 @@ void RMainWindow::addImage(ROpenGLWidget *rOpenGLWidget)
     connect(rOpenGLWidget, SIGNAL(sendSubQImage(QImage*,float,int,int)), this, SLOT(updateSubFrame(QImage*,float,int,int)));
 
     // Update stats
-    ui->minStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getDataMin()));
-    ui->maxStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getDataMax()));
-    ui->meanStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getMean()));
-    ui->sigmaStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getStdDev()));
-    ui->medianStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(0)->getMedian()));
-
+    updateStats(0);
 }
 
 
@@ -700,20 +695,31 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     ui->limbSliderHigh->blockSignals(true);
     ui->limbSliderLow->blockSignals(true);
 
+    int sliderMax = ui->sliderHigh->maximum();
+    int sliderMin = ui->sliderHigh->minimum();
+    sliderRange = sliderMax - sliderMin + 1;
+//    ui->sliderHigh->setRange(sliderMin, sliderMax);
+//    ui->sliderLow->setRange(sliderMin, sliderMax);
+
+    float dataMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
+    float dataMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
+    // Affine equation y = p + s*x (y: scaled value, s: slope, p:intercept, x: slider value)
+    // <=>   scaledValue = sliderToScaleMininum + sliderScale * "slider Value"
+    // Slope:
+    sliderScale = (float) (dataMax - dataMin) / (sliderMax - sliderMin);
+    // Intercept:
+    sliderToScaleMinimum = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataMin() - sliderScale*sliderMin;
 
     if ( rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::DSLR &&
         (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32F && rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32FC3) )
     {
         //sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange();
-        sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getMaxHistRange();
-        ui->sliderHigh->setRange(1, sliderRange);
-        ui->sliderLow->setRange(1, sliderRange);
+        //sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getMaxHistRange();
+//        ui->sliderHigh->setRange(1, sliderRange);
+//        ui->sliderLow->setRange(1, sliderRange);
 
         ui->limbSliderHigh->setRange(1, sliderRange);
         ui->limbSliderLow->setRange(1, sliderRange);
-
-        sliderScale = 1.0;
-        sliderToScaleMinimum = 0;
 
         limbSliderScale = 1.0;
         limbSliderToScaleMinimum = 0;
@@ -723,17 +729,18 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     {
         /// Here the image is assumed to be seen as scientific data
         /// for which scaling needs to be tightly set around the min and max
-        /// so we can scan through with maximum dynamic range.
 
-        sliderRange = 65536;
-        ui->sliderHigh->setRange(1, sliderRange);
-        ui->sliderLow->setRange(1, sliderRange);
+        //sliderRange = 65536;
+//        ui->sliderHigh->setRange(1, sliderRange);
+//        ui->sliderLow->setRange(1, sliderRange);
 
-        float dataMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
-        float dataMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
-        float dataRange = dataMax - dataMin;
-        sliderScale = (float) dataRange / sliderRange;
-        sliderToScaleMinimum = dataMin;
+//        float dataMax = rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
+//        float dataMin = rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
+//        float dataRange = dataMax - dataMin;
+//        sliderScale = (float) dataRange / sliderRange;
+//        sliderToScaleMinimum = dataMin;
+
+
 
         limbSliderScale = 1.0;
         limbSliderToScaleMinimum = dataMin;
@@ -1747,9 +1754,29 @@ float RMainWindow::convertSliderToScale(int value)
         qDebug("currentROpenGLWidget is NULL.");
         return (float) scaledValue;
     }
-    scaledValue = sliderToScaleMinimum + sliderScale * ((float) (value-1)) ;
+    scaledValue = sliderToScaleMinimum + sliderScale * ((float) value) ;
     qDebug("RMainWindow::convertSliderToScale:: sliderToScaleMinimum = %f ; sliderScale = %f ; value = %i ; scaledValue = %f", sliderToScaleMinimum, sliderScale, value, scaledValue);
     return scaledValue;
+}
+
+int RMainWindow::convertScaleToSlider(float valueF)
+{
+
+    int sliderValue = 1;
+
+    if (currentROpenGLWidget->getRMatImageList().empty())
+    {
+        qDebug("currentROpenGLWidget->getRMatImageList() is empty.");
+        return sliderValue;
+    }
+
+
+    sliderValue = (int) std::round((valueF - sliderToScaleMinimum)/sliderScale);
+    // If the slider Value is greater than the range of the slider, it is ignored instead of clipped.
+    // So we need to clip to the max value of the slider which is the slider range.
+    //sliderValue = std::min(sliderValue, ui->sliderHigh->maximum());
+
+    return sliderValue;
 }
 
 float RMainWindow::convertLimbSliderToScale(int value)
@@ -1766,23 +1793,7 @@ float RMainWindow::convertLimbSliderToScale(int value)
 }
 
 
-int RMainWindow::convertScaleToSlider(float valueF)
-{
 
-    int sliderValue = 1;
-
-    if (currentROpenGLWidget->getRMatImageList().empty())
-    {
-        qDebug("currentROpenGLWidget->getRMatImageList() is empty.");
-        return sliderValue;
-    }
-
-    // If the slider Value is greater than the range of the slider, it is ignored instead of clipped.
-    // So we need to clip to the max value of the slider which is the slider range.
-    sliderValue = (int) std::min(std::round((valueF - sliderToScaleMinimum)/sliderScale) + 1, sliderRange);
-
-    return sliderValue;
-}
 
 float RMainWindow::convertSliderToGamma(int value)
 {
@@ -1836,7 +1847,7 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
     }
 
     // Update stats
-    ui->minStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getDataMin()));
+    updateStats(frameIndex);
 
 }
 
@@ -1853,7 +1864,11 @@ void RMainWindow::updateFrameInSeries(int frameIndex)
     ui->mdiArea->currentSubWindow()->setWindowTitle(currentROpenGLWidget->getRMatImageList().at(frameIndex)->getImageTitle() + QString(" #%1 ").arg(frameIndex+1));
     displayPlotWidget(currentROpenGLWidget);
 
+    // Update stats
+    updateStats(frameIndex);
+
     this->frameIndex = frameIndex;
+
 
 }
 
@@ -2137,10 +2152,23 @@ QVector<double> RMainWindow::extractTemperatureFromSeries()
     return temperatureSeries;
 }
 
+QVector<double> RMainWindow::extractMeanFromSeries()
+{
+    QVector<double> meanSeries = currentROpenGLWidget->getRListImageManager()->getMeanSeries();
+    return meanSeries;
+}
+
 void RMainWindow::displayTemperatureSeries()
 {
     QVector<double> temperatureSeries = extractTemperatureFromSeries();
     plotData(temperatureSeries, QString("Frame #"), QString("Temperature (Celsius)"));
+}
+
+void RMainWindow::displayMeanSeries()
+{
+    QVector<double> meanSeries = extractMeanFromSeries();
+    plotData(meanSeries, QString("Frame #"), QString("Mean"));
+
 }
 
 void RMainWindow::plotData(QVector<double> data, QString xLabel, QString yLabel)
@@ -2159,6 +2187,21 @@ void RMainWindow::plotData(QVector<double> data, QString xLabel, QString yLabel)
         windowPos = plotSubWindow->pos();
     }
 
+    // Calculate mean and median (commented for now )
+
+    const auto mean = std::accumulate(data.begin(), data.end(), .0) / data.size();
+    double yRangeMin = (double) 0.9*mean;
+    double yRangeMax = (double) 1.1*mean;
+    std::cout << "mean = " << mean << std::endl;
+    std::cout << "yRangeMin = " << yRangeMin << std::endl;
+    std::cout << "yRangeMax = " << yRangeMin << std::endl;
+//    std::sort(data.begin(), data.end());
+//        const auto median = data.size()%2
+//            ? data[data.size() / 2]
+//            : ((double)data[data.size() / 2 - 1] + data[data.size() / 2]) * .5;
+
+
+
     QVector<double> x(data.size());
     for (int i = 0 ; i < data.size() ; ++i)
     {
@@ -2175,11 +2218,13 @@ void RMainWindow::plotData(QVector<double> data, QString xLabel, QString yLabel)
     customPlot->yAxis->setLabel(yLabel);
     customPlot->graph(0)->setData(x, data);
     customPlot->graph(0)->rescaleAxes();
-    customPlot->yAxis->setRange(10, 50);
+    customPlot->yAxis->setRange(yRangeMin, yRangeMax);
 
     // Allow the user to zoom in / zoom out and scroll horizontally
     customPlot->setInteraction(QCP::iRangeDrag, true);
     customPlot->setInteraction(QCP::iRangeZoom, true);
+    customPlot->axisRect(0)->setRangeDrag(Qt::Vertical);
+    customPlot->axisRect(0)->setRangeZoom(Qt::Vertical);
 
     plotSubWindow->setWidget(customPlot);
     if (addWindow)
@@ -2323,6 +2368,16 @@ void RMainWindow::decreaseFps()
 {
     int fps = std::max(1, ui->spinBoxFps->value() -5);
     ui->spinBoxFps->setValue(fps);
+}
+
+void RMainWindow::updateStats(int frameNumber)
+{
+    // Update stats
+    ui->minStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameNumber)->getDataMin()));
+    ui->maxStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameNumber)->getDataMax()));
+    ui->meanStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameNumber)->getMean()));
+    ui->sigmaStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameNumber)->getStdDev()));
+    ui->medianStatLabel->setText(QString::number(currentROpenGLWidget->getRMatImageList().at(frameNumber)->getMedian()));
 }
 
 void RMainWindow::stopButtonPressed()
@@ -2508,4 +2563,14 @@ void RMainWindow::on_actionClear_ROIs_triggered()
     currentROpenGLWidget->clearROIs();
     currentROpenGLWidget->update();
     currentSubWindow->update();
+}
+
+void RMainWindow::on_actionplot_metadata_triggered()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+
+    displayMeanSeries();
 }

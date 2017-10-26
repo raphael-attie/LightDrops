@@ -100,6 +100,18 @@ QList<RMat *> RListImageManager::getRMatImageList()
     return rMatImageList;
 }
 
+QVector<double> RListImageManager::getMeanSeries() const
+{
+    std::cout << "RListImageManager::getMeanSeries()" << std::endl;
+
+    QVector<double> meanSeries;
+    for (int i =0; i<rMatImageList.size(); i++)
+    {
+        meanSeries << (double) rMatImageList.at(i)->getMean();
+    }
+    return meanSeries;
+}
+
 void RListImageManager::cleanLists()
 {
     if (!imageManagerList.empty())
