@@ -436,9 +436,6 @@ void RProcessing::loadMasterDark()
     }
     else if (treeWidget->getDarkUrls().empty())
     {
-
-        qDebug("You need at least one Dark image in the calibration tree");
-        tempMessageSignal(QString("You need at least one Dark image in the calibration tree"));
         return;
     }
     else
@@ -469,8 +466,6 @@ void RProcessing::loadMasterFlat()
     }
     else if (treeWidget->getFlatUrls().empty())
     {
-        qDebug("You need at least one Flat image in the calibration tree");
-        tempMessageSignal(QString("You need at least one Flat image in the calibration tree"));
         return;
     }
     else
@@ -2090,31 +2085,23 @@ void RProcessing::calibrateOffScreen()
         resultList.clear();
     }
 
-    if (masterBias == NULL)
+    std::cout << "Loading master Bias..." << std::endl;
+    loadMasterBias();
+
+
+    std::cout << "Loading master Dark..." << std::endl;
+    loadMasterDark();
+
+    std::cout << "Loading master Flat..." << std::endl;
+    loadMasterFlat();
+
+    /// Flat fielding needs also to have at least the bias removed.
+    if (masterBias !=NULL)
     {
-        std::cout << "Loading master Bias..." << std::endl;
-        loadMasterBias();
+        std::cout << "Subtracking Bias to Flat..." << std::endl;
+        cv::subtract(masterFlat->matImage, masterBias->matImage, masterFlat->matImage);
     }
 
-    if (masterDark == NULL)
-    {
-        std::cout << "Loading master Dark..." << std::endl;
-        loadMasterDark();
-    }
-
-
-    if (masterFlat == NULL)
-    {
-        std::cout << "Loading master Flat..." << std::endl;
-        loadMasterFlat();
-
-        /// Flat fielding needs also to have at least the bias removed.
-        if (masterBias !=NULL)
-        {
-            std::cout << "Subtracking Bias to Flat..." << std::endl;
-            cv::subtract(masterFlat->matImage, masterBias->matImage, masterFlat->matImage);
-        }
-    }
 
 //    for (int i = 0 ; i < treeWidget->getLightUrls().size() ; i++)
 //    {

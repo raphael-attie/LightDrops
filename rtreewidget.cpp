@@ -4,11 +4,16 @@
 RTreeWidget::RTreeWidget(QWidget *parent) : QTreeWidget(parent)
 {
     lightItem = new QTreeWidgetItem(this, QStringList(tr("Light")));
+    lightItem->setFlags(Qt::ItemIsEnabled);
     biasItem = new QTreeWidgetItem(this, QStringList(tr("Bias")));
+    biasItem->setFlags(Qt::ItemIsEnabled);
     darkItem = new QTreeWidgetItem(this, QStringList(tr("Dark")));
+    darkItem->setFlags(Qt::ItemIsEnabled);
     flatItem = new QTreeWidgetItem(this, QStringList(tr("Flat")));
+    flatItem->setFlags(Qt::ItemIsEnabled);
 
 
+    setFocusPolicy(Qt::ClickFocus);
 }
 
 void RTreeWidget::dragEnterEvent(QDragEnterEvent *event)
@@ -40,6 +45,40 @@ void RTreeWidget::dropEvent(QDropEvent *event)
     QTreeWidgetItem *parentItem = itemFromIndex(index);
 
     dispatchUrls(parentItem, urls);
+}
+
+void RTreeWidget::keyPressEvent(QKeyEvent *key)
+{
+    if ( (key->key() == Qt::Key_Backspace) )
+    {
+        qDebug("Backspace was pressed");
+        if (currentItem()->parent() == biasItem)
+        {
+            biasUrls.removeAt(0);
+            removeItem(currentItem());
+        }
+        else if (currentItem()->parent() == darkItem)
+        {
+            darkUrls.removeAt(0);
+            removeItem(currentItem());
+
+        }
+        else if (currentItem()->parent() == flatItem)
+        {
+            flatUrls.removeAt(0);
+            removeItem(currentItem());
+        }
+        else
+        {
+            QTreeWidget::keyPressEvent(key);
+            return;
+        }
+
+    }
+    else
+    {
+        QTreeWidget::keyPressEvent(key);
+    }
 }
 
 void RTreeWidget::dispatchUrls(QTreeWidgetItem *parentItem, QList<QUrl> urls)
@@ -118,14 +157,37 @@ void RTreeWidget::rMatFromFlatRButton(QList<RMat*> rMatImageList)
 
 void RTreeWidget::removeItem(QTreeWidgetItem *treeItem)
 {
-    delete treeItem->parent()->takeChild(treeItem->parent()->indexOfChild(treeItem));
+    treeItem->parent()->removeChild(treeItem);
+}
+
+void RTreeWidget::cleanup(QList<RMat *> rMatImageList)
+{
+        for (int i=0; i<rMatImageList.size(); i++)
+        {
+            qDebug("Removing child from parent item");
+            QTreeWidgetItem *item = rMatImageList.at(i)->getItem();
+            QTreeWidgetItem *parent = item->parent();
+            parent->removeChild(rMatImageList.at(i)->getItem());
+            if (parent == lightItem)
+            {
+                // The URL should be unique in that list (if not, that's a user mistake and I need to prevent that.
+                // So let's see where the URL of the RMatImageList is (if any) and remove it from the lightUrls.
+                QUrl url = rMatImageList.at(i)->getUrl();
+                for (int j=0; j<lightUrls.size(); j++)
+                {
+                    if (url == lightUrls.at(j))
+                    {
+                        lightUrls.removeAt(j);
+                    }
+                }
+
+            }
+            qDebug("lightUrls.size() = %i", lightUrls.size());
+        }
 }
 
 void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageList)
 {
-    // This only add treeWidget items based on image titles.
-    // It does not populate a global list of urls. This has caused trouble in batch processing
-    // The images dropped in the QMdiArea aren't added to the list of urls!
     QList<QUrl> urls;
 
     for (int i = 0 ; i < rMatImageList.size() ; i++)
@@ -142,6 +204,7 @@ void RTreeWidget::addItems(QTreeWidgetItem *parentItem, QList<RMat*> rMatImageLi
         treeItem->setText(0, rMatImageList.at(i)->getImageTitle());
         rMatImageList[i]->setItem(treeItem);
 
+        /// Caveat: There may not be a URL. This only make sense if there's one.
         urls.append(rMatImageList.at(i)->getUrl());
 
     }

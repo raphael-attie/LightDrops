@@ -226,6 +226,8 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 //    createNewImage(matImageHPF, false, instruments::generic, QString("Filtered"));
 //    currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
     currentSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
+
+    connect(currentROpenGLWidget, SIGNAL(treeWidgetSignal(QList<RMat*>)), ui->treeWidget, SLOT(cleanup(QList<RMat*>)));
 }
 
 

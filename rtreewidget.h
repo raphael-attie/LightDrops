@@ -40,6 +40,7 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event);
     void dragMoveEvent(QDragMoveEvent *event);
     void dropEvent(QDropEvent *event);
+    void keyPressEvent(QKeyEvent *key);
 
 signals:
 
@@ -52,6 +53,7 @@ public slots:
     void rMatFromDarkRButton(QList<RMat*> rMatImageList);
     void rMatFromFlatRButton(QList<RMat*> rMatImageList);
     void removeItem(QTreeWidgetItem *treeItem);
+    void cleanup(QList<RMat*> rMatImageList);
 
 
 private:

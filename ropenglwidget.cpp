@@ -88,17 +88,20 @@ ROpenGLWidget::ROpenGLWidget(RMat *rMatImage, QWidget *parent)
 
 ROpenGLWidget::~ROpenGLWidget()
 {
+
+    emit treeWidgetSignal(rMatImageList);
     qDebug("ROpenGLWidget::~ROpenGLWidget() destructor");
     m_indexBuffer.destroy();
     m_vertexBuffer.destroy();
     m_vao.destroy();
 
-    for (int i=0; i<rMatImageList.size(); i++)
-    {
-        qDebug("Removing child from parent item");
-        QTreeWidgetItem *parent = rMatImageList.at(i)->getItem()->parent();
-        parent->removeChild(rMatImageList.at(i)->getItem());
-    }
+//    for (int i=0; i<rMatImageList.size(); i++)
+//    {
+//        qDebug("Removing child from parent item");
+//        QTreeWidgetItem *parent = rMatImageList.at(i)->getItem()->parent();
+//        parent->removeChild(rMatImageList.at(i)->getItem());
+
+//    }
 
     if (rListImageManager != NULL)
     {

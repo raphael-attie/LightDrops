@@ -142,6 +142,7 @@ signals:
     void roiSignal(QRect rect);
     void roiSignal(QList<QRect> rectList);
     void circleSignal(int circleX, int circleY, int circleRadius);
+    void treeWidgetSignal(QList<RMat*> rMatImageList);
 
 protected:
     void initializeGL();
