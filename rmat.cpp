@@ -75,11 +75,12 @@ RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float
 
 RMat::~RMat()
 {
-    if (item != NULL)
-    {
-        qDebug("RMat:: deleting item from QTreeWidget");
-        //item->~QTreeWidgetItem();
-    }
+//    if (item != NULL)
+//    {
+
+//        qDebug("RMat:: deleting item from QTreeWidget");
+//        //item->~QTreeWidgetItem();
+//    }
 }
 
 void RMat::prepImages()

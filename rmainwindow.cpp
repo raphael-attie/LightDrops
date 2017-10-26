@@ -191,8 +191,9 @@ void RMainWindow::dragMoveEvent(QDragMoveEvent *event)
 
 void RMainWindow::closeEvent(QCloseEvent *event)
 {
-    event->accept();
+
     ui->mdiArea->closeAllSubWindows();
+    event->accept();
 }
 
 void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
@@ -223,7 +224,8 @@ void RMainWindow::createNewImage(RListImageManager *newRListImageManager)
 //    cv::Mat matImage = currentROpenGLWidget->getRMatImageList().at(0)->matImage.clone();
 //    cv::Mat matImageHPF = processing->makeImageHPF(matImage, 30);
 //    createNewImage(matImageHPF, false, instruments::generic, QString("Filtered"));
-    //currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+//    currentROpenGLWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+    currentSubWindow->setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
 

@@ -93,15 +93,25 @@ ROpenGLWidget::~ROpenGLWidget()
     m_vertexBuffer.destroy();
     m_vao.destroy();
 
-    delete rListImageManager;
+    for (int i=0; i<rMatImageList.size(); i++)
+    {
+        qDebug("Removing child from parent item");
+        QTreeWidgetItem *parent = rMatImageList.at(i)->getItem()->parent();
+        parent->removeChild(rMatImageList.at(i)->getItem());
+    }
 
-    /// Deleting the rMatImageList below is causing a crash.
-    ///
-//    if (!rMatImageList.isEmpty())
-//    {
-//        qDeleteAll(rMatImageList);
-//        rMatImageList.clear();
-//    }
+    if (rListImageManager != NULL)
+    {
+        delete rListImageManager;
+    }
+    else
+    {
+        /// Deleting the rMatImageList below is causing a crash.
+        ///
+        qDeleteAll(rMatImageList);
+        rMatImageList.clear();
+    }
+
 
 }
 
@@ -700,6 +710,7 @@ void ROpenGLWidget::mouseReleaseEvent(QMouseEvent *event)
     qDebug("FOV image coordinates (imageCoordX, imageCoordY) = (%i, %i)", imageCoordX, imageCoordY);
 }
 
+
 void ROpenGLWidget::setupTableWidget(int value)
 {
     if (rMatImageList.empty())
@@ -765,6 +776,8 @@ void ROpenGLWidget::wheelEvent(QWheelEvent *wheelEvent)
     }
 
 }
+
+
 
 void ROpenGLWidget::initSubQImage()
 {
