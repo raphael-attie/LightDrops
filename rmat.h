@@ -20,8 +20,9 @@ class RMat
 {
 public:
     RMat();
-    RMat(RMat const& rMat);
     RMat(cv::Mat mat);
+    RMat(RMat const& rMat);
+    RMat(cv::Mat mat, RMat const& rMat);
     RMat(cv::Mat mat, bool bayer);
     RMat(cv::Mat mat, bool bayer, instruments instrument);
     RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP);
@@ -31,6 +32,7 @@ public:
     cv::Mat matImageGray;
     cv::Mat matImageRGB;
 
+    void initialize();
     void prepImages();
     // Methods for getting some statistics
     void computeHist(int nBins, float minRange, float maxRange);

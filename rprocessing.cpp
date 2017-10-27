@@ -13,9 +13,9 @@
 #include "typedefs.h"
 
 RProcessing::RProcessing(QObject *parent): QObject(parent),
-    masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useROI(false), useXCorr(false),
-    radius(0), radius1(0), radius2(0), radius3(0), meanRadius(0), masterWithMean(true), masterWithSigmaClip(false), stackWithMean(true),
-    stackWithSigmaClip(false), blkSize(32), binning(2), maskCircleX(0), maskCircleY(0), maskCircleRadius(0), useUrlsFromTreeWidget(false)
+    masterBias(NULL), masterDark(NULL), masterFlat(NULL), masterFlatN(NULL), stackedRMat(NULL), useUrlsFromTreeWidget(false), useXCorr(false),
+    masterWithMean(true), masterWithSigmaClip(false), stackWithMean(true), stackWithSigmaClip(false), radius(0), radius1(0), radius2(0), radius3(0), meanRadius(0),
+    useROI(false), maskCircleX(0), maskCircleY(0), maskCircleRadius(0), blkSize(32), binning(2)
 {
     listImageManager = new RListImageManager();
 }
@@ -256,14 +256,9 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         char keyValueTelescop[] = "DSLR";
         fits_write_key(fptr, TSTRING, keyNameTelescop, keyValueTelescop, NULL, &status);
 
-        char keyNameXPOSURE[] = "XPOSURE";
-        float keyValueXPOSURE = rMatImage->getXPOSURE();
-        fits_write_key(fptr, TFLOAT, keyNameXPOSURE, &keyValueXPOSURE, NULL, &status);
-
         char keyNameTEMP[] = "TEMP";
         float keyValueTEMP = rMatImage->getTEMP();
         fits_write_key(fptr, TFLOAT, keyNameTEMP, &keyValueTEMP, NULL, &status);
-
     }
     else
     {
@@ -271,6 +266,13 @@ void RProcessing::exportToFits(RMat *rMatImage, QString QStrFilename)
         char keyValueTelescop[] = "UNDEFINED";
         fits_write_key(fptr, TSTRING, keyNameTelescop, keyValueTelescop, NULL, &status);
     }
+
+    char keyNameXPOSURE[] = "XPOSURE";
+    float keyValueXPOSURE = rMatImage->getXPOSURE();
+    fits_write_key(fptr, TFLOAT, keyNameXPOSURE, &keyValueXPOSURE, NULL, &status);
+    char keyNameEXPTIME[] = "EXPTIME";
+    float keyValueEXPTIME = rMatImage->getExpTime();
+    fits_write_key(fptr, TFLOAT, keyNameEXPTIME, &keyValueEXPTIME, NULL, &status);
 
 
     // Close the file
@@ -524,7 +526,7 @@ float RProcessing::calcMedian(std::vector<float> data, float width)
 
     float cdf = 0;
     int totalCounts = data.size();
-    float medianVal;
+    float medianVal = 0;
 
     for (int i = 1; i < nBins ; i++)
     {
@@ -857,7 +859,7 @@ RMat *RProcessing::sigmaClipAverage(QList<RMat*> rMatImageList)
 //        tempArray(af::span, af::span, 1) = 0;
 
     /// Get sigma coefficient from sigmaEdit
-    float sigmaFactor = 1.0f;
+//    float sigmaFactor = 1.0f;
     int naxis2 = rMatImageList.at(0)->matImage.rows;
     int naxis1 = rMatImageList.at(0)->matImage.cols;
     int nFrames = rMatImageList.size();
@@ -1126,11 +1128,11 @@ void RProcessing::blockProcessingLocal(QList<RMat*> rMatImageList)
     /// Calculate number of blocks in the binned image. There must be enough block to cover the whole image, considering an overlap of 50%;
     int blkSize = 32;
     int blkSizeL = blkSize * 3;
-    int binnedBlkSize = blkSize/binning;
-    int nBBlksX = nBAxis1 / binnedBlkSize * 2; /// *2 from an overalp of 50% in the X-direction;
-    int nBBlksY = nBAxis2 / binnedBlkSize;
+//    int binnedBlkSize = blkSize/binning;
+//    int nBBlksX = nBAxis1 / binnedBlkSize * 2; /// *2 from an overalp of 50% in the X-direction;
+//    int nBBlksY = nBAxis2 / binnedBlkSize;
     //int nBPixels = nBAxis1 * nBAxis2;
-    int nBBlks = nBBlksX * nBBlksY;
+//    int nBBlks = nBBlksX * nBBlksY;
 
 
 
@@ -2176,7 +2178,7 @@ void RProcessing::calibrate()
 
         /// Copy the result into the list.
         /// This may be an overkill. We could output directly into the elements of the list
-        resultList << new RMat(lightMat, lightManager.getRMatImage()->isBayer(), instruments::generic, lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());  
+        resultList << new RMat(lightMat, lightManager.getRMatImage()->isBayer(), lightManager.getRMatImage()->getInstrument(), lightManager.getRMatImage()->getXPOSURE(), lightManager.getRMatImage()->getTEMP());
         resultList.at(i)->flipUD = lightManager.getRMatImage()->flipUD;
         resultList.at(i)->calcMinMax();
         resultList.at(i)->calcStats();
@@ -2485,7 +2487,7 @@ void RProcessing::registerSeriesOnLimbFit()
 
     // Define the motion model
     const int warp_mode_1 = cv::MOTION_TRANSLATION;
-    const int warp_mode_2 = cv::MOTION_EUCLIDEAN;
+    //const int warp_mode_2 = cv::MOTION_EUCLIDEAN;
 
     // Specify the number of iterations.
 //    int number_of_iterations_1 = 50; // stellar

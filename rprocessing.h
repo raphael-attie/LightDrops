@@ -330,8 +330,7 @@ private:
     bool biasSuccess, darkSuccess, flatSuccess;
     bool showContours, showLimb;
     bool useXCorr;
-    bool masterWithSigmaClip;
-    bool masterWithMean;
+    bool masterWithMean, masterWithSigmaClip;
     bool stackWithMean, stackWithSigmaClip;
 
     float radius, radius1, radius2, radius3, meanRadius;

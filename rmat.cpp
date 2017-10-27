@@ -15,59 +15,52 @@ RMat::RMat()
 
 }
 
+RMat::RMat(cv::Mat mat)
+{
+    initialize();
+    mat.copyTo(this->matImage);
+    prepImages();
+}
+
 RMat::RMat(const RMat &rMat)
-    : bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP),
-       SOLAR_R(rMat.SOLAR_R), instrument(rMat.instrument), item(NULL), flipUD(false)
+    : flipUD(rMat.flipUD), bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), dataMin(rMat.dataMin), dataMax(rMat.dataMax), expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP),
+       SOLAR_R(rMat.SOLAR_R), wbRed(rMat.wbRed), wbGreen(rMat.wbGreen), wbBlue(rMat.wbBlue), instrument(rMat.instrument), imageTitle(QString("")),
+       item(NULL)
 {
     rMat.matImage.copyTo(this->matImage);
-    this->imageTitle = QString("");
-
     prepImages();
 }
 
-
-
-RMat::RMat(cv::Mat mat) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
-    SOLAR_R(0), item(NULL), flipUD(false)
+RMat::RMat(cv::Mat mat, const RMat &rMat) : flipUD(rMat.flipUD), bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), dataMin(rMat.dataMin), dataMax(rMat.dataMax),
+    expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP), SOLAR_R(rMat.SOLAR_R), wbRed(rMat.wbRed), wbGreen(rMat.wbGreen), wbBlue(rMat.wbBlue),
+    instrument(rMat.instrument), imageTitle(rMat.imageTitle),
+    item(NULL)
 {
     mat.copyTo(this->matImage);
-    this->bayer = false;
-    this->imageTitle = QString("");
-    this->instrument = instruments::generic;
-
     prepImages();
 }
 
-RMat::RMat(cv::Mat mat, bool bayer) : dataMin(0), dataMax(0), bscale(1), bzero(0), expTime(0), XPOSURE(0), TEMP(-100),
-    SOLAR_R(0), item(NULL), flipUD(false)
+RMat::RMat(cv::Mat mat, bool bayer) : flipUD(false), bayer(bayer), bscale(1), bzero(0), dataMin(0), dataMax(0), expTime(0), XPOSURE(0), TEMP(-100),
+    SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), instrument(instruments::generic), imageTitle(QString("")),
+    item(NULL)
 {
     mat.copyTo(this->matImage);
-    this->bayer = bayer;
-    this->imageTitle = QString("");
-    this->instrument = instruments::generic;
-
     prepImages();
 }
 
-RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flipUD(false)
+RMat::RMat(cv::Mat mat, bool bayer, instruments instrument) : flipUD(false), bayer(bayer), bscale(1), bzero(0), dataMin(0), dataMax(0),
+    expTime(0), XPOSURE(0), TEMP(-100), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), instrument(instrument), imageTitle(QString("")),
+    item(NULL)
 {
     mat.copyTo(this->matImage);
-    this->bayer = bayer;
-    this->imageTitle = QString("");
-    this->instrument = instrument;
-
     prepImages();
 }
 
-RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP) : dataMin(0), dataMax(0), bscale(1),
-    bzero(0), expTime(0), XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), item(NULL), flipUD(false)
+RMat::RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP) : flipUD(false), bayer(bayer), bscale(1), bzero(0), dataMin(0), dataMax(0), expTime(0),
+    XPOSURE(XPOSURE), TEMP(TEMP), SOLAR_R(0), wbRed(1.0), wbGreen(1.0), wbBlue(1.0), instrument(instrument), imageTitle(QString("")),
+    item(NULL)
 {
     mat.copyTo(this->matImage);
-    this->bayer = bayer;
-    this->imageTitle = QString("");
-    this->instrument = instrument;
-
     prepImages();
 }
 
@@ -80,7 +73,28 @@ RMat::~RMat()
 
 //        qDebug("RMat:: deleting item from QTreeWidget");
 //        //item->~QTreeWidgetItem();
-//    }
+    //    }
+}
+
+void RMat::initialize()
+{
+    bayer = false;
+    bscale = 1;
+    bzero = 0;
+    dataMin = 0;
+    dataMax = 0;
+    expTime = 0;
+    XPOSURE = 0;
+    TEMP = -100;
+    SOLAR_R = 0;
+    wbRed = 1.0;
+    wbGreen = 1.0;
+    wbBlue = 1.0;
+
+    item = NULL;
+    flipUD = false;
+    imageTitle = QString("");
+    instrument = instruments::generic;
 }
 
 void RMat::prepImages()

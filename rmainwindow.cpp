@@ -814,7 +814,10 @@ void RMainWindow::updateInvGaussianParams()
         return;
     }
 
-    double fac1, fac2, fac3;
+    double fac1=1.0;
+    double fac2=1.0;
+    double fac3=1.0;
+
     int matType = currentROpenGLWidget->getRMatImageList().at(0)->matImage.type();
     if (matType == CV_32F || matType == CV_16U)
     {

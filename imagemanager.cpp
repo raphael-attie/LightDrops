@@ -141,18 +141,19 @@ void ImageManager::loadFits()
         rMatImage->setSOLAR_R(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
     }
 
+    // EXPTIME and XPOSURE are both the exposure time. Depending on the instrument, a file can have on or the other
+    // Thus, I set them both to either of them, and fits files written from this will have both.
     if (newFitsImage->getKeyNames().contains(QString("EXPTIME")))
     {
         int keyInd = newFitsImage->getKeyNames().indexOf("EXPTIME");
         rMatImage->setXPOSURE(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
         rMatImage->setExpTime(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
     }
-
-
-    if (newFitsImage->getKeyNames().contains(QString("XPOSURE")))
+    else if (newFitsImage->getKeyNames().contains(QString("XPOSURE")))
     {
         int keyInd = newFitsImage->getKeyNames().indexOf("XPOSURE");
         rMatImage->setXPOSURE(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
+        rMatImage->setExpTime(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
     }
 
     if (newFitsImage->getKeyNames().contains(QString("DATE-OBS")))
