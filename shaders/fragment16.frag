@@ -1,5 +1,10 @@
 #version 330 core
 
+//uniform float uKernel[9];
+//uniform sampler2D uSampler;
+//uniform vec2 uTextureSize;
+
+
 in mediump vec2 TexCoord;
 
 out vec4 color;
@@ -14,6 +19,10 @@ uniform mediump vec3 wbRGB;
 
 void main()
 {
+//    ivec2 texSize = textureSize(ourTexture, 0);
+//    vec2 stepSize = 1.0/(uTextureSize);
+//    vec3 sum = vec3(0.0);
+
     vec3 textureColor = texture(ourTexture, TexCoord).rgb;
     textureColor = textureColor * wbRGB;
     mediump vec3 scaledRGB = alpha * textureColor.rgb + beta;
