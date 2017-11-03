@@ -340,19 +340,12 @@ void RProcessing::exportToTiff(RMat *rMatImage, QString QStrFilename)
 {
     QString tiffFilename = QStrFilename + QString(".tiff");
     std::string strFilename(tiffFilename.toStdString());
-    cv::Mat matImage16;
-    rMatImage->matImage.convertTo(matImage16, CV_16U);
-    if (rMatImage->matImage.channels() == 3)
-    {
-        cv::cvtColor(matImage16, matImage16, CV_RGB2BGR);
-    }
-    else
-    {
-        cv::cvtColor(matImage16, matImage16, CV_GRAY2BGR);
-    }
+    cv::Mat matImageBGR16;
+
+    cv::cvtColor(rMatImage->matImageRGB, matImageBGR16, CV_RGB2BGR);
 
     try {
-            cv::imwrite(strFilename, matImage16);
+            cv::imwrite(strFilename, matImageBGR16);
         }
         catch (runtime_error& ex) {
             fprintf(stderr, "Exception converting image to Tiff: %s\n", ex.what());
@@ -795,10 +788,12 @@ void RProcessing::stack(QList<RMat *> rMatImageList)
     if (stackWithMean)
     {
         stackedRMat = average(rMatImageList);
+        stackedRMat->setImageTitle(QString("mean_stack"));
     }
     else if (stackWithSigmaClip)
     {
         stackedRMat = sigmaClipAverage(rMatImageList);
+        stackedRMat->setImageTitle(QString("sigma_stack"));
     }
 
     if (stackedRMat == NULL)
@@ -809,6 +804,7 @@ void RProcessing::stack(QList<RMat *> rMatImageList)
 
     stackedRMat->setInstrument(rMatImageList.at(0)->getInstrument());
     stackedRMat->setSOLAR_R(rMatImageList.at(0)->getSOLAR_R());
+    stackedRMat->flipUD = rMatImageList.at(0)->flipUD;
     emit resultSignal(stackedRMat);
 
     return;
@@ -1026,15 +1022,15 @@ cv::Mat RProcessing::makeImageHPF(cv::Mat matImage, double sigma)
     return matImageHPF;
 }
 
-QList<RMat *> RProcessing::sharpenSeries(QList<RMat*> rMatImageList, float weight1, float weight2)
+QList<RMat *> RProcessing::sharpenSeries(QList<RMat*> rMatImageList, float weight1)
 {
     QList<RMat*> rMatSharpList;
 
     for (int i = 0 ; i < rMatImageList.size() ; i++)
     {
-        RMat *rMatSharp = sharpenCurrentImage(rMatImageList.at(i), weight1, weight2);
-        rMatSharpList << normalizeByStats(rMatSharp);
-        rMatSharpList.at(i)->setImageTitle(QString("Sharpened image # %1").arg(i));
+        RMat *rMatSharp = sharpenCurrentImage(rMatImageList.at(i), weight1);
+        rMatSharpList << rMatSharp;
+        rMatSharpList.at(i)->setImageTitle(QString("Sharpened_image_%1").arg(i));
         rMatSharpList.at(i)->setInstrument(rMatImageList.at(i)->getInstrument());
         rMatSharpList.at(i)->setSOLAR_R(rMatImageList.at(i)->getSOLAR_R());
 
@@ -1043,21 +1039,21 @@ QList<RMat *> RProcessing::sharpenSeries(QList<RMat*> rMatImageList, float weigh
     return rMatSharpList;
 }
 
-RMat* RProcessing::sharpenCurrentImage(RMat *rMatImage, float weight1, float weight2)
+RMat* RProcessing::sharpenCurrentImage(RMat *rMatImage, float weight1)
 {
     cv::Mat blurredImage;
     cv::Mat matImageSharpened;
 
     cv::GaussianBlur(rMatImage->matImage, blurredImage, cv::Size(0, 0), 3);
-
-    cv::addWeighted(rMatImage->matImage, weight1, blurredImage, -weight2, 0, matImageSharpened);
+    cv::Mat diffMat = rMatImage->matImage - blurredImage;
+    cv::addWeighted(rMatImage->matImage, 1.0, diffMat, weight1, 0, matImageSharpened);
 //        cv::Mat matDiff = rMatImageList.at(i)->matImage - blurredImage;
 //        cv::addWeighted(rMatImageList.at(i)->matImage, 1.0, matDiff, weight2, 0, matImageSharpened);
     RMat *rMatSharp = new RMat(matImageSharpened, false, rMatImage->getInstrument());
-    RMat *rMatSharpN = normalizeByStats(rMatSharp);
-    rMatSharpN->setSOLAR_R(rMatImage->getSOLAR_R());
-
-    return rMatSharpN;
+    //RMat *rMatSharpN = normalizeByStats(rMatSharp);
+    rMatSharp->setSOLAR_R(rMatImage->getSOLAR_R());
+    rMatSharp->flipUD = rMatImage->flipUD;
+    return rMatSharp;
 }
 
 void RProcessing::blockProcessingLocal(QList<RMat*> rMatImageList)
@@ -2205,17 +2201,17 @@ void RProcessing::setExportCalibrateDir(QString dir)
 
 bool RProcessing::prepRegistration()
 {
-    // If the treeWidget is not empty, it can also be from a currentROpenGLWidget
-    // It makes sense to use the displayFirstCheckBox button to determine whether
-    // we load it from the treeWidget or from that currentROpenGLWidget.
-    if (!treeWidget->rMatLightList.isEmpty() && !useUrlsFromTreeWidget)
-    {
-        rMatLightList = treeWidget->rMatLightList;
+
+    if (!useUrlsFromTreeWidget)
+    {   // If we do not use the urls from the treeWidget, then use the images in the currentROpenGLWidget
+        rMatLightList = currentROpenGLWidget->getRMatImageList();
+        std::cout << "prepRegistration()  Using currentROpenGLWidget" << std::endl;
     }
     else if(!treeWidget->getLightUrls().empty())
-    {
+    {   // Load the lights from the file urls in the treeWidget,
         emit tempMessageSignal(QString("Batch processing %1 images").arg(rMatLightList.size()), 10000);
         loadRMatLightList(treeWidget->getLightUrls());
+        std::cout << "prepRegistration()  Batch processing from treeWidget" << std::endl;
     }
     else
     {
@@ -2244,13 +2240,13 @@ bool RProcessing::prepRegistration()
     if (rMatLightList.at(0)->isBayer())
     {
         resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
-        resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
     }
     else
     {
         resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
-        resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
     }
+    resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
+    resultList.at(0)->flipUD = rMatLightList.at(0)->flipUD;
 
 
     return true;
@@ -2464,6 +2460,7 @@ void RProcessing::registerSeriesXCorrPropagate()
         cv::Mat shiftedMat = shiftImage(rMatLightList.at(i+1), warpMatrixTotal);
         resultList << new RMat(shiftedMat, false, rMatLightList.at(i+1)->getInstrument(), rMatLightList.at(i+1)->getXPOSURE(), rMatLightList.at(i+1)->getTEMP());
         resultList.at(i+1)->setFileInfo(rMatLightList.at(i+1)->getFileInfo());
+        resultList.at(i+1)->flipUD = rMatLightList.at(i+1)->flipUD;
     }
 
 }

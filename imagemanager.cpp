@@ -146,14 +146,12 @@ void ImageManager::loadFits()
     if (newFitsImage->getKeyNames().contains(QString("EXPTIME")))
     {
         int keyInd = newFitsImage->getKeyNames().indexOf("EXPTIME");
-        rMatImage->setXPOSURE(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
         rMatImage->setExpTime(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
     }
-    else if (newFitsImage->getKeyNames().contains(QString("XPOSURE")))
+    if (newFitsImage->getKeyNames().contains(QString("XPOSURE")))
     {
         int keyInd = newFitsImage->getKeyNames().indexOf("XPOSURE");
         rMatImage->setXPOSURE(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
-        rMatImage->setExpTime(std::stof(newFitsImage->getKeyValues().at(keyInd).toStdString()));
     }
 
     if (newFitsImage->getKeyNames().contains(QString("DATE-OBS")))
@@ -205,8 +203,9 @@ void ImageManager::loadRaw()
 
 void ImageManager::loadTiff()
 {
-    cv::Mat tiffImage = cv::imread(filePathQStr.toStdString(), CV_LOAD_IMAGE_COLOR);
+    cv::Mat tiffImage = cv::imread(filePathQStr.toStdString(), cv::IMREAD_COLOR | cv::IMREAD_ANYDEPTH);
     rMatImage = new RMat(tiffImage, false, instruments::TIFF);
+    rMatImage->flipUD = true;
 
 }
 

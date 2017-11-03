@@ -117,13 +117,14 @@ void RMat::prepImages()
         if (instrument != instruments::TIFF)
         {
             cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
+            matImageRGB = matImage;
         }
         else
         {
             cv::cvtColor(matImage, matImageGray, CV_BGR2GRAY);
+            cv::cvtColor(matImage, matImageRGB, CV_BGR2RGB);
         }
-        // The image has 3 channels so matImage and matImageRGB must be the same.
-        matImageRGB = matImage;
+
     }
 
 

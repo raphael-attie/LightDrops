@@ -142,7 +142,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
    connect(ui->sharpenSliderW1, SIGNAL(sliderReleased()), this, SLOT(sharpenLiveSlot()));
    connect(ui->sharpenSliderW2, SIGNAL(sliderReleased()), this, SLOT(sharpenLiveSlot()));
 
-   connect(ui->sharpenPButton, SIGNAL(released()), this, SLOT(sharpenImageSlot()));
+//   connect(ui->sharpenPButton, SIGNAL(released()), this, SLOT(sharpenImageSlot()));
 
 }
 
@@ -847,7 +847,21 @@ void RMainWindow::initPreviewQImage(bool status)
     if (status)
     {
         cv::Mat matImage = convertTo8Bit(currentROpenGLWidget->getRMatImageList().at(frameIndex));
-        previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
+
+        if (matImage.channels() == 1)
+        {
+           qDebug("RMainWindow::initPreviewQImage() Image is gray scaled");
+           previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
+        }
+        else
+        {
+            if (currentROpenGLWidget->getRMatImageList().at(frameIndex)->flipUD)
+            {
+                qDebug("RMainWindow::initPreviewQImage() Image is RGB and TIFF. Flipping.");
+                cv::flip(matImage, matImage, 0);
+            }
+            previewQImage = QImage((const uchar *) matImage.data, matImage.cols, matImage.rows, matImage.step, QImage::Format_RGB888);
+        }
 
         createNewImage(previewQImage, currentROpenGLWidget, true);
         previewSubWindow = ui->mdiArea->activeSubWindow();
@@ -855,7 +869,7 @@ void RMainWindow::initPreviewQImage(bool status)
     else
     {
         previewSubWindow->close();
-        previewSubWindow == NULL;
+        previewSubWindow = NULL;
     }
 
 
@@ -1856,6 +1870,8 @@ void RMainWindow::changeROpenGLWidget(ROpenGLWidget *rOpenGLWidget)
     // Update stats
     updateStats(frameIndex);
 
+    processing->setCurrentROpenGLWidget(rOpenGLWidget);
+
 }
 
 void RMainWindow::updateFrameInSeries(int frameIndex)
@@ -1971,7 +1987,8 @@ void RMainWindow::exportFramesToJpeg()
 {
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {
-        QString filePath = makeFilePath(QString("image_"), i);
+        QString imageTitle = currentROpenGLWidget->getRMatImageList().at(i)->getImageTitle() + QString("_");
+        QString filePath = makeFilePath(QString("image_") + imageTitle, i);
         processing->exportToJpeg(currentROpenGLWidget->getRMatImageList().at(i), filePath);
     }
 }
@@ -1980,7 +1997,8 @@ void RMainWindow::exportFramesToTiff()
 {
     for (int i = 0 ; i < currentROpenGLWidget->getRMatImageList().size() ; i++)
     {
-        QString filePath = makeFilePath(QString("image_"), i);
+        QString imageTitle = currentROpenGLWidget->getRMatImageList().at(i)->getImageTitle() + QString("_");
+        QString filePath = makeFilePath(QString("image_") + imageTitle, i);
         processing->exportToTiff(currentROpenGLWidget->getRMatImageList().at(i), filePath);
     }
 }
@@ -2016,8 +2034,16 @@ void RMainWindow::convertTo8Bit()
 
 cv::Mat RMainWindow::convertTo8Bit(RMat *rMatImage)
 {
+    cv::Mat matImage;
     double fac = 255.0 / rMatImage->getDataMax();
-    cv::Mat matImage = rMatImage->matImage.clone();
+    if (rMatImage->matImage.channels() == 1)
+    {
+        matImage = rMatImage->matImage.clone();
+    }
+    else
+    {
+        matImage = rMatImage->matImageRGB.clone();
+    }
     matImage.convertTo(matImage, CV_8U, fac);
 
     return matImage;
@@ -2051,17 +2077,17 @@ void RMainWindow::initSharpenImageSlot(bool status)
 {
     initPreviewQImage(status);
 
-    if (status)
-    {
-        sharpenLiveSlot();
-    }
+//    if (status)
+//    {
+//        sharpenLiveSlot();
+//    }
 }
 
 void RMainWindow::sharpenImageSlot()
 {
     float weight1 = ui->doubleSpinBoxW1->value();
     float weight2 = ui->doubleSpinBoxW2->value();
-    QList<RMat*> rMatSharpList = processing->sharpenSeries(currentROpenGLWidget->getRMatImageList(), weight1, weight2);
+    QList<RMat*> rMatSharpList = processing->sharpenSeries(currentROpenGLWidget->getRMatImageList(), weight1);
 
     createNewImage(rMatSharpList);
     autoScale();
@@ -2093,11 +2119,22 @@ void RMainWindow::sharpenLiveSlot()
 
 
     float weight1 = (float) ui->doubleSpinBoxW1->value();
-    float weight2 = (float) ui->doubleSpinBoxW2->value();
 
-    RMat *rMatSharp = processing->sharpenCurrentImage(currentROpenGLWidget->getRMatImageList().at(frameIndex), weight1, weight2);
+    RMat *rMatSharp = processing->sharpenCurrentImage(currentROpenGLWidget->getRMatImageList().at(frameIndex), weight1);
     cv::Mat matImage = convertTo8Bit(rMatSharp);
-    previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
+    if (matImage.channels() == 1)
+    {
+        previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
+    }
+    else
+    {
+        if (currentROpenGLWidget->getRMatImageList().at(frameIndex)->getInstrument() == instruments::TIFF)
+        {
+            matImage.convertTo(matImage, CV_BGR2RGB);
+        }
+        previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_RGB888);
+    }
+
 
 
     QPixmap pixMap = QPixmap::fromImage(previewQImage);
@@ -2292,7 +2329,8 @@ void RMainWindow::registerSlot()
                 // If displayFirstCheckBox is checked, we can as well load from the treeWidget.
                 // This enables batch processing by adding as many different urls in there as we want
                 // e.g coming from different directories <-> different drag'n'drops movements.
-                processing->setUseUrlsFromTreeWidget(ui->batchProcessCheckBox);
+                std::cout << "ui->batchProcessCheckBox = " << ui->batchProcessCheckBox << std::endl;
+                processing->setUseUrlsFromTreeWidget(ui->batchProcessCheckBox->isChecked());
                 processing->registerSeriesXCorrPropagate();
             }
             else

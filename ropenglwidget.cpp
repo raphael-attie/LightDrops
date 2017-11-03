@@ -163,7 +163,7 @@ void ROpenGLWidget::initialize()
     imageCircleRadius = 0;
 
     prepImage();
-    matImageRGB = matImageListRGB.at(frameIndex);
+    matImage = matImageList.at(frameIndex);
     initSubQImage();
     setupHistoPlots();
 
@@ -195,16 +195,17 @@ void ROpenGLWidget::prepImage()
     /// Only deBayerize the image if it is of Bayer type. Pass-through otherwise.
     for (int ii = 0; ii < nFrames; ii++)
     {
-        cv::Mat tempMatRGB(naxis2, naxis1, rMatImageList.at(ii)->matImage.type());
+        cv::Mat tempMat(naxis2, naxis1, rMatImageList.at(ii)->matImage.type());
 
-        if (rMatImageList.at(ii)->isBayer())
+        if (rMatImageList.at(ii)->isBayer() || rMatImageList.at(ii)->matImage.channels() == 3)
         {
-            tempMatRGB = rMatImageList.at(ii)->matImageRGB.clone();
+           tempMat = rMatImageList.at(ii)->matImageRGB.clone();
         }
         else
         {
-            tempMatRGB = rMatImageList.at(ii)->matImage.clone();
+           tempMat = rMatImageList.at(ii)->matImageGray.clone();
         }
+
         // Some DSLRs uses a coordinate system up-side down with resp. to FITS images.
         // Since FITS images uses the same coordinate frame as the openGL viewport,
         // it is necessary to flip the DSLR images up-side down.
@@ -212,9 +213,10 @@ void ROpenGLWidget::prepImage()
         {
             // Because of this we are cloning the image above.
             // One should use instead the viewport or opengl tricks?
-            cv::flip(tempMatRGB, tempMatRGB, 0);
+            cv::flip(tempMat, tempMat, 0);
         }
-        matImageListRGB.append(tempMatRGB);
+        matImageList.append(tempMat);
+
     }
 
 }
@@ -240,32 +242,32 @@ void ROpenGLWidget::initializeGL()
 
     glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 
-    if (matImageRGB.type() == CV_32F)
+    if (matImage.type() == CV_32F)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment32c1.frag") )
          return;
     }
-    else if (matImageRGB.type() == CV_32FC3)
+    else if (matImage.type() == CV_32FC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment32.frag") )
          return;
     }
-    else if (matImageRGB.type() == CV_16UC3 || matImageRGB.type() == CV_16SC3)
+    else if (matImage.type() == CV_16UC3 || matImage.type() == CV_16SC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment16.frag") )
          return;
     }
-    else if (matImageRGB.type() == CV_16U)
+    else if (matImage.type() == CV_16U)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment16uc1.frag") )
          return;
     }
-    else if (matImageRGB.type() == CV_8UC3)
+    else if (matImage.type() == CV_8UC3)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment888.frag") )
          return;
     }
-    else if (matImageRGB.type() == CV_8U)
+    else if (matImage.type() == CV_8U)
     {
         if ( !prepareShaderProgram( ":/shaders/vertexShader.vert", ":/shaders/fragment8.frag") )
          return;
@@ -375,7 +377,8 @@ void ROpenGLWidget::loadGLTexture()
 
     for (int ii =0; ii < nFrames2; ii++)
     {
-        cv::Mat tempImageRGB = matImageListRGB.at(ii);
+        cv::Mat tempMat = matImageList.at(ii);
+
 
         QOpenGLTexture *oglt = new QOpenGLTexture(QOpenGLTexture::Target2D);
         oglt->setSize(naxis1, naxis2);
@@ -389,54 +392,54 @@ void ROpenGLWidget::loadGLTexture()
 
         qDebug() << "isAutoMipMapGenerationEnabled() =" << oglt->isAutoMipMapGenerationEnabled();
 
-        if (tempImageRGB.type() == CV_32F)
+        if (tempMat.type() == CV_32F)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 32 bits float, 1 channel");
             oglt->setFormat(QOpenGLTexture::R32F);
             oglt->allocateStorage(QOpenGLTexture::Red, QOpenGLTexture::Float32);
-            oglt->setData(QOpenGLTexture::Red, QOpenGLTexture::Float32, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::Red, QOpenGLTexture::Float32, tempMat.data);
         }
-        else if (tempImageRGB.type() == CV_32FC3)
+        else if (tempMat.type() == CV_32FC3)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 32 bits float, 3 channels");
             oglt->setFormat(QOpenGLTexture::RGB32F);
             oglt->allocateStorage(QOpenGLTexture::RGB, QOpenGLTexture::Float32);
-            oglt->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, tempMat.data);
         }
-        else if (tempImageRGB.type() == CV_16UC3)
+        else if (tempMat.type() == CV_16UC3)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 16-bit unsigned integer, 3 channels");
             oglt->setFormat(QOpenGLTexture::RGB16U);
             oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt16);
-            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt16, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt16, tempMat.data);
         }
-        else if (tempImageRGB.type() == CV_16SC3)
+        else if (tempMat.type() == CV_16SC3)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 16-bit SIGNED integer, 3 channels");
             oglt->setFormat(QOpenGLTexture::RGB16I);
             oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16);
-            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::Int16, tempMat.data);
         }
-        else if (tempImageRGB.type() == CV_16U)
+        else if (tempMat.type() == CV_16U)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 16-bit unsigned integer, 1 channel");
             oglt->setFormat(QOpenGLTexture::R16U);
             oglt->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16);
-            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt16, tempMat.data);
         }
-        else if (tempImageRGB.type() == CV_8UC3)
+        else if (tempMat.type() == CV_8UC3)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 8-bit unsigned integer, 3 channels");
             oglt->setFormat(QOpenGLTexture::RGB8U);
             oglt->allocateStorage(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8);
-            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::RGB_Integer, QOpenGLTexture::UInt8, tempMat.data);
         }
-        else if (tempImageRGB.type() == CV_8U)
+        else if (tempMat.type() == CV_8U)
         {
             qDebug("ROpenGLWidget::loadGLTexture():: image is 8-bit unsigned integer, 1 channel");
             oglt->setFormat(QOpenGLTexture::R8U);
             oglt->allocateStorage(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8);
-            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, tempImageRGB.data);
+            oglt->setData(QOpenGLTexture::Red_Integer, QOpenGLTexture::UInt8, tempMat.data);
         }
         else
         {
@@ -788,7 +791,7 @@ void ROpenGLWidget::initSubQImage()
     subNaxis = 60;
     int frameRows = naxis2 + subNaxis +1;
     int frameCols = naxis1 + subNaxis +1;
-    int channels = matImageRGB.channels();
+    int channels = matImage.channels();
 
     if (channels == 3)
     {
@@ -806,9 +809,9 @@ void ROpenGLWidget::initSubQImage()
 void ROpenGLWidget::updateSubQImage()
 {
 
-    matImageRGB = matImageListRGB.at(frameIndex);
+    matImage = matImageList.at(frameIndex);
     // Copy the image into the matFrame, taking into the new borders of width subNaxis/2;
-    matImageRGB.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
+    matImage.copyTo(matFrame(cv::Rect(subNaxis/2-1, subNaxis/2-1, naxis1, naxis2)));
 
     int channels = matFrame.channels();
 
@@ -860,34 +863,34 @@ void ROpenGLWidget::updateSubQImage()
      x = std::max(std::min(x, naxis1-1), 0);
      y = std::max(std::min(y, naxis2-1), 0);
 
-     if (matImageRGB.type() == CV_32F)
+     if (matImage.type() == CV_32F)
      {
-         cv::Scalar color = matImageRGB.at<float>(y, x);
+         cv::Scalar color = matImage.at<float>(y, x);
          this->intensity = (float) color.val[0];
      }
-     else if (matImageRGB.type() == CV_32FC3)
+     else if (matImage.type() == CV_32FC3)
      {
-         cv::Vec3f color = matImageRGB.at<cv::Vec3f>(y, x);
+         cv::Vec3f color = matImage.at<cv::Vec3f>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
-     else if (matImageRGB.type() == CV_16UC3)
+     else if (matImage.type() == CV_16UC3)
      {
-         cv::Vec3w color = matImageRGB.at<cv::Vec3w>(y, x);
+         cv::Vec3w color = matImage.at<cv::Vec3w>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
-     else if (matImageRGB.type() == CV_16U)
+     else if (matImage.type() == CV_16U)
      {
-         cv::Scalar color = matImageRGB.at<ushort>(y, x);
+         cv::Scalar color = matImage.at<ushort>(y, x);
          this->intensity = (float) color.val[0];
      }
-     else if (matImageRGB.type() == CV_8UC3)
+     else if (matImage.type() == CV_8UC3)
      {
-         cv::Vec3b color = matImageRGB.at<cv::Vec3b>(y, x);
+         cv::Vec3b color = matImage.at<cv::Vec3b>(y, x);
          this->intensity = (float) ((color.val[0] + color.val[1] + color.val[2])/3.0f);
      }
-     else if (matImageRGB.type() == CV_8UC1)
+     else if (matImage.type() == CV_8UC1)
      {
-         cv::Scalar color = matImageRGB.at<uchar>(y, x);
+         cv::Scalar color = matImage.at<uchar>(y, x);
          this->intensity = (float) color.val[0];
      }
 

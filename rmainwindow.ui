@@ -98,7 +98,7 @@
    </property>
    <property name="maximumSize">
     <size>
-     <width>1920</width>
+     <width>3000</width>
      <height>182</height>
     </size>
    </property>
@@ -123,7 +123,7 @@
     </property>
     <property name="maximumSize">
      <size>
-      <width>1920</width>
+      <width>3000</width>
       <height>160</height>
      </size>
     </property>
@@ -150,7 +150,7 @@
        </property>
        <property name="maximumSize">
         <size>
-         <width>2000</width>
+         <width>3000</width>
          <height>140</height>
         </size>
        </property>
@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>4</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -196,7 +196,7 @@
             <widget class="QSlider" name="sliderHigh">
              <property name="maximumSize">
               <size>
-               <width>1900</width>
+               <width>2500</width>
                <height>16777215</height>
               </size>
              </property>
@@ -251,6 +251,12 @@
            </item>
            <item row="1" column="1">
             <widget class="QSlider" name="sliderLow">
+             <property name="maximumSize">
+              <size>
+               <width>2500</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="minimum">
               <number>0</number>
              </property>
@@ -299,6 +305,12 @@
            </item>
            <item row="2" column="1">
             <widget class="QSlider" name="sliderGamma">
+             <property name="maximumSize">
+              <size>
+               <width>2500</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="minimum">
               <number>1</number>
              </property>
@@ -2157,7 +2169,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -2355,6 +2367,13 @@
           </spacer>
          </item>
          <item>
+          <widget class="QCheckBox" name="addCalibrationCheckBox">
+           <property name="text">
+            <string>Add to pipeline</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
             <spacer name="horizontalSpacer">
@@ -2407,6 +2426,7 @@
         <zorder>calibrateDirLineEdit</zorder>
         <zorder></zorder>
         <zorder>verticalSpacer_2</zorder>
+        <zorder>addCalibrationCheckBox</zorder>
        </widget>
        <widget class="QWidget" name="registrationPage">
         <property name="geometry">
@@ -2992,7 +3012,7 @@
    </property>
    <property name="maximumSize">
     <size>
-     <width>2000</width>
+     <width>1000</width>
      <height>300</height>
     </size>
    </property>
@@ -3008,7 +3028,14 @@
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_6"/>
+   <widget class="QWidget" name="dockWidgetContents_6">
+    <property name="maximumSize">
+     <size>
+      <width>1000</width>
+      <height>16777215</height>
+     </size>
+    </property>
+   </widget>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <property name="minimumSize">
@@ -3210,7 +3237,7 @@
    <slot>decreaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1437</x>
+     <x>1630</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -3226,7 +3253,7 @@
    <slot>increaseFps()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1470</x>
+     <x>1663</x>
      <y>163</y>
     </hint>
     <hint type="destinationlabel">
@@ -3242,8 +3269,8 @@
    <slot>exportMastersToFits()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1543</x>
-     <y>634</y>
+     <x>1736</x>
+     <y>676</y>
     </hint>
     <hint type="destinationlabel">
      <x>1213</x>
@@ -3258,8 +3285,8 @@
    <slot>minMaxScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1100</x>
-     <y>917</y>
+     <x>1049</x>
+     <y>958</y>
     </hint>
     <hint type="destinationlabel">
      <x>1090</x>
@@ -3274,8 +3301,8 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1196</x>
-     <y>921</y>
+     <x>1069</x>
+     <y>948</y>
     </hint>
     <hint type="destinationlabel">
      <x>1339</x>
@@ -3290,8 +3317,8 @@
    <slot>calibrateOffScreenSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1513</x>
-     <y>668</y>
+     <x>1706</x>
+     <y>712</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -3306,8 +3333,8 @@
    <slot>convertTo8Bit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1202</x>
-     <y>883</y>
+     <x>1151</x>
+     <y>922</y>
     </hint>
     <hint type="destinationlabel">
      <x>962</x>
@@ -3322,8 +3349,8 @@
    <slot>convertToNeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1202</x>
-     <y>917</y>
+     <x>1151</x>
+     <y>958</y>
     </hint>
     <hint type="destinationlabel">
      <x>1253</x>
@@ -3338,8 +3365,8 @@
    <slot>autoScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1100</x>
-     <y>883</y>
+     <x>1049</x>
+     <y>922</y>
     </hint>
     <hint type="destinationlabel">
      <x>840</x>
@@ -3354,8 +3381,8 @@
    <slot>normalizeCurrentSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1100</x>
-     <y>951</y>
+     <x>1049</x>
+     <y>994</y>
     </hint>
     <hint type="destinationlabel">
      <x>723</x>
@@ -3370,12 +3397,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>468</x>
-     <y>883</y>
+     <x>510</x>
+     <y>935</y>
     </hint>
     <hint type="destinationlabel">
-     <x>520</x>
-     <y>887</y>
+     <x>574</x>
+     <y>936</y>
     </hint>
    </hints>
   </connection>
@@ -3386,8 +3413,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1508</x>
-     <y>714</y>
+     <x>1684</x>
+     <y>749</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3402,8 +3429,8 @@
    <slot>registerSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1457</x>
-     <y>509</y>
+     <x>1650</x>
+     <y>546</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3418,12 +3445,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>468</x>
-     <y>922</y>
+     <x>510</x>
+     <y>976</y>
     </hint>
     <hint type="destinationlabel">
-     <x>520</x>
-     <y>926</y>
+     <x>574</x>
+     <y>977</y>
     </hint>
    </hints>
   </connection>
@@ -3434,8 +3461,8 @@
    <slot>previewMatImageHPFSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>609</x>
-     <y>925</y>
+     <x>672</x>
+     <y>983</y>
     </hint>
     <hint type="destinationlabel">
      <x>701</x>
@@ -3450,12 +3477,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>520</x>
-     <y>926</y>
+     <x>574</x>
+     <y>977</y>
     </hint>
     <hint type="destinationlabel">
-     <x>468</x>
-     <y>922</y>
+     <x>510</x>
+     <y>976</y>
     </hint>
    </hints>
   </connection>
@@ -3466,12 +3493,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>520</x>
-     <y>887</y>
+     <x>574</x>
+     <y>936</y>
     </hint>
     <hint type="destinationlabel">
-     <x>468</x>
-     <y>883</y>
+     <x>510</x>
+     <y>935</y>
     </hint>
    </hints>
   </connection>
@@ -3482,8 +3509,8 @@
    <slot>solarLimbFit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1457</x>
-     <y>504</y>
+     <x>1650</x>
+     <y>541</y>
     </hint>
     <hint type="destinationlabel">
      <x>1459</x>
@@ -3498,8 +3525,8 @@
    <slot>solarLimbRegisterSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1457</x>
-     <y>509</y>
+     <x>1650</x>
+     <y>546</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3514,8 +3541,8 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>602</x>
-     <y>914</y>
+     <x>497</x>
+     <y>957</y>
     </hint>
     <hint type="destinationlabel">
      <x>524</x>
@@ -3530,12 +3557,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>708</x>
-     <y>869</y>
+     <x>665</x>
+     <y>928</y>
     </hint>
     <hint type="destinationlabel">
-     <x>886</x>
-     <y>873</y>
+     <x>845</x>
+     <y>929</y>
     </hint>
    </hints>
   </connection>
@@ -3547,11 +3574,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>665</x>
-     <y>902</y>
+     <y>963</y>
     </hint>
     <hint type="destinationlabel">
-     <x>886</x>
-     <y>907</y>
+     <x>845</x>
+     <y>964</y>
     </hint>
    </hints>
   </connection>
@@ -3563,11 +3590,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>665</x>
-     <y>934</y>
+     <y>998</y>
     </hint>
     <hint type="destinationlabel">
-     <x>886</x>
-     <y>941</y>
+     <x>845</x>
+     <y>999</y>
     </hint>
    </hints>
   </connection>
@@ -3578,8 +3605,8 @@
    <slot>stackSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1540</x>
-     <y>742</y>
+     <x>1740</x>
+     <y>788</y>
     </hint>
     <hint type="destinationlabel">
      <x>1456</x>
@@ -3594,8 +3621,8 @@
    <slot>blockProcessingSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1541</x>
-     <y>770</y>
+     <x>1760</x>
+     <y>822</y>
     </hint>
     <hint type="destinationlabel">
      <x>1119</x>
@@ -3610,8 +3637,8 @@
    <slot>luckyROISlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1454</x>
-     <y>721</y>
+     <x>1647</x>
+     <y>763</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3626,8 +3653,8 @@
    <slot>extractLuckySampleSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1540</x>
-     <y>721</y>
+     <x>1733</x>
+     <y>763</y>
     </hint>
     <hint type="destinationlabel">
      <x>1331</x>
@@ -3642,8 +3669,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1278</x>
-     <y>886</y>
+     <x>1136</x>
+     <y>946</y>
     </hint>
     <hint type="destinationlabel">
      <x>1109</x>
@@ -3658,12 +3685,28 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1278</x>
-     <y>936</y>
+     <x>1136</x>
+     <y>982</y>
     </hint>
     <hint type="destinationlabel">
      <x>1160</x>
      <y>785</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sharpenPButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>sharpenImageSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1012</x>
+     <y>961</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1004</x>
+     <y>827</y>
     </hint>
    </hints>
   </connection>
@@ -3692,5 +3735,6 @@
   <slot>luckyROISlot()</slot>
   <slot>extractLuckySampleSlot()</slot>
   <slot>binningSlot()</slot>
+  <slot>sharpenImageSlot()</slot>
  </slots>
 </ui>

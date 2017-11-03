@@ -55,8 +55,8 @@ public:
     cv::Mat makeImageHPF(cv::Mat matImage, double sigma);
 
     /// Sharpenning
-    QList<RMat*> sharpenSeries(QList<RMat*> rMatImageList, float weight1, float weight2);
-    RMat* sharpenCurrentImage(RMat* rMatImage, float weight1, float weight2);
+    QList<RMat*> sharpenSeries(QList<RMat*> rMatImageList, float weight1);
+    RMat* sharpenCurrentImage(RMat* rMatImage, float weight1);
 
     /// Lucky imaging
     /// Block Processing

@@ -48,7 +48,7 @@ public:
     void setupHistoPlots();
     void updateCustomPlotLineItems();
 
-    QList<cv::Mat> matImageListRGB;
+    QList<cv::Mat> matImageList;
 
     //events
     void focusInEvent(QFocusEvent *event);
@@ -200,7 +200,7 @@ private:
 
 
     RListImageManager *rListImageManager;
-    cv::Mat matImageRGB;
+    cv::Mat matImage;
     cv::Mat matFrame;
     cv::Mat subMatImage;
     cv::Rect FOV;
