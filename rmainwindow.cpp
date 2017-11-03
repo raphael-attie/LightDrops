@@ -2122,17 +2122,19 @@ void RMainWindow::sharpenLiveSlot()
 
     RMat *rMatSharp = processing->sharpenCurrentImage(currentROpenGLWidget->getRMatImageList().at(frameIndex), weight1);
     cv::Mat matImage = convertTo8Bit(rMatSharp);
+
     if (matImage.channels() == 1)
     {
         previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
     }
     else
     {
-        if (currentROpenGLWidget->getRMatImageList().at(frameIndex)->getInstrument() == instruments::TIFF)
+        if (currentROpenGLWidget->getRMatImageList().at(frameIndex)->flipUD)
         {
-            matImage.convertTo(matImage, CV_BGR2RGB);
+            qDebug("RMainWindow::initPreviewQImage() Image is RGB and TIFF. Flipping.");
+            cv::flip(matImage, matImage, 0);
         }
-        previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_RGB888);
+        previewQImage = QImage((const uchar *) matImage.data, matImage.cols, matImage.rows, matImage.step, QImage::Format_RGB888);
     }
 
 
