@@ -19,7 +19,7 @@ uniform mediump vec3 wbRGB;
 
 void main()
 {
-//    ivec2 texSize = textureSize(ourTexture, 0);
+    ivec2 texSize = textureSize(ourTexture, 0);
 //    vec2 stepSize = 1.0/(uTextureSize);
 //    vec3 sum = vec3(0.0);
 
