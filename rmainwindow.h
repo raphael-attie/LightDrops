@@ -96,7 +96,6 @@ private slots:
     void initSharpenImageSlot(bool status);
     void sharpenImageSlot();
     void sharpenSliderSlot();
-    void sharpenLiveSlot();
 
     ///  Graphs
     void changeZoomAxisSlot();
@@ -113,9 +112,11 @@ private slots:
     void solarLimbRegisterSlot();
     void updateLimbResults();
     void normalizeCurrentSeries();
+    void convert14to16bitSeriesSlot();
     void previewMatImageHPFSlot();
     void stackSlot();
     void binningSlot();
+    void HDRSlot();
 
     // Lucky image
     void blockProcessingSlot();

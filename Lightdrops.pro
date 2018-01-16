@@ -43,6 +43,8 @@ macx {
     INCLUDEPATH += /Users/rattie/Dev/exiv2-trunk_raphael/install/include
 # opencv
     INCLUDEPATH += /Users/rattie/Dev/opencv-3.3.0/install/include
+# GNU Scientific library
+    INCLUDEPATH += /usr/local/Cellar/gsl/2.4/include
 
 # cfitsio (install with homebrew)
     LIBS += -L/usr/local/lib -lcfitsio
@@ -55,6 +57,11 @@ macx {
 
 # opencv "world" (it has all modules)
     LIBS += -L/usr/local/lib -lopencv_world
+
+# GNU Scientific library
+    LIBS += -L/usr/local/Cellar/gsl/2.4/lib -lgsl
+
+
 
 # Caveats regarding linking options:
 # In Projects>run menu

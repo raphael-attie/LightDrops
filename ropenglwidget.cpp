@@ -111,8 +111,8 @@ ROpenGLWidget::~ROpenGLWidget()
     {
         /// Deleting the rMatImageList below is causing a crash.
         ///
-        qDeleteAll(rMatImageList);
-        rMatImageList.clear();
+//        qDeleteAll(rMatImageList);
+//        rMatImageList.clear();
     }
 
 

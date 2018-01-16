@@ -161,7 +161,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>5</number>
        </property>
        <property name="elideMode">
         <enum>Qt::ElideRight</enum>
@@ -207,10 +207,10 @@
               <number>1999</number>
              </property>
              <property name="value">
-              <number>1</number>
+              <number>1999</number>
              </property>
              <property name="sliderPosition">
-              <number>1</number>
+              <number>1999</number>
              </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -264,10 +264,10 @@
               <number>1999</number>
              </property>
              <property name="value">
-              <number>0</number>
+              <number>1</number>
              </property>
              <property name="sliderPosition">
-              <number>0</number>
+              <number>1</number>
              </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -379,8 +379,8 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="convert8BitButton">
+           <item row="2" column="0">
+            <widget class="QPushButton" name="pushButton_2">
              <property name="minimumSize">
               <size>
                <width>100</width>
@@ -394,7 +394,7 @@
               </size>
              </property>
              <property name="text">
-              <string>8-bit</string>
+              <string>Negative</string>
              </property>
             </widget>
            </item>
@@ -414,63 +414,6 @@
              </property>
              <property name="text">
               <string>min/Max</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="pushButton_2">
-             <property name="minimumSize">
-              <size>
-               <width>100</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>100</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Negative</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QPushButton" name="normalizeButton">
-             <property name="minimumSize">
-              <size>
-               <width>100</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>100</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Normalize</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QPushButton" name="pushButton">
-             <property name="minimumSize">
-              <size>
-               <width>100</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>100</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Copy</string>
              </property>
             </widget>
            </item>
@@ -923,6 +866,12 @@
          <string>Processing</string>
         </attribute>
         <layout class="QHBoxLayout" name="horizontalLayout_11">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QGroupBox" name="groupBox_7">
            <property name="title">
@@ -996,17 +945,27 @@
          </item>
          <item>
           <layout class="QGridLayout" name="gridLayout_12">
-           <item row="0" column="0" colspan="2">
-            <widget class="QLabel" name="label_19">
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_20">
              <property name="text">
-              <string>Blur</string>
+              <string>Unsharp weight 1</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="2">
-            <widget class="QSlider" name="blurSlider">
+           <item row="2" column="4">
+            <widget class="QPushButton" name="sharpenPButton">
+             <property name="text">
+              <string>Sharpen</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QSlider" name="sharpenSliderW1">
              <property name="minimum">
-              <number>1</number>
+              <number>0</number>
+             </property>
+             <property name="maximum">
+              <number>51</number>
              </property>
              <property name="value">
               <number>15</number>
@@ -1016,27 +975,20 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="3">
-            <widget class="QSpinBox" name="blurSpinBox">
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="value">
-              <number>15</number>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="4">
-            <widget class="QPushButton" name="blurButton">
+           <item row="1" column="4">
+            <widget class="QPushButton" name="hpfPreviewPushB">
              <property name="text">
               <string>Preview</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_18">
-             <property name="text">
-              <string>HPF</string>
+           <item row="1" column="3">
+            <widget class="QSpinBox" name="hpfSpinBox">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>500</number>
              </property>
             </widget>
            </item>
@@ -1059,35 +1011,51 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="3">
-            <widget class="QSpinBox" name="hpfSpinBox">
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>500</number>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_18">
+             <property name="text">
+              <string>HPF</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="4">
-            <widget class="QPushButton" name="hpfPreviewPushB">
+           <item row="0" column="4">
+            <widget class="QPushButton" name="blurButton">
              <property name="text">
               <string>Preview</string>
              </property>
             </widget>
            </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QGridLayout" name="gridLayout_11">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_20">
+           <item row="0" column="3">
+            <widget class="QSpinBox" name="blurSpinBox">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="value">
+              <number>15</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_19">
              <property name="text">
-              <string>Unsharp weight 1</string>
+              <string>Blur</string>
              </property>
             </widget>
            </item>
            <item row="0" column="2">
+            <widget class="QSlider" name="blurSlider">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="value">
+              <number>15</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="3">
             <widget class="QDoubleSpinBox" name="doubleSpinBoxW1">
              <property name="minimum">
               <double>0.100000000000000</double>
@@ -1100,79 +1068,6 @@
              </property>
              <property name="value">
               <double>1.500000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_21">
-             <property name="text">
-              <string>Unsharp weight 2</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QSlider" name="sharpenSliderW2">
-             <property name="minimum">
-              <number>0</number>
-             </property>
-             <property name="maximum">
-              <number>51</number>
-             </property>
-             <property name="value">
-              <number>10</number>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QDoubleSpinBox" name="doubleSpinBoxW2">
-             <property name="minimum">
-              <double>0.100000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>5.000000000000000</double>
-             </property>
-             <property name="singleStep">
-              <double>0.100000000000000</double>
-             </property>
-             <property name="value">
-              <double>1.100000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QSlider" name="sharpenSliderW1">
-             <property name="minimum">
-              <number>0</number>
-             </property>
-             <property name="maximum">
-              <number>51</number>
-             </property>
-             <property name="value">
-              <number>15</number>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_15">
-           <item>
-            <widget class="QCheckBox" name="sharpenLiveCheckBox">
-             <property name="text">
-              <string>Live preview</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="sharpenPButton">
-             <property name="text">
-              <string>Sharpen</string>
              </property>
             </widget>
            </item>
@@ -1444,6 +1339,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="pushButton">
+           <property name="text">
+            <string>HDR</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="exportButton">
            <property name="text">
             <string>Export </string>
@@ -1452,6 +1354,84 @@
          </item>
         </layout>
        </widget>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupBox_6">
+       <property name="minimumSize">
+        <size>
+         <width>120</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>140</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Stretching</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_15">
+        <item>
+         <widget class="QPushButton" name="normalizeButton">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Normalize</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="convert8BitButton">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>8-bit</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="stretch14to16bitPButton">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>14 -&gt; 16 bit</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </item>
      <item>
@@ -2169,7 +2149,7 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="masterPage">
         <property name="geometry">
@@ -2470,6 +2450,13 @@
           <widget class="QCheckBox" name="templateMatchCheckBox">
            <property name="text">
             <string>Use template matching</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="normalizeExposureCheckBox">
+           <property name="text">
+            <string>normalize to exposure time</string>
            </property>
           </widget>
          </item>
@@ -3285,7 +3272,7 @@
    <slot>minMaxScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1049</x>
+     <x>1015</x>
      <y>958</y>
     </hint>
     <hint type="destinationlabel">
@@ -3301,7 +3288,7 @@
    <slot>exportFrames()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1069</x>
+     <x>934</x>
      <y>948</y>
     </hint>
     <hint type="destinationlabel">
@@ -3318,7 +3305,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1706</x>
-     <y>712</y>
+     <y>710</y>
     </hint>
     <hint type="destinationlabel">
      <x>1340</x>
@@ -3333,8 +3320,8 @@
    <slot>convertTo8Bit()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1151</x>
-     <y>922</y>
+     <x>1143</x>
+     <y>953</y>
     </hint>
     <hint type="destinationlabel">
      <x>962</x>
@@ -3349,8 +3336,8 @@
    <slot>convertToNeg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1151</x>
-     <y>958</y>
+     <x>1015</x>
+     <y>994</y>
     </hint>
     <hint type="destinationlabel">
      <x>1253</x>
@@ -3365,7 +3352,7 @@
    <slot>autoScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1049</x>
+     <x>1015</x>
      <y>922</y>
     </hint>
     <hint type="destinationlabel">
@@ -3381,8 +3368,8 @@
    <slot>normalizeCurrentSeries()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1049</x>
-     <y>994</y>
+     <x>1143</x>
+     <y>919</y>
     </hint>
     <hint type="destinationlabel">
      <x>723</x>
@@ -3397,12 +3384,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>510</x>
-     <y>935</y>
+     <x>501</x>
+     <y>928</y>
     </hint>
     <hint type="destinationlabel">
-     <x>574</x>
-     <y>936</y>
+     <x>826</x>
+     <y>928</y>
     </hint>
    </hints>
   </connection>
@@ -3445,12 +3432,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>510</x>
-     <y>976</y>
+     <x>589</x>
+     <y>960</y>
     </hint>
     <hint type="destinationlabel">
-     <x>574</x>
-     <y>977</y>
+     <x>826</x>
+     <y>960</y>
     </hint>
    </hints>
   </connection>
@@ -3461,8 +3448,8 @@
    <slot>previewMatImageHPFSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>672</x>
-     <y>983</y>
+     <x>927</x>
+     <y>968</y>
     </hint>
     <hint type="destinationlabel">
      <x>701</x>
@@ -3477,12 +3464,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>574</x>
-     <y>977</y>
+     <x>826</x>
+     <y>960</y>
     </hint>
     <hint type="destinationlabel">
-     <x>510</x>
-     <y>976</y>
+     <x>589</x>
+     <y>960</y>
     </hint>
    </hints>
   </connection>
@@ -3493,12 +3480,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>574</x>
-     <y>936</y>
+     <x>826</x>
+     <y>928</y>
     </hint>
     <hint type="destinationlabel">
-     <x>510</x>
-     <y>935</y>
+     <x>501</x>
+     <y>928</y>
     </hint>
    </hints>
   </connection>
@@ -3510,7 +3497,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1650</x>
-     <y>541</y>
+     <y>548</y>
     </hint>
     <hint type="destinationlabel">
      <x>1459</x>
@@ -3526,7 +3513,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>1650</x>
-     <y>546</y>
+     <y>553</y>
     </hint>
     <hint type="destinationlabel">
      <x>1457</x>
@@ -3541,7 +3528,7 @@
    <slot>solarColorizeSeriesSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>497</x>
+     <x>371</x>
      <y>957</y>
     </hint>
     <hint type="destinationlabel">
@@ -3561,7 +3548,7 @@
      <y>928</y>
     </hint>
     <hint type="destinationlabel">
-     <x>845</x>
+     <x>709</x>
      <y>929</y>
     </hint>
    </hints>
@@ -3577,7 +3564,7 @@
      <y>963</y>
     </hint>
     <hint type="destinationlabel">
-     <x>845</x>
+     <x>709</x>
      <y>964</y>
     </hint>
    </hints>
@@ -3593,7 +3580,7 @@
      <y>998</y>
     </hint>
     <hint type="destinationlabel">
-     <x>845</x>
+     <x>709</x>
      <y>999</y>
     </hint>
    </hints>
@@ -3669,8 +3656,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1136</x>
-     <y>946</y>
+     <x>1000</x>
+     <y>948</y>
     </hint>
     <hint type="destinationlabel">
      <x>1109</x>
@@ -3685,8 +3672,8 @@
    <slot>binningSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1136</x>
-     <y>982</y>
+     <x>1000</x>
+     <y>988</y>
     </hint>
     <hint type="destinationlabel">
      <x>1160</x>
@@ -3701,11 +3688,43 @@
    <slot>sharpenImageSlot()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>1012</x>
-     <y>961</y>
+     <x>927</x>
+     <y>1000</y>
     </hint>
     <hint type="destinationlabel">
      <x>1004</x>
+     <y>827</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>stretch14to16bitPButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>convert14to16bitSeriesSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1112</x>
+     <y>971</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1361</x>
+     <y>828</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>released()</signal>
+   <receiver>RMainWindow</receiver>
+   <slot>HDRSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>898</x>
+     <y>948</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>887</x>
      <y>827</y>
     </hint>
    </hints>
@@ -3736,5 +3755,7 @@
   <slot>extractLuckySampleSlot()</slot>
   <slot>binningSlot()</slot>
   <slot>sharpenImageSlot()</slot>
+  <slot>convert14to16bitSeriesSlot()</slot>
+  <slot>HDRSlot()</slot>
  </slots>
 </ui>

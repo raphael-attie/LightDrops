@@ -31,7 +31,7 @@ ImageManager::ImageManager(QUrl url) :
     // but then it actually loads the whole lot! This may change in the future.
 
     this->filePathQStr = filePathQStr;
-    QFileInfo fileInfo(filePathQStr);
+    fileInfo = QFileInfo(filePathQStr);
     fileName = fileInfo.fileName();
     fileExt = fileInfo.suffix().toLower();
 
@@ -203,9 +203,11 @@ void ImageManager::loadRaw()
 
 void ImageManager::loadTiff()
 {
+
     cv::Mat tiffImage = cv::imread(filePathQStr.toStdString(), cv::IMREAD_COLOR | cv::IMREAD_ANYDEPTH);
     rMatImage = new RMat(tiffImage, false, instruments::TIFF);
     rMatImage->flipUD = true;
+    exposureParser();
 
 }
 
@@ -312,6 +314,27 @@ void ImageManager::fixUset()
 //        rMatImage->matImage.at<short>(4, x) = 4095;
 //        rMatImage->matImage.at<short>(5, x) = 4095;
     }
+
+}
+
+void ImageManager::exposureParser()
+{
+    QString baseName = fileInfo.baseName();
+    QString str = "exp";
+    int j = 0;
+    int stri = baseName.indexOf(str);
+
+    if (stri == -1)
+    {
+        return;
+    }
+
+    stri += 3;
+
+    QString exposureQStr = baseName.mid(stri, baseName.size()-1);
+
+    rMatImage->setXPOSURE(1/exposureQStr.toFloat());
+    rMatImage->setExpTime(1/exposureQStr.toFloat());
 
 }
 

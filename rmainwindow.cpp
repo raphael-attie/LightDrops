@@ -30,7 +30,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
     this->showMaximized();
     setCentralWidget(ui->mdiArea);
     processing = new RProcessing(this);
-    processing->setTreeWidget(ui->treeWidget);
+
     vertLineHigh = NULL;
     defaultWindowSize = QSize(512, 512);
 
@@ -136,11 +136,7 @@ RMainWindow::RMainWindow(QWidget *parent) :
     // Fourier Filters
    qDebug() << "mdiArea->size =" << ui->mdiArea->size();
 
-   connect(ui->sharpenLiveCheckBox, SIGNAL(clicked(bool)), this, SLOT(initSharpenImageSlot(bool)));
    connect(ui->sharpenSliderW1, SIGNAL(sliderMoved(int)), this, SLOT(sharpenSliderSlot()));
-   connect(ui->sharpenSliderW2, SIGNAL(sliderMoved(int)), this, SLOT(sharpenSliderSlot()));
-   connect(ui->sharpenSliderW1, SIGNAL(sliderReleased()), this, SLOT(sharpenLiveSlot()));
-   connect(ui->sharpenSliderW2, SIGNAL(sliderReleased()), this, SLOT(sharpenLiveSlot()));
 
 //   connect(ui->sharpenPButton, SIGNAL(released()), this, SLOT(sharpenImageSlot()));
 
@@ -634,11 +630,17 @@ void RMainWindow::updateDoubleSpinBox(int value)
 
 void RMainWindow::scaleImageSlot(int value)
 {
+    std::cout<< "scaleImageSlot" << std::endl;
+
     if (currentROpenGLWidget == NULL)
+    {
+        std::cout<< "currentROpenGLWidget is NULL. Returning..." << std::endl;
         return;
+    }
 
     if (this->sender() == ui->sliderHigh)
     {
+        std::cout<< "scaleImageSlot from sliderHigh" << std::endl;
         currentROpenGLWidget->setNewMax(convertSliderToScale(value));
     }
     else if (this->sender() == ui->sliderLow)
@@ -653,16 +655,22 @@ void RMainWindow::scaleImageSlot(int value)
     {   /// Limb
         currentROpenGLWidget->setLimbNewMin(convertSliderToScale(value));
     }
+    else
+    {
+        std::cout<< "scaleImageSlot sender not recognized" << std::endl;
+    }
 
     if (currentROpenGLWidget->getNewMin() == currentROpenGLWidget->getNewMax())
     {
+        std::cout<< "currentROpenGLWidget->newMin == newMax. Returning... " << std::endl;
         return;
     }
-    else if (currentROpenGLWidget->getLimbNewMin() == currentROpenGLWidget->getLimbNewMax())
+    else if ((this->sender() == ui->limbSliderHigh || this->sender() == ui->limbSliderLow) && currentROpenGLWidget->getLimbNewMin() == currentROpenGLWidget->getLimbNewMax())
     {
         return;
     }
 
+    std::cout<< "updateCurrentROpenGLWidget()" << std::endl;
     updateCurrentROpenGLWidget();
 }
 
@@ -694,33 +702,37 @@ void RMainWindow::setupSliders(ROpenGLWidget* rOpenGLWidget)
     // For USET for example, it is 4096.
     // We also need to define the number of decimals in the spinBox High and Low.
     int decimals = 0;
-    ui->sliderHigh->blockSignals(true);
-    ui->sliderLow->blockSignals(true);
-    ui->limbSliderHigh->blockSignals(true);
-    ui->limbSliderLow->blockSignals(true);
+//    ui->sliderHigh->blockSignals(true);
+//    ui->sliderLow->blockSignals(true);
+//    ui->limbSliderHigh->blockSignals(true);
+//    ui->limbSliderLow->blockSignals(true);
 
     int sliderMax = ui->sliderHigh->maximum();
     int sliderMin = ui->sliderHigh->minimum();
-    sliderRange = sliderMax - sliderMin + 1;
-//    ui->sliderHigh->setRange(sliderMin, sliderMax);
-//    ui->sliderLow->setRange(sliderMin, sliderMax);
+    sliderRange =  sliderMax - sliderMin + 1;
 
-    float dataMax = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMax();
-    float dataMin = (float) rOpenGLWidget->getRMatImageList().at(0)->getDataMin();
+    float dataMin = processing->fetchRMatSeriesMin(rOpenGLWidget->getRMatImageList());
+    float dataMax = processing->fetchRMatSeriesMax(rOpenGLWidget->getRMatImageList());
+    float dataRange = dataMax - dataMin + 1;
+//    std::cout << "dataMin = " << dataMin << std::endl;
+//    std::cout << "dataMax = " << dataMax << std::endl;
+
     // Affine equation y = p + s*x (y: scaled value, s: slope, p:intercept, x: slider value)
     // <=>   scaledValue = sliderToScaleMininum + sliderScale * "slider Value"
     // Slope:
-    sliderScale = (float) (dataMax - dataMin) / (sliderMax - sliderMin);
-    // Intercept:
-    sliderToScaleMinimum = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataMin() - sliderScale*sliderMin;
+
+      sliderScale = dataRange / sliderRange;
+      sliderToScaleMinimum = dataMin - sliderScale*sliderMin;
+
+//    std::cout << "sliderScale = " << sliderScale << std::endl;
+//    std::cout << "sliderToScaleMinimum = " << sliderToScaleMinimum << std::endl;
+
+//    std::cout << "sliderScale2 = " << sliderScale2 << std::endl;
+//    std::cout << "sliderToScaleMinimum2 = " << sliderToScaleMinimum2 << std::endl;
 
     if ( rOpenGLWidget->getRMatImageList().at(0)->getInstrument() == instruments::DSLR &&
         (rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32F && rOpenGLWidget->getRMatImageList().at(0)->matImage.type() != CV_32FC3) )
     {
-        //sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getDataRange();
-        //sliderRange = (int) rOpenGLWidget->getRMatImageList().at(0)->getMaxHistRange();
-//        ui->sliderHigh->setRange(1, sliderRange);
-//        ui->sliderLow->setRange(1, sliderRange);
 
         ui->limbSliderHigh->setRange(1, sliderRange);
         ui->limbSliderLow->setRange(1, sliderRange);
@@ -980,6 +992,13 @@ void RMainWindow::normalizeCurrentSeries()
     autoScale();
 }
 
+void RMainWindow::convert14to16bitSeriesSlot()
+{
+    QList<RMat*> stretchedRMatList = processing->stretchSeries14to16bit(currentROpenGLWidget->getRMatImageList());
+    createNewImage(stretchedRMatList);
+    autoScale();
+}
+
 
 void RMainWindow::previewMatImageHPFSlot()
 {
@@ -1029,6 +1048,15 @@ void RMainWindow::binningSlot()
     createNewImage(binnedRMatImage);
     autoScale();
 
+}
+
+void RMainWindow::HDRSlot()
+{
+    if (currentROpenGLWidget == NULL)
+    {
+        return;
+    }
+    processing->createHDRMat(currentROpenGLWidget->getRMatImageList());
 }
 
 void RMainWindow::blockProcessingSlot()
@@ -2086,7 +2114,6 @@ void RMainWindow::initSharpenImageSlot(bool status)
 void RMainWindow::sharpenImageSlot()
 {
     float weight1 = ui->doubleSpinBoxW1->value();
-    float weight2 = ui->doubleSpinBoxW2->value();
     QList<RMat*> rMatSharpList = processing->sharpenSeries(currentROpenGLWidget->getRMatImageList(), weight1);
 
     createNewImage(rMatSharpList);
@@ -2100,52 +2127,6 @@ void RMainWindow::sharpenSliderSlot()
     {
         ui->doubleSpinBoxW1->setValue(ui->sharpenSliderW1->value()/10.0);
     }
-    else if (this->sender() == ui->sharpenSliderW2)
-    {
-        ui->doubleSpinBoxW2->setValue(ui->sharpenSliderW2->value()/10.0);
-    }
-
-}
-
-void RMainWindow::sharpenLiveSlot()
-{
-    /// Set in whether we'll need live preview during processing.
-    //processing->setSharpenLiveStatus(ui->sharpenLiveCheckBox->isChecked());
-
-    if (!ui->sharpenLiveCheckBox->isChecked() || previewSubWindow->isHidden())
-    {
-        return;
-    }
-
-
-    float weight1 = (float) ui->doubleSpinBoxW1->value();
-
-    RMat *rMatSharp = processing->sharpenCurrentImage(currentROpenGLWidget->getRMatImageList().at(frameIndex), weight1);
-    cv::Mat matImage = convertTo8Bit(rMatSharp);
-
-    if (matImage.channels() == 1)
-    {
-        previewQImage = QImage(matImage.data, matImage.cols, matImage.rows, QImage::Format_Grayscale8);
-    }
-    else
-    {
-        if (currentROpenGLWidget->getRMatImageList().at(frameIndex)->flipUD)
-        {
-            qDebug("RMainWindow::initPreviewQImage() Image is RGB and TIFF. Flipping.");
-            cv::flip(matImage, matImage, 0);
-        }
-        previewQImage = QImage((const uchar *) matImage.data, matImage.cols, matImage.rows, matImage.step, QImage::Format_RGB888);
-    }
-
-
-
-    QPixmap pixMap = QPixmap::fromImage(previewQImage);
-    QGraphicsScene *newScene = new QGraphicsScene;
-    newScene->addPixmap(pixMap);
-    delete graphicsView->scene();
-    graphicsView->setScene(newScene);
-    previewSubWindow->setWindowTitle(QString("Sharpened image (static preview)"));
-    previewSubWindow->update();
 
 }
 
@@ -2333,7 +2314,7 @@ void RMainWindow::registerSlot()
                 // e.g coming from different directories <-> different drag'n'drops movements.
                 std::cout << "ui->batchProcessCheckBox = " << ui->batchProcessCheckBox << std::endl;
                 processing->setUseUrlsFromTreeWidget(ui->batchProcessCheckBox->isChecked());
-                processing->registerSeriesXCorrPropagate();
+                processing->registerSeriesXCorrPropagate(ui->roiRadioButton->isChecked(), ui->normalizeExposureCheckBox->isChecked());
             }
             else
             {

@@ -7,6 +7,10 @@
 
 //opencv
 #include <opencv2/world.hpp>
+#include <opencv2/photo.hpp>
+
+// Algorithm from std
+#include <algorithm>
 
 #include "imagemanager.h"
 #include "parallelcalibration.h"
@@ -95,6 +99,82 @@ void RProcessing::loadRMatFlatList(QList<QUrl> urls)
     listImageManager->loadData(urls);
     rMatFlatList = listImageManager->getRMatImageList();
 }
+
+double RProcessing::fgauss(double x, void *params)
+{
+//      double alpha = *(double *) params;
+//      double f = log(alpha*x) / sqrt(x);
+//      return f;
+
+      double sigma = *(double *) params;
+      double fgauss = exp(-pow(x,2)/(2*pow(sigma,2)));
+      return fgauss;
+}
+
+double RProcessing::integrateGaussian(double sigma, double a, double b)
+{
+    gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+    double result, error;
+
+    gsl_function F;
+    F.function = &fgauss;
+    F.params = &sigma;
+    // int gsl_integration_qags (const gsl_function * f, double a, double b, double epsabs, double epsrel, size_t limit, gsl_integration_workspace * workspace, double * result, double * abserr)
+    //int gsl_integration_qag (const gsl_function * f, double a, double b, double epsabs, double epsrel, size_t limit, int key, gsl_integration_workspace * workspace, double * result, double * abserr)
+    gsl_integration_qag(&F, a, b, 0, 1e-7, 1000, 1, w, &result, &error);
+
+    result /= sqrt(2 * M_PI) * sigma;
+
+    return result;
+}
+
+double *RProcessing::gaussKer(int kSize, double sigma)
+{
+    /// Alternative to the gaussian kernel of openCV.
+    /// This one has same result as http://dev.theomader.com/gaussian-kernel-calculator/
+    double *ker = new double[kSize]{0};
+    double sum = 0;
+
+    for (int i = 0; i < kSize; i++)
+    {
+        int x = i - kSize/2;
+        ker[i] = integrateGaussian(sigma, x-0.5, x+0.5);
+        sum += ker[i];
+    }
+    for (int i = 0; i < kSize; i++)
+    {
+        ker[i] /= sum;
+    }
+
+    return ker;
+}
+
+double *RProcessing::gaussKer2d(double sigma)
+{
+
+    // Calculate kernel size based on sigma
+    int kSize = std::round( ((sigma - 0.8)/0.3 + 1) * 2 );
+    // Make sure kSize is odd
+    if (kSize % 2 == 0) { kSize += 1; }
+
+//    double* ker = gaussKer(kSize, sigma);
+    cv::Mat matKer = cv::getGaussianKernel(kSize, sigma);
+    double *ker = (double*) matKer.data;
+
+    double *ker2d = new double[kSize*kSize]{0};
+
+    for (int j = 0; j < kSize; j++)
+    {
+        for (int i = 0; i < kSize; i++)
+        {
+            ker2d[j*kSize +i] = ker[i] * ker[j];
+        }
+    }
+
+    return ker2d;
+}
+
+
 
 
 
@@ -2184,6 +2264,12 @@ void RProcessing::calibrate()
 
 }
 
+void RProcessing::meshgrid(const cv::Mat &xgv, const cv::Mat &ygv, cv::Mat1i &X, cv::Mat1i &Y)
+{
+      cv::repeat(xgv.reshape(1,1), ygv.total(), 1, X);
+      cv::repeat(ygv.reshape(1,1).t(), 1, xgv.total(), Y);
+}
+
 
 
 
@@ -2230,23 +2316,44 @@ bool RProcessing::prepRegistration()
             return false;
         }
     }
-    // Clear the resultList if not empty
-    if (!resultList.isEmpty())
+
+    for (int i=0; i < cvRectROIList.size(); i++)
     {
-        qDeleteAll(resultList);
-        resultList.clear();
+        std::cout << "RProcessing::prepRegistration()  cvRectROIList.at(i) = " << cvRectROIList.at(i) << std::endl;
     }
+
+    cv::Mat refMat;
 
     if (rMatLightList.at(0)->isBayer())
     {
-        resultList << new RMat(rMatLightList.at(0)->matImageRGB, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+        std::cout << "prepRegistration() Original image is Bayer. Place reference image with debayerized 3-channel image" << std::endl;
+        rMatLightList.at(0)->matImageRGB.copyTo(refMat);
     }
     else
     {
-        resultList << new RMat(rMatLightList.at(0)->matImage, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+        std::cout << "prepRegistration() Original image is not Bayer. Place reference image as is" << std::endl;
+        rMatLightList.at(0)->matImage.copyTo(refMat);
     }
-    resultList.at(0)->setFileInfo(rMatLightList.at(0)->getFileInfo());
-    resultList.at(0)->flipUD = rMatLightList.at(0)->flipUD;
+
+    RMat *newRMat = new RMat(refMat, false, rMatLightList.at(0)->getInstrument(), rMatLightList.at(0)->getXPOSURE(), rMatLightList.at(0)->getTEMP());
+
+    QFileInfo fileInfo = rMatLightList.at(0)->getFileInfo();
+    bool flipUD = rMatLightList.at(0)->flipUD;
+
+    // Clear the resultList if not empty
+    if (!resultList.isEmpty())
+    {
+        std::cout << "prepRegistration() Clearing result list" << std::endl;
+        //qDeleteAll(resultList);
+        resultList.clear();
+    }
+
+    std::cout << "prepRegistration() Appending reference image to resultList" << std::endl;
+    resultList << newRMat;
+
+    std::cout << "prepRegistration() Setting fileInfo and flipUD for reference image" << std::endl;
+    resultList.at(0)->setFileInfo(fileInfo);
+    resultList.at(0)->flipUD = flipUD;
 
 
     return true;
@@ -2423,7 +2530,7 @@ void RProcessing::registerSeries()
 
 }
 
-void RProcessing::registerSeriesXCorrPropagate()
+void RProcessing::registerSeriesXCorrPropagate(bool useROI, bool normalizeByExposure, int sigmaBlur)
 {
     /// Register by pairs of nearest frames (in time) and propagate up to the first so that the series
     /// is coaligned with the first image.
@@ -2441,14 +2548,63 @@ void RProcessing::registerSeriesXCorrPropagate()
     cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
     for (int i=0; i < rMatLightList.size()-1; i++)
     {
-        rMatLightList.at(i)->matImageGray.convertTo(refMat, CV_32F);
-        rMatLightList.at(i+1)->matImageGray.convertTo(currentMatImage, CV_32F);
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() converting to CV_32F at frame # " << i << std::endl;
 
-        cv::Mat refMatN = refMat / rMatLightList.at(i)->getXPOSURE();
-        cv::Mat currentMatImageN = currentMatImage / rMatLightList.at(i+1)->getXPOSURE();
+        refMat = rMatLightList.at(i)->extractChannel(0);
+        currentMatImage = rMatLightList.at(i+1)->extractChannel(0);
 
-        //shift = shift + calculateSADShift(refMatN, currentMatImageN, cvRectROIList, 50);
-        cv::Mat warpMat = calculateXCorrShift(refMatN, currentMatImageN, cvRectROIList);
+        cv::Mat refMatN;
+        cv::Mat currentMatImageN;
+        if (normalizeByExposure)
+        {
+            refMatN = normalizeByThresh(refMat, 0, 16183, 65536.0);
+            refMatN = refMatN / rMatLightList.at(i)->getXPOSURE();
+
+            currentMatImageN = normalizeByThresh(currentMatImage, 0, 16183, 65536.0);
+            currentMatImageN = currentMatImageN / rMatLightList.at(i+1)->getXPOSURE();
+
+        }
+        else
+        {
+            refMat.convertTo(refMatN, CV_32F);
+            currentMatImage.convertTo(currentMatImageN, CV_32F);
+        }
+
+
+//        rMatLightList.at(i)->matImageGray.convertTo(refMat, CV_32F);
+//        rMatLightList.at(i+1)->matImageGray.convertTo(currentMatImage, CV_32F);
+
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() divide by XPOSURE at frame # " << i << std::endl;
+
+
+
+
+        if (sigmaBlur > 0)
+        {
+            // Gaussien blur. Kernel size is estimate from sigma.
+            cv::GaussianBlur(refMatN, refMatN, cv::Size(0, 0), sigmaBlur);
+            cv::GaussianBlur(currentMatImageN, currentMatImageN, cv::Size(0, 0), sigmaBlur);
+        }
+
+        std::cout << "RProcessing::registerSeriesXCorrPropagate() Calculating shift at frame # " << i << std::endl;
+
+        cv::Mat warpMat;
+        if (useROI)
+        {
+
+//            QList<cv::Rect> cvRectROIList2;
+//            for (int i = 0; i < cvRectROIList.size(); i++)
+//            {
+
+//            }
+
+            warpMat = calculateXCorrShift(refMatN, currentMatImageN, cvRectROIList);
+        }
+        else
+        {
+            warpMat = calculateXCorrShift(refMatN, currentMatImageN);
+        }
+
         warpMatrixTotal.at<float>(0, 2) += warpMat.at<float>(0, 2);
         warpMatrixTotal.at<float>(1, 2) += warpMat.at<float>(1, 2);
 
@@ -2940,34 +3096,33 @@ cv::Point RProcessing::calculateSADShift(cv::Mat refMat, cv::Mat matImage, QList
     return shift;
 }
 
-cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov)
+cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Mat warpMatrix)
 {
-    cv::GaussianBlur(refMat, refMat, cv::Size(0, 0), 3);
-    cv::GaussianBlur(matImage, matImage, cv::Size(0, 0), 3);
 
-    cv::Mat sRefMat = refMat(fov);
-    cv::Mat sMatImage = matImage(fov);
+    /// Have a look at the ROI
+//    cv::Mat sRefMat2;
+//    sRefMat.convertTo(sRefMat2, CV_16U);
+//    RMat *tempRMat = new RMat(sRefMat2, rMatLightList.at(0));
+//    emit resultSignal(tempRMat);
 
     double eccEps = 0;
     // Define the motion mode
     const int warpMode = cv::MOTION_TRANSLATION;
     // Specify the number of iterations.
     //int number_of_iterations = 50; // stellar
-    int number_of_iterations = 1000; // stellar
+    int number_of_iterations = 100; // stellar
     // Specify the threshold of the increment
     // in the correlation coefficient between two iterations
-    double termination_eps = 1e-2; // stellar
+    double termination_eps = 1e-1; // stellar
 
 
     // Define termination criteria
-    cv::TermCriteria criteria(cv::TermCriteria::COUNT, number_of_iterations, termination_eps);
+    cv::TermCriteria criteria(cv::TermCriteria::MAX_ITER, number_of_iterations, termination_eps);
     //cv::TermCriteria criteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, number_of_iterations, termination_eps);
 
-    cv::Mat warpMatrix = cv::Mat::eye(2, 3, CV_32F);
-
     eccEps = cv::findTransformECC(
-                sRefMat,
-                sMatImage,
+                refMat,
+                matImage,
                 warpMatrix,
                 warpMode,
                 criteria
@@ -2977,25 +3132,89 @@ cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::R
 }
 
 
+//cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList)
+//{
+
+//    cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
+
+//    for (int i=0; i < fovList.size(); i++)
+//    {
+//        std::cout << "RProcessing::calculateXCorrShift() Calculating shift for ROI # " << i << std::endl;
+//        cv::Rect roi = fovList.at(i);
+
+//        cv::Mat sRefMat = refMat(roi);
+//        cv::Mat sMatImage = matImage(roi);
+
+//        std::cout << "RProcessing::calculateXCorrShift() roi = " << roi << std::endl;
+//        cv::Mat warpMatrix_i = calculateXCorrShift(sRefMat, sMatImage);
+
+//        // Translation in 1st dimension (rows? y-axis?)
+//        warpMatrixTotal.at<float>(0,2) += warpMatrix_i.at<float>(0, 2);
+//        // Translation in 2nd dimension (cols? x-axis?)
+//        warpMatrixTotal.at<float>(1,2) += warpMatrix_i.at<float>(1, 2);
+//    }
+
+//    // Average the shifts
+//    warpMatrixTotal.at<float>(0,2) /= fovList.size();
+//    warpMatrixTotal.at<float>(1,2) /= fovList.size();
+
+//    std::cout << "RProcessing::calculateXCorrShift:: shift X = " << warpMatrixTotal.at<float>(0,2) << std::endl;
+//    std::cout << "RProcessing::calculateXCorrShift:: shift Y = " << warpMatrixTotal.at<float>(1,2) << std::endl;
+
+//    return warpMatrixTotal;
+
+//}
+
 cv::Mat RProcessing::calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList)
 {
 
-    cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
 
-    for (int i=0; i < fovList.size(); i++)
+
+    cv::Rect roi = fovList.at(0);
+    std::cout << "RProcessing::calculateXCorrShift() 1st roi = " << roi << std::endl;
+
+    cv::Mat sRefMat = refMat(roi);
+    cv::Mat sMatImage = matImage(roi);
+
+    cv::Mat warpMatrix0 = calculateXCorrShift(sRefMat, sMatImage);
+    std::cout << "1st pass. warpMatrix_0 = " << warpMatrix0 << std::endl;
+
+
+    if (fovList.size() == 1)
     {
-        cv::Rect fov = fovList.at(i);
-        cv::Mat warpMatrix_i = calculateXCorrShift(refMat, matImage, fov);
+        return warpMatrix0;
+    }
 
-        // Translation in 1st dimension (rows? y-axis?)
+    std::cout << "Shifting image for 2nd pass..." << std::endl;
+    cv::warpAffine(matImage, matImage, warpMatrix0, matImage.size(), cv::INTER_LANCZOS4 + CV_WARP_INVERSE_MAP);
+
+
+    cv::Mat warpMatrixTotal = cv::Mat::eye( 2, 3, CV_32FC1 );
+    std::cout << "warpMatrixTotal = " << warpMatrixTotal << std::endl;
+    for (int i=1; i < fovList.size(); i++)
+    {
+        std::cout << "Calculating shift for ROI # " << i << std::endl;
+        cv::Rect roi = fovList.at(i);
+        std::cout << "roi = " << roi << std::endl;
+
+        cv::Mat sRefMat = refMat(roi);
+        cv::Mat sMatImage = matImage(roi);
+
+        cv::Mat warpMatrix_i = calculateXCorrShift(sRefMat, sMatImage);
+        std::cout << "warpMatrix_i = " << warpMatrix_i << std::endl;
+
+        // Translation in 1st dimension
         warpMatrixTotal.at<float>(0,2) += warpMatrix_i.at<float>(0, 2);
-        // Translation in 2nd dimension (cols? x-axis?)
+        // Translation in 2nd dimension
         warpMatrixTotal.at<float>(1,2) += warpMatrix_i.at<float>(1, 2);
     }
 
     // Average the shifts
-    warpMatrixTotal.at<float>(0,2) /= fovList.size();
-    warpMatrixTotal.at<float>(1,2) /= fovList.size();
+    warpMatrixTotal.at<float>(0,2) /= (fovList.size() - 1);
+    warpMatrixTotal.at<float>(1,2) /= (fovList.size() - 1);
+
+    warpMatrixTotal.at<float>(0,2) += warpMatrix0.at<float>(0,2);
+    warpMatrixTotal.at<float>(1,2) += warpMatrix0.at<float>(1,2);
 
     std::cout << "RProcessing::calculateXCorrShift:: shift X = " << warpMatrixTotal.at<float>(0,2) << std::endl;
     std::cout << "RProcessing::calculateXCorrShift:: shift Y = " << warpMatrixTotal.at<float>(1,2) << std::endl;
@@ -3933,10 +4152,7 @@ QList<RMat *> RProcessing::normalizeSeriesByStats(QList<RMat*> rMatImageList)
     for (int i =0 ; i < rMatImageList.size() ; ++i)
     {
         normalizedRMatImageList << normalizeByStats(rMatImageList.at(i));
-        normalizedRMatImageList.at(i)->setInstrument(rMatImageList.at(i)->getInstrument());
-        normalizedRMatImageList.at(i)->setSOLAR_R(rMatImageList.at(i)->getSOLAR_R());
-        normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("# %1").arg(i));
-        normalizedRMatImageList.at(i)->setDate_time(rMatImageList.at(i)->getDate_time());
+        normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("%1").arg(i));
     }
 
     return normalizedRMatImageList;
@@ -3960,10 +4176,8 @@ RMat* RProcessing::normalizeByStats(RMat *rMat)
 
     cv::Mat matImage = normalizeByThresh(rMat->matImage, rMat->getIntensityLow(), rMat->getIntensityHigh(), rMat->getNormalizeRange());
 
-    RMat* normalizeRMat = new RMat(matImage, rMat->isBayer(), rMat->getInstrument());
-    normalizeRMat->setImageTitle(QString("Normalized image "));
-    normalizeRMat->setDate_time(rMat->getDate_time());
-    normalizeRMat->setSOLAR_R(rMat->getSOLAR_R());
+    RMat* normalizeRMat = new RMat(matImage, rMat);
+    normalizeRMat->setImageTitle(QString("Normalized_image_"));
     showMinMax(matImage);
 
     return normalizeRMat;
@@ -3971,31 +4185,39 @@ RMat* RProcessing::normalizeByStats(RMat *rMat)
 
 RMat *RProcessing::normalizeToXposure(RMat *rMat)
 {
-    cv::Mat normalizedMatImage;
-    rMat->matImage.convertTo(normalizedMatImage, CV_32F);
-    normalizedMatImage = normalizedMatImage / rMat->getXPOSURE();
+    std::cout << "RProcessing::normalizeToXposure()" << std::endl;
 
-    RMat* normalizedRMat = new RMat(normalizedMatImage, rMat->isBayer());
-    normalizedRMat->setImageTitle(QString("Normalized image "));
-    normalizedRMat->setDate_time(rMat->getDate_time());
-    normalizedRMat->setSOLAR_R(rMat->getSOLAR_R());
-    normalizedRMat->flipUD = rMat->flipUD;
+    cv::Mat matImage = normalizeByThresh(rMat->matImage, 0, 16183, 65536.0);
+
+    std::cout << "Dividing by exposure time" << std::endl;
+    // This cause problem with TIFF files who do not have metadata.
+    // I Wrote a parser for getting it in the filename till I work more with the exif data (e.g with Exiv2)
+    cv::Mat normalizedMatImage = matImage / rMat->getXPOSURE();
+
+    // After dividing by exposure, one needs to normalize to a reasonable range for visualisation and export.
+
+    // TEMPORARY!!!!!! IF the TIFF are originally stretched to 16 bit, then converting back to 16 bit will truncate.
+    //cv::threshold(matImage, matImage, 65536, 65536, cv::THRESH_TRUNC);
+    normalizedMatImage.convertTo(normalizedMatImage, CV_16U);
+
+    RMat* normalizedRMat = new RMat(normalizedMatImage, rMat);
+    normalizedRMat->setImageTitle(QString("normalized_image_"));
 
     return normalizedRMat;
 }
 
 QList<RMat *> RProcessing::normalizeSeriesToXposure(QList<RMat *> rMatImageList)
 {
+    std::cout << "RProcessing::normalizeSeriesToXposure()" << std::endl;
+
     QList<RMat*> normalizedRMatImageList;
 
     for (int i =0 ; i < rMatImageList.size() ; ++i)
     {
+        std::cout<< "Normalizing image #"<< i << std::endl;
         normalizedRMatImageList << normalizeToXposure(rMatImageList.at(i));
         //normalizedRMatImageList.at(i)->setInstrument(rMatImageList.at(i)->getInstrument());
-        normalizedRMatImageList.at(i)->setSOLAR_R(rMatImageList.at(i)->getSOLAR_R());
-        normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("# %1").arg(i));
-        normalizedRMatImageList.at(i)->setDate_time(rMatImageList.at(i)->getDate_time());
-
+        normalizedRMatImageList.at(i)->setImageTitle(normalizedRMatImageList.at(i)->getImageTitle() + QString("%1").arg(i));
     }
 
     return normalizedRMatImageList;
@@ -4020,11 +4242,11 @@ void RProcessing::normalizeByStatsInPlace(RMat *rMat)
 
 cv::Mat RProcessing::normalizeByThresh(cv::Mat matImage, float oldMin, float oldMax, float newRange)
 {
-    /// This function do contrast stretching and clips the intensity between newMin and newMax.
+    /// This function do contrast stretching and clips the intensity between 0 and newRange-1.
     /// Contrast Stretching formula from : http://homepages.inf.ed.ac.uk/rbf/HIPR2/stretch.htm
-    /// This assumes the lower Range in newRange equals 0.
+    /// This assumes the new min = 0 in the stretched image.
 
-    float oldRange = oldMax - oldMin;
+    float oldRange = oldMax - oldMin + 1;
     float alpha = newRange / oldRange;
     float beta = -oldMin * newRange /oldRange;
 
@@ -4034,14 +4256,7 @@ cv::Mat RProcessing::normalizeByThresh(cv::Mat matImage, float oldMin, float old
     normalizedMatImage = normalizedMatImage * alpha + beta;
     cv::threshold(normalizedMatImage, normalizedMatImage, newRange, newRange, cv::THRESH_TRUNC);
 
-    if (matImage.type() == CV_32F || matImage.type() == CV_32FC3)
-    {
-        normalizedMatImage.convertTo(normalizedMatImage, CV_16U);
-    }
-    else
-    {
-        normalizedMatImage.convertTo(normalizedMatImage, matImage.type());
-    }
+
 
     return normalizedMatImage;
 }
@@ -4064,6 +4279,106 @@ cv::Mat RProcessing::normalizeClipByThresh(cv::Mat matImage, float newMin, float
 
     normalizedMatImage.convertTo(normalizedMatImage, matImage.type(), alpha, beta);
     return normalizedMatImage;
+}
+
+cv::Mat RProcessing::stretch14to16bit(cv::Mat matImage)
+{
+
+    float minRange = 0;
+    float maxRange = 16183;
+    float newRange = 65536;
+
+    float oldRange = maxRange - minRange + 1;
+    float alpha = newRange / oldRange;
+    float beta = -minRange * newRange /oldRange;
+
+
+    cv::Mat stretchedMatImage;
+    matImage.convertTo(stretchedMatImage, CV_32F);
+
+    stretchedMatImage = stretchedMatImage * alpha + beta;
+    cv::threshold(stretchedMatImage, stretchedMatImage, newRange, newRange, cv::THRESH_TRUNC);
+
+    stretchedMatImage.convertTo(stretchedMatImage, CV_16U);
+
+    return stretchedMatImage;
+}
+
+
+
+QList<RMat *> RProcessing::stretchSeries14to16bit(QList<RMat *> rMatImageList)
+{
+    QList<RMat*> stretchedRMatImageList;
+    for (int i =0 ; i < rMatImageList.size() ; ++i)
+    {
+        cv::Mat stretchedMat = stretch14to16bit(rMatImageList.at(i)->matImage);
+        stretchedRMatImageList << new RMat(stretchedMat, rMatImageList.at(i));
+        stretchedRMatImageList.at(i)->setImageTitle(QString("Stretched_14to16bit_") + QString("%1").arg(i));
+    }
+
+    return stretchedRMatImageList;
+
+}
+
+cv::Mat RProcessing::convertTo8Bit(cv::Mat matImage, float dataMax)
+{
+
+    double fac = 255.0 / dataMax;
+    cv::Mat mat8Bit;
+    matImage.convertTo(mat8Bit, CV_8U, fac);
+
+    return mat8Bit;
+}
+
+std::vector<float> RProcessing::fetchExposureTimes(QList<RMat *> rMatImageList)
+{
+    std::vector<float> times;
+    for (int i=0 ; i < rMatImageList.size(); i++)
+    {
+        times.push_back(rMatImageList.at(i)->getXPOSURE());
+    }
+
+    return times;
+}
+
+void RProcessing::createHDRMat(QList<RMat *> rMatImageList)
+{
+    // Create array of exposure times
+    std::vector<float> times = fetchExposureTimes(rMatImageList);
+
+    // MergeDebevec
+    std::vector<cv::Mat> arrayOfMatImages;
+    std::vector<cv::Mat> arrayOfMatImages2;
+    for (int i=0; i<rMatImageList.size() ; i++)
+    {
+        // OpenCV usually assume BGR and not RGB. Beware...
+        cv::Mat mat8Bit = convertTo8Bit(rMatImageList.at(i)->matImage, rMatImageList.at(i)->getDataMax());
+        arrayOfMatImages.push_back(mat8Bit);
+        cv::Mat mat8bitROI;
+        mat8Bit(cvRectROIList.at(0)).copyTo(mat8bitROI);
+        arrayOfMatImages2.push_back(mat8bitROI);
+    }
+
+    cv::Mat response;
+    cv::Ptr<cv::CalibrateDebevec> calibrate = cv::createCalibrateDebevec();
+    calibrate->process(arrayOfMatImages2, response, times);
+
+    cv::Mat hdrMat;
+    cv::Ptr<cv::MergeDebevec> merge_debevec = cv::createMergeDebevec();
+    merge_debevec->process(arrayOfMatImages, hdrMat, times, response);
+
+    cv::Mat ldrMat;
+    cv::Ptr<cv::TonemapDurand> tonemap = cv::createTonemapDurand(2.2f);
+    tonemap->process(hdrMat, ldrMat);
+
+    cv::Mat fusionMat;
+    cv::Ptr<cv::MergeMertens> merge_mertens = cv::createMergeMertens();
+    merge_mertens->process(arrayOfMatImages, fusionMat);
+
+    imwrite("/Users/rattie/Data/Eclipse/Stack_mean_aligned_series/aligned/fusion2.png", fusionMat*255);
+    imwrite("/Users/rattie/Data/Eclipse/Stack_mean_aligned_series/aligned/ldr2.png", ldrMat*255);
+    imwrite("/Users/rattie/Data/Eclipse/Stack_mean_aligned_series/aligned/hdr2.png", hdrMat*255);
+
 }
 
 void RProcessing::fixUset(cv::Mat matImage)
@@ -4368,6 +4683,46 @@ QVector<Circle> RProcessing::getCircleOutList()
 float RProcessing::getMeanRadius()
 {
     return meanRadius;
+}
+
+float RProcessing::fetchRMatSeriesMin(QList<RMat *> rMatImageList)
+{
+    if (rMatImageList.size() == 1)
+    {
+        return rMatImageList.at(0)->getDataMin();
+    }
+
+    float *minValues = new float[rMatImageList.size()]{0};
+    for (int i = 0; i < rMatImageList.size(); i++)
+    {
+        minValues[i] = rMatImageList.at(i)->getDataMin();
+    }
+
+    auto minData = std::min_element(minValues, minValues + rMatImageList.size());
+    float min = *(minData);
+
+    delete[] minValues;
+    return min;
+}
+
+float RProcessing::fetchRMatSeriesMax(QList<RMat *> rMatImageList)
+{
+    if (rMatImageList.size() == 1)
+    {
+        return rMatImageList.at(0)->getDataMax();
+    }
+
+    float *maxValues = new float[rMatImageList.size()]{0};
+    for (int i = 0; i < rMatImageList.size(); i++)
+    {
+        maxValues[i] = rMatImageList.at(i)->getDataMax();
+    }
+
+    auto maxData = std::max_element(maxValues, maxValues + rMatImageList.size());
+    float max = *(maxData);
+
+    delete[] maxValues;
+    return max;
 }
 
 

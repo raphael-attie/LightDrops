@@ -31,9 +31,9 @@ RMat::RMat(const RMat &rMat)
     prepImages();
 }
 
-RMat::RMat(cv::Mat mat, const RMat &rMat) : flipUD(rMat.flipUD), bayer(rMat.bayer), bscale(rMat.bscale), bzero(rMat.bzero), dataMin(rMat.dataMin), dataMax(rMat.dataMax),
-    expTime(rMat.expTime), XPOSURE(rMat.XPOSURE), TEMP(rMat.TEMP), SOLAR_R(rMat.SOLAR_R), wbRed(rMat.wbRed), wbGreen(rMat.wbGreen), wbBlue(rMat.wbBlue),
-    instrument(rMat.instrument), imageTitle(rMat.imageTitle),
+RMat::RMat(cv::Mat mat, RMat *rMat) : flipUD(rMat->flipUD), bayer(rMat->bayer), bscale(rMat->bscale), bzero(rMat->bzero), dataMin(rMat->dataMin), dataMax(rMat->dataMax),
+    expTime(rMat->expTime), XPOSURE(rMat->XPOSURE), TEMP(rMat->TEMP), SOLAR_R(rMat->SOLAR_R), wbRed(rMat->wbRed), wbGreen(rMat->wbGreen), wbBlue(rMat->wbBlue),
+    instrument(rMat->instrument), imageTitle(rMat->imageTitle),
     item(NULL)
 {
     mat.copyTo(this->matImage);
@@ -83,8 +83,8 @@ void RMat::initialize()
     bzero = 0;
     dataMin = 0;
     dataMax = 0;
-    expTime = 0;
-    XPOSURE = 0;
+    expTime = 1;
+    XPOSURE = 1;
     TEMP = -100;
     SOLAR_R = 0;
     wbRed = 1.0;
@@ -99,28 +99,39 @@ void RMat::initialize()
 
 void RMat::prepImages()
 {
+    std::cout << "RMat::PrepImages()" << std::endl;
+
     if (matImage.channels() == 1)
     {
         if (bayer)
         {
+            std::cout << "RMat::PrepImages() Image is bayer. Converting..." << std::endl;
+
             matImage.convertTo(matImageRGB, CV_16U);
             cv::cvtColor(matImageRGB, matImageRGB, CV_BayerBG2RGB);
             cv::cvtColor(matImageRGB, matImageGray, CV_RGB2GRAY);
         }
         else
         {
+            std::cout << "RMat::PrepImages() Image is not bayer. Gray image is assigned to the original array" << std::endl;
+
             matImageGray = matImage;
+            cv::cvtColor(matImage, matImageRGB, CV_GRAY2RGB);
         }
     }
     else // Assumes 3 channels?
     {
         if (instrument != instruments::TIFF)
         {
+            std::cout << "RMat::PrepImages() Image is not TIFF" << std::endl;
+
             cv::cvtColor(matImage, matImageGray, CV_RGB2GRAY);
             matImageRGB = matImage;
         }
         else
         {
+            std::cout << "RMat::PrepImages() Image is TIFF" << std::endl;
+
             cv::cvtColor(matImage, matImageGray, CV_BGR2GRAY);
             cv::cvtColor(matImage, matImageRGB, CV_BGR2RGB);
         }
@@ -155,10 +166,7 @@ void RMat::computeHist(int nBins, float minRange, float maxRange)
 
 void RMat::calcStats()
 {
-    if (matImageGray.empty())
-    {
-        matImageGray = matImage;
-    }
+    qDebug("RMat::calcStats()");
 
     // Calculate min and max from matImageGray
     calcMinMax();
@@ -273,6 +281,15 @@ void RMat::calcMinMax()
     }
 
     cv::minMaxLoc(matImageGray, &dataMin, &dataMax);
+}
+
+cv::Mat RMat::extractChannel(unsigned int channel)
+{
+    cv::Mat planesRGB[3];
+    cv::split(matImageRGB, planesRGB);
+    cv::Mat matPlane = planesRGB[channel];
+
+    return matPlane;
 }
 
 

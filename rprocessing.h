@@ -19,7 +19,8 @@
 #include "data.h"
 #include "circle.h"
 #include "utilities.h"
-
+#include "gsl/gsl_integration.h"
+#include <math.h>
 
 namespace Ui {
 class RMainWindow;
@@ -37,6 +38,12 @@ public:
     void loadRMatBiasList(QList<QUrl> urls);
     void loadRMatDarkList(QList<QUrl> urls);
     void loadRMatFlatList(QList<QUrl> urls);
+
+    /// Numerical methods
+    static double fgauss (double x, void * params);
+    double integrateGaussian(double sigma, double a, double b);
+    double* gaussKer(int kSize, double sigma);
+    double *gaussKer2d(double sigma);
 
     /// Calibration (bias, dark, ...)
     bool makeMasterBias();
@@ -190,6 +197,8 @@ public:
     QList<RMat*> getLuckyBlkList();
     QVector<Circle> getCircleOutList();
     float getMeanRadius();
+    float fetchRMatSeriesMin(QList<RMat*> rMatImageList);
+    float fetchRMatSeriesMax(QList<RMat*> rMatImageList);
 
 
     // public properties (for "easier" referencing)
@@ -241,14 +250,14 @@ public slots:
    // Ultimately I need to use function pointers. It will get messy otherwise.
    bool prepRegistration();
    void registerSeries();
-   void registerSeriesXCorrPropagate();
+   void registerSeriesXCorrPropagate(bool useROI, bool normalizeByExposure, int sigmaBlur = 0);
    void registerSeriesOnLimbFit();
    void registerSeriesByPhaseCorrelation();
    void registerSeriesCustom();
    void registerSeriesCustomPropagate();
    cv::Point calculateSADShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov, int maxLength);
    cv::Point calculateSADShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList, int maxLength);
-   cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Rect fov);
+   cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, cv::Mat warpMatrix = cv::Mat::eye(2, 3, CV_32F));
    cv::Mat calculateXCorrShift(cv::Mat refMat, cv::Mat matImage, QList<cv::Rect> fovList);
    cv::Mat shiftToWarp(cv::Point shift);
 
@@ -277,6 +286,19 @@ public slots:
    void normalizeByStatsInPlace(RMat* rMat);
    cv::Mat normalizeByThresh(cv::Mat matImage, float oldMin, float oldMax, float newRange);
    cv::Mat normalizeClipByThresh(cv::Mat matImage, float newMin, float newMax, float dataRange);
+   cv::Mat stretch14to16bit(cv::Mat matImage);
+   QList<RMat*> stretchSeries14to16bit(QList<RMat*> rMatImageList);
+
+   // Convert to 8 bit, ...
+   cv::Mat convertTo8Bit(cv::Mat matImage, float dataMax);
+
+
+   // Extract from time series
+   std::vector<float> fetchExposureTimes(QList<RMat*> rMatImageList);
+
+   // HDR
+   void createHDRMat(QList<RMat*> rMatImageList);
+
    void fixUset(cv::Mat matImage);
     // ROI
    void setupMaskingCircle(int circleX, int circleY, int radius);
@@ -288,6 +310,8 @@ private:
 
     void normalizeFlat();
     void calibrate();
+
+    void meshgrid(const cv::Mat &xgv, const cv::Mat &ygv, cv::Mat1i &X, cv::Mat1i &Y);
 
     //int circleFitLM(Data& data, Circle& circleIni, reals LambdaIni, Circle& circle);
 

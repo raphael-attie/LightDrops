@@ -48,12 +48,14 @@ private:
     void setupRawTableWidget();
     void setupTiffTableWidget();
     void fixUset();
+    void exposureParser();
 
     RMat* rMatImage;
     QList<QString> fitsExtList;
     QList<QString> rawExtList;
     QUrl url;
     QString filePathQStr;
+    QFileInfo fileInfo;
     QString fileName;
     QString fileExt;
     QTableWidget* tableWidget;

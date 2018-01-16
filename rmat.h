@@ -22,7 +22,7 @@ public:
     RMat();
     RMat(cv::Mat mat);
     RMat(RMat const& rMat);
-    RMat(cv::Mat mat, RMat const& rMat);
+    RMat(cv::Mat mat, RMat* rMat);
     RMat(cv::Mat mat, bool bayer);
     RMat(cv::Mat mat, bool bayer, instruments instrument);
     RMat(cv::Mat mat, bool bayer, instruments instrument, float XPOSURE, float TEMP);
@@ -41,6 +41,9 @@ public:
 
     void calcStats();
     void calcMinMax();
+
+    // Extract channels
+    cv::Mat extractChannel(unsigned int channel);
 
     // Used to know when to flip image upside down
     // Yeah I know, it's disgusting... but i'm tired!
