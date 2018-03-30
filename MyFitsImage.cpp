@@ -161,7 +161,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
         qDebug("MyFitsImage:: SHORT_IMG CV_16U");
 
     }
-    else if (bitpix == SHORT_IMG  || bitpix == FLOAT_IMG || bitpix == LONG_IMG)
+    else if (bitpix == SHORT_IMG  || bitpix == FLOAT_IMG || bitpix == LONG_IMG || bitpix == DOUBLE_IMG)
     {
         image1D_float = new float[nPixels]();
         if (fits_read_img(fptr, TFLOAT, firstPixel, nPixels, &nullval, image1D_float, &anynul, &status))

@@ -243,7 +243,7 @@ def fit_bkg_rgb120(ya, xa, xbkg, data_to_fit):
 
 def fit_bkg_rgb_L12(ya, xa, xbkg, bkg_to_fit):
 
-    pr, pg, pb = zip(*[fit_bkg_120(ya, xa, xbkg, bkg_to_fit[:,rgb]) for rgb in range(3)])
+    pr, pg, pb = [fit_bkg_120(ya, xa, xbkg, bkg_to_fit[:,rgb]) for rgb in range(3)]
     #pr, pg, pb = fit_bkg_rgb120(ya, xa, xbkg, bkg_to_fit)
 
     n0 = -0.01
@@ -257,9 +257,10 @@ def fit_bkg_rgb_L12(ya, xa, xbkg, bkg_to_fit):
     pbg, _ = curve_fit(linear_rational_sum12, xbkg, bkg_to_fit[:, 1], p0=psum121g)
     pbb, _ = curve_fit(linear_rational_sum12, xbkg, bkg_to_fit[:, 2], p0=psum121b)
 
-    pbr = np.insert(pbr, 3, 0)
-    pbg = np.insert(pbg, 3, 0)
-    pbb = np.insert(pbb, 3, 0)
+    # Add 0 at list index 3 => (ax + b)/(cx^2 + 0*x + d)
+    # pbr = np.insert(pbr, 3, 0)
+    # pbg = np.insert(pbg, 3, 0)
+    # pbb = np.insert(pbb, 3, 0)
 
     return pbr, pbg, pbb
 
@@ -353,20 +354,8 @@ ax1.axis([1700,2500,1000,1700])
 plt.title('1/250s')
 plt.tight_layout()
 
-plt.figure(1, figsize=(15,11))
-ax1 = plt.gcf().add_subplot(111)
-ax1.imshow(imagesf[0,...])
-
-ax1.add_artist(plt.Circle(center, radius, color='green', fill=False, linewidth=1))
-ax1.add_artist(plt.Circle(center, 330, color='yellow', fill=False))
-ax1.axis([1700,2500,1000,1700])
-plt.title('1/250s')
-plt.tight_layout()
-
-
-
 # Display the 3 images in RGB.
-plt.figure(2, figsize=(19,10))
+plt.figure(1, figsize=(19,10))
 plt.subplot(231)
 plt.imshow(imagesf[0,...])
 plt.title('1/250s')
@@ -435,18 +424,13 @@ az_avgs_gb = 0.5 * (az_avgs_rgb[:,:, 1] + az_avgs_rgb[:,:, 2])
 
 
 
-## Alternative method: Take only the minimum values up to a given limit. Take mean beyond it.
-for i in range(460):
+## Alternative method: unique profile. Mixes 1/250s and 1/30s
+for i in range(600):
     # From 0 to 430, take the minima of exp=0
-    az_avgs_rgbM[i,:] = pimages_rgb[0, minima[0,i]+ymin, i, :]
+    az_avgs_rgbM[i,:] = az_avgs_rgb[0, i, :]
 
-# for i in range(460, minima.shape[1]):
-#     az_avgs_rgbM[i, :] = pimages_rgb[1, minima2[1,i]+ymin2, i, :]
-
-for i in range(460, minima.shape[1]):
-        az_avgs_rgbM[i, 0] = pimages_rgb[1, ymin2:ymax2, i, 0].mean()
-        az_avgs_rgbM[i, 1] = pimages_rgb[1, ymin2:ymax2, i, 1].mean()
-        az_avgs_rgbM[i, 2] = pimages_rgb[1, ymin2:ymax2, i, 2].mean()
+for i in range(600, minima.shape[1]):
+    az_avgs_rgbM[i, :] = az_avgs_rgb[1, i, :]
 
 
 # Create a unique profile to fit, this will eventually be subtracted to all exposures.
@@ -468,13 +452,15 @@ max_bkg22_loc = az_avgs_rgb2.argmax(axis=0)
 az_avgs_rgbN = az_avgs_rgb/max_bkg2[np.newaxis, np.newaxis,:]
 az_avgs_gbN = 0.5 * (az_avgs_rgbN[..., 1] + az_avgs_rgbN[..., 2])
 
+az_avgs_rgbN2 = az_avgs_rgb2/max_bkg2[np.newaxis,:]
 
-zoom1 = [200, 1800, 800, 1200]
-zoom2 = [200, 1800, 1e-3, 1.1]
+
+zoom1 = [200, 600, 800, 1200]
+zoom2 = [200, 600, 1e-3, 1.1]
 #1/250s
-plt.figure(3, figsize=(19,10))
+plt.figure(2, figsize=(19,10))
 ax1 = plt.subplot(231)
-ax1.imshow(np.clip(pimages0_rgb[0,...], 0, 1), origin='lower')
+ax1.imshow(np.clip(pimages0_rgb[0,...]*3, 0, 1), origin='lower')
 ax1.axhline(y=ymin, ls='--', linewidth=1, color='yellow')
 ax1.axhline(y=ymax, ls='--', linewidth=1, color='yellow')
 ax1.axhline(y=ymin2, ls='--', linewidth=1, color='white')
@@ -488,6 +474,8 @@ ax2 = plt.subplot(234)
 ax2.semilogy(az_avgs_rgb[0,:,0]/max_bkg2[0], 'r-', linewidth=2, label='red 1/250s norm.')
 ax2.semilogy(az_avgs_rgb[0,:,1]/max_bkg2[0], 'g--', linewidth=2, label='green 1/250s norm.')
 ax2.semilogy(az_avgs_rgb[0,:,2]/max_bkg2[0], 'b-.', linewidth=2, label='blue 1/250s norm.')
+ax2.semilogy(az_avgs_rgb[1,:,2]/max_bkg2[0], 'k-.', linewidth=1.5, label='blue 1/30s norm. ')
+
 ax2.axis(zoom2)
 plt.legend()
 
@@ -530,15 +518,15 @@ plt.tight_layout()
 
 # Fit from x1 to x2=zeroloc.
 # Start with red channel
-x0 = [400, 420, 600] #int(radius)
-x1 = [700, 1700, 1700]#zeroloc
 x00 = int(radius)
-
-x12 = [800, 1000, 1000]
-x13 = [900, 1000, 1000]
+x0 = [350, 420, 600] #int(radius)
+x1 = [600, 1000, 1200]#zeroloc
+x12 = [700, 1200, 1400]
+x13 = [800, 1400, 1600]
+x1N2 = 1400
 
 bkg_to_fit = [az_avgs_rgbN[exp, x0[exp]:x1[exp], :] for exp in range(3)]
-bkg_to_fit_gb = [az_avgs_gbN[exp, x0[exp]:x1[exp]].copy() for exp in range(3)]
+bkg_to_fitN2 = az_avgs_rgbN2[x0[0]:x1N2, :].copy()
 #bkg_to_fit2 = az_avgs_rgb2[x02:x12, :].copy()/max_bkg22[np.newaxis,:]
 bkg_to_fit2 = [az_avgs_rgbN[exp, x0[exp]:x12[exp], :] for exp in range(3)]
 bkg_to_fit3 = [az_avgs_rgbN[exp, x0[exp]:x13[exp], :] for exp in range(3)]
@@ -547,7 +535,7 @@ bkg_to_fit3 = [az_avgs_rgbN[exp, x0[exp]:x13[exp], :] for exp in range(3)]
 xbkg = [np.arange(x0[exp], x1[exp])-x00 for exp in range(3)]
 xbkg22 = [np.arange(x0[exp], x12[exp])-x00 for exp in range(3)]
 xbkg3 = [np.arange(x0[exp], x13[exp])-x00 for exp in range(3)]
-
+xbkgN2 = np.arange(x0[0], x1N2)-x00
 # Fit the inverse polynomial and not the high-degree polynomial nonsense!!
 
 xa = 380 - x00
@@ -556,36 +544,36 @@ ya = 0.15#0.1
 # Fit 3 exposures with profile: 1/(ax2+bx+c)+ 1/(dx+e)
 #pbr, pbg, pbb = zip(*[fit_bkg_rgb211(ya, xa, xbkg[exp], bkg_to_fit[exp]) for exp in range(3)])
 pr, pg, pb = zip(*[fit_bkg_rgb_L12(ya, xa, xbkg[exp], bkg_to_fit[exp]) for exp in range(3)])
-pgb = [fit_bkg_L12(ya, xa, xbkg[exp], bkg_to_fit_gb[exp]) for exp in range(3)]
 pr2, pg2, pb2 = zip(*[fit_bkg_rgb_L12(ya, xa, xbkg22[exp], bkg_to_fit2[exp]) for exp in range(3)])
 pr3, pg3, pb3 = zip(*[fit_bkg_rgb_L12(ya, xa, xbkg3[exp], bkg_to_fit3[exp]) for exp in range(3)])
+prN2, pgN2, pbN2 = fit_bkg_rgb_L12(ya, xa, xbkgN2, bkg_to_fitN2)
 
 xbkg2 = np.arange(300, zeroloc)- x00
 
-# fit_bkg_red = [1/np.poly1d(pbr[exp][0:3])(xbkg2) + 1/np.poly1d(pbr[exp][3:])(xbkg2) for exp in range(3)]
-# fit_bkg_green = [1/np.poly1d(pbg[exp][0:3])(xbkg2) + 1/np.poly1d(pbg[exp][3:])(xbkg2) for exp in range(3)]
-# fit_bkg_blue = [1/np.poly1d(pbb[exp][0:3])(xbkg2) + 1/np.poly1d(pbb[exp][3:])(xbkg2) for exp in range(3)]
-
-# fit_bkg_red2 = [np.poly1d(pbr2[exp][0:2])(xbkg2)/np.poly1d(pbr2[exp][2:5])(xbkg2) + 1/np.poly1d(pbr2[exp][5:])(xbkg2) for exp in range(3)]
-# fit_bkg_green2 = [np.poly1d(pbg2[exp][0:2])(xbkg2)/np.poly1d(pbg2[exp][2:5])(xbkg2) + 1/np.poly1d(pbg2[exp][5:])(xbkg2) for exp in range(3)]
-# fit_bkg_blue2 = [np.poly1d(pbb2[exp][0:2])(xbkg2)/np.poly1d(pbb2[exp][2:5])(xbkg2) + 1/np.poly1d(pbb2[exp][5:])(xbkg2) for exp in range(3)]
-
-fit_bkg_red = [np.poly1d(pr[exp][0:2])(xbkg2) * 1/np.poly1d(pr[exp][2:5])(xbkg2)  for exp in range(3)]
-fit_bkg_green = [np.poly1d(pg[exp][0:2])(xbkg2) * 1/np.poly1d(pg[exp][2:5])(xbkg2) for exp in range(3)]
-fit_bkg_blue = [np.poly1d(pb[exp][0:2])(xbkg2) * 1/np.poly1d(pb[exp][2:5])(xbkg2) for exp in range(3)]
+fitted_function = linear_rational_sum12
+# fit_bkg_red = [np.poly1d(pr[exp][0:2])(xbkg2) * 1/np.poly1d(pr[exp][2:5])(xbkg2)  for exp in range(3)]
+# fit_bkg_green = [np.poly1d(pg[exp][0:2])(xbkg2) * 1/np.poly1d(pg[exp][2:5])(xbkg2) for exp in range(3)]
+# fit_bkg_blue = [np.poly1d(pb[exp][0:2])(xbkg2) * 1/np.poly1d(pb[exp][2:5])(xbkg2) for exp in range(3)]
+fit_bkg_red = [fitted_function(xbkg2, *pr[exp])  for exp in range(3)]
+fit_bkg_green = [fitted_function(xbkg2, *pg[exp]) for exp in range(3)]
+fit_bkg_blue = [fitted_function(xbkg2, *pb[exp]) for exp in range(3)]
 
 #fit_bkg_gb = [np.poly1d(pgb[exp][0:2])(xbkg2) * 1/np.poly1d(pgb[exp][2:5])(xbkg2) for exp in range(3)]
 
-fit_bkg_red2 = [np.poly1d(pr2[exp][0:2])(xbkg2) * 1/np.poly1d(pr2[exp][2:5])(xbkg2)  for exp in range(3)]
-fit_bkg_green2 = [np.poly1d(pg2[exp][0:2])(xbkg2) * 1/np.poly1d(pg2[exp][2:5])(xbkg2) for exp in range(3)]
-fit_bkg_blue2 = [np.poly1d(pb2[exp][0:2])(xbkg2) * 1/np.poly1d(pb2[exp][2:5])(xbkg2) for exp in range(3)]
+fit_bkg_red2 = [fitted_function(xbkg2, *pr2[exp])  for exp in range(3)]
+fit_bkg_green2 = [fitted_function(xbkg2, *pg2[exp]) for exp in range(3)]
+fit_bkg_blue2 = [fitted_function(xbkg2, *pb2[exp]) for exp in range(3)]
 
-fit_bkg_red3 = [np.poly1d(pr3[exp][0:2])(xbkg2) * 1/np.poly1d(pr3[exp][2:5])(xbkg2)  for exp in range(3)]
-fit_bkg_green3 = [np.poly1d(pg3[exp][0:2])(xbkg2) * 1/np.poly1d(pg3[exp][2:5])(xbkg2) for exp in range(3)]
-fit_bkg_blue3 = [np.poly1d(pb3[exp][0:2])(xbkg2) * 1/np.poly1d(pb3[exp][2:5])(xbkg2) for exp in range(3)]
+fit_bkg_red3 = [fitted_function(xbkg2, *pr3[exp])  for exp in range(3)]
+fit_bkg_green3 = [fitted_function(xbkg2, *pg3[exp]) for exp in range(3)]
+fit_bkg_blue3 = [fitted_function(xbkg2, *pb3[exp]) for exp in range(3)]
+
+fit_bkg_redN2 = fitted_function(xbkg2, *prN2)
+fit_bkg_greenN2 = fitted_function(xbkg2, *pgN2)
+fit_bkg_blueN2 = fitted_function(xbkg2, *pbN2)
 
 
-zoomin = [250, 1700, 1e-3, 1.1]
+zoomin = [250, 1400, 2e-3, 1.1]
 plot = plt.semilogy
 
 # Test fitting ranges
@@ -593,11 +581,11 @@ plt.figure(4, figsize=(19,10))
 ax1 = plt.subplot(131)
 
 plot(az_avgs_rgb[0,:,0]/max_bkg2[0], 'r-', label='red 1/250s norm.', linewidth=2.5)
-plot(az_avgs_rgb[0,:,1]/max_bkg2[1], 'g-', label='green 1/250s norm', linewidth=2, alpha=0.4)
-plot(az_avgs_rgb[0,:,2]/max_bkg2[2], 'b-', label='blue 1/250s norm', linewidth=2, alpha=0.4)
-plot(xbkg2+x00, fit_bkg_red[0], 'k-', label='red 1/250s linear rational', linewidth=1.5)
-plot(xbkg2+x00, fit_bkg_red2[0], ls='--', color='gray', label='red 1/250s linear rational', linewidth=2)
-plot(xbkg2+x00, fit_bkg_red2[0], 'k-.', label='red 1/250s linear rational', linewidth=3)
+plot(az_avgs_rgb[1,:,0]/max_bkg2[0], 'r-', label='red 1/30s norm', linewidth=2.5, alpha=0.4)
+plot(xbkg2+x00, fit_bkg_red[0], 'k-', label='red 1/250s lin. rational (1)', linewidth=1.5)
+plot(xbkg2+x00, fit_bkg_red2[0], ls='--', color='gray', label='red 1/250s linear rational (2)', linewidth=2)
+plot(xbkg2+x00, fit_bkg_red3[0], 'k-.', label='red 1/250s lin. rational (3)', linewidth=3)
+plot(xbkg2+x00, fit_bkg_redN2, 'b-.', label='red mix lin. rational', linewidth=3)
 
 
 ax1.axvline(x=x0[0], ls='-', linewidth=1, color='black')
@@ -610,24 +598,29 @@ plt.legend()
 
 ax2 = plt.subplot(132)
 plot(az_avgs_rgb[0,:,1]/max_bkg2[1], 'g-', label='green 1/250s norm', linewidth=2)
+plot(az_avgs_rgb[1,:,1]/max_bkg2[1], 'g-', label='green 1/30s norm', linewidth=2, alpha=0.4)
 plot(xbkg2+x00, fit_bkg_green[0], 'k-', label='green 1/250s linear rational', linewidth=1.5)
 plot(xbkg2+x00, fit_bkg_green2[0], ls='--', color='gray', label='green 1/250s linear rational', linewidth=2)
 plot(xbkg2+x00, fit_bkg_green3[0], 'k-.', label='green 1/250s linear rational', linewidth=3)
+plot(xbkg2+x00, fit_bkg_greenN2, 'b-.', label='green mix lin. rational', linewidth=3)
+
 
 ax2.axvline(x=x0[0], ls='-', linewidth=1, color='black')
 ax2.axvline(x=x1[0], ls='-', linewidth=1, color='black')
 ax2.axvline(x=x12[0], ls='--', linewidth=1, color='gray')
 ax2.axvline(x=x13[0], ls='-.', linewidth=1, color='black')
 
-
 plt.axis(zoomin)
 plt.legend()
 
 ax3 = plt.subplot(133)
 plot(az_avgs_rgb[0,:,2]/max_bkg2[2], 'b-', label='blue 1/250s norm', linewidth=2)
+plot(az_avgs_rgb[1,:,2]/max_bkg2[2], 'b-', label='blue 1/250s norm', linewidth=2, alpha=0.4)
 plot(xbkg2+x00, fit_bkg_blue[0], 'k-', label='blue 1/250s linear rational', linewidth=1.5)
 plot(xbkg2+x00, fit_bkg_blue2[0], ls='--', color='gray', label='blue 1/250s linear rational', linewidth=2)
 plot(xbkg2+x00, fit_bkg_blue3[0], 'k-.', label='blue 1/250s linear rational', linewidth=2.5)
+plot(xbkg2+x00, fit_bkg_blueN2, 'r-.', label='blue mix lin. rational', linewidth=3)
+
 
 ax3.axvline(x=x0[0], ls='-', linewidth=1, color='black')
 ax3.axvline(x=x1[0], ls='-', linewidth=1, color='black')
@@ -639,81 +632,73 @@ plt.legend()
 
 plt.tight_layout()
 
+plt.savefig('/Users/rattie/Data/Eclipse/figures/polar_background_fit_RGB_250.png')
+
+#Show fit results at 1/30s
 
 plt.figure(5, figsize=(19,10))
 ax1 = plt.subplot(131)
-#plot(az_avgs_gb[0,:]/max_bkg_gb, ls='--', color='gray', label='blue 1/250s original', linewidth=2)
 
-#plot(az_avgs_rgb2[:,0]/max_bkg22[0], 'r--', label='red 1/250s norm. unique', linewidth=2.5)
-plot(az_avgs_rgb[0,:,0]/max_bkg2[0], 'r-', label='red 1/250s norm.', linewidth=2.5)
-plot(az_avgs_rgb[0,:,1]/max_bkg2[1], 'g--', label='green 1/250s norm', linewidth=2)
-plot(az_avgs_rgb[0,:,2]/max_bkg2[2], 'b-.', label='blue 1/250s norm.', linewidth=1.5)
+plot(az_avgs_rgb[1,:,0]/max_bkg2[0], 'r-', label='red 1/30s norm.', linewidth=2.5)
+plot(az_avgs_rgb[1,:,1]/max_bkg2[1], 'g-', label='green 1/30s norm', linewidth=2, alpha=0.4)
+plot(az_avgs_rgb[1,:,2]/max_bkg2[2], 'b-', label='blue 1/30s norm', linewidth=2, alpha=0.4)
+plot(xbkg2+x00, fit_bkg_red[0], 'k-', label='red 1/30s lin. rational (1)', linewidth=1.5)
+plot(xbkg2+x00, fit_bkg_red2[0], ls='--', color='gray', label='red 1/30s linear rational (2)', linewidth=2)
+plot(xbkg2+x00, fit_bkg_red3[0], 'k-.', label='red 1/30s lin. rational (3)', linewidth=3)
 
-#plt.plot(xbkg2+x00, fit_bkg_red[0], 'k--', label='red 1/250s rational', linewidth=1)
-plot(xbkg2+x00, fit_bkg_red[0], 'k-', label='red 1/250s linear rational', linewidth=1.5)
-plot(xbkg2+x00, fit_bkg_green[0], 'k--', label='green 1/250s linear rational', linewidth=1.5)
-plot(xbkg2+x00, fit_bkg_blue[0], 'k-.', label='blue 1/250s linear rational', linewidth=1.5)
-#plot(xbkg2+x00, fit_bkg_gb[0], 'c:', label='average [g;b] 1/250s linear rational', linewidth=1.5)
-#plot(xbkg2+x00, fit_bkg_red2, 'm--', label='red 1/250s unique linear rational', linewidth=1.5)
 
-#plt.semi
-ax1.axvline(x=x0[0], ls='-', linewidth=1, color='black')
-ax1.axvline(x=x1[0], ls='-', linewidth=1, color='black')
+ax1.axvline(x=x0[1], ls='-', linewidth=1, color='black')
+ax1.axvline(x=x1[1], ls='-', linewidth=1, color='black')
+ax1.axvline(x=x12[1], ls='--', linewidth=1, color='gray')
+ax1.axvline(x=x13[1], ls='-.', linewidth=1, color='black')
 
 plt.axis(zoomin)
 plt.legend()
 
 ax2 = plt.subplot(132)
-plot(az_avgs_gb[1,:]/max_bkg_gb, ls='-.', color='gray', label='blue 1/30s original', linewidth=2)
-plot(az_avgs_rgb[1,:,0]/max_bkg2[0], 'r-', label='red 1/30s norm.', linewidth=2.5)
-plot(az_avgs_rgb[1,:,1]/max_bkg2[1], 'g--', label='green 1/30s norm.', linewidth=2)
-plot(az_avgs_rgb[1,:,2]/max_bkg2[2], 'b-.', label='blue 1/30s norm.', linewidth=1.5)
+plot(az_avgs_rgb[1,:,1]/max_bkg2[1], 'g-', label='green 1/30s norm', linewidth=2)
+plot(xbkg2+x00, fit_bkg_green[1], 'k-', label='green 1/30s linear rational', linewidth=1.5)
+plot(xbkg2+x00, fit_bkg_green2[1], ls='--', color='gray', label='green 1/30s linear rational', linewidth=2)
+plot(xbkg2+x00, fit_bkg_green3[1], 'k-.', label='green 1/30s linear rational', linewidth=3)
 
-plot(xbkg2+x00, fit_bkg_red[1], 'k-', label='red 1/30s norm. linear rational', linewidth=1.5)
-# plot(xbkg2+x00, fit_bkg_blue[1], 'k--', label='blue 1/30s linear rational', linewidth=1.5)
-# plot(xbkg2+x00, fit_bkg_gb[1], 'k:', label='average [g;b] 1/30s linear rational', linewidth=1.5)
-plot(xbkg2+x00, fit_bkg_red2, 'k--', label='red 1/250s linear rational', linewidth=1.5)
+ax2.axvline(x=x0[1], ls='-', linewidth=1, color='black')
+ax2.axvline(x=x1[1], ls='-', linewidth=1, color='black')
+ax2.axvline(x=x12[1], ls='--', linewidth=1, color='gray')
+ax2.axvline(x=x13[1], ls='-.', linewidth=1, color='black')
 
 plt.axis(zoomin)
 plt.legend()
 
 ax3 = plt.subplot(133)
-plot(az_avgs_gb[2,:]/max_bkg_gb, ls='--', color='gray', label='blue 1s original', linewidth=2)
-plot(az_avgs_rgb[2,:,0]/max_bkg2[0], 'r-', label='red 1s', linewidth=2)
-plot(az_avgs_rgb[2,:,1]/max_bkg2[1], 'g-', label='green 1s', linewidth=2)
-plot(az_avgs_rgb[2,:,2]/max_bkg2[2], 'b-', label='blue 1s', linewidth=2)
+plot(az_avgs_rgb[1,:,2]/max_bkg2[2], 'b-', label='blue 1/30s norm', linewidth=2)
+plot(xbkg2+x00, fit_bkg_blue[1], 'k-', label='blue 1/30s linear rational', linewidth=1.5)
+plot(xbkg2+x00, fit_bkg_blue2[1], ls='--', color='gray', label='blue 1/30s linear rational', linewidth=2)
+plot(xbkg2+x00, fit_bkg_blue3[1], 'k-.', label='blue 1/30s linear rational', linewidth=2.5)
 
-plot(xbkg2+x00, fit_bkg_red[2], 'k-', label='red 1s linear rational', linewidth=1.5)
-# plot(xbkg2+x00, fit_bkg_blue[2], 'k--', label='blue 1s linear rational', linewidth=1.5)
-# plot(xbkg2+x00, fit_bkg_gb[2], 'k:', label='average [g;b] 1s linear rational', linewidth=1.5)
-plot(xbkg2+x00, fit_bkg_red2, 'k--', label='red 1/250s linear rational', linewidth=1.5)
+ax3.axvline(x=x0[1], ls='-', linewidth=1, color='black')
+ax3.axvline(x=x1[1], ls='-', linewidth=1, color='black')
+ax3.axvline(x=x12[1], ls='--', linewidth=1, color='gray')
+ax3.axvline(x=x13[1], ls='-.', linewidth=1, color='black')
 
 plt.axis(zoomin)
 plt.legend()
 
 plt.tight_layout()
 
+plt.savefig('/Users/rattie/Data/Eclipse/figures/polar_background_fit_RGB_250.png')
 
 
-plt.savefig('/Users/rattie/Data/Eclipse/figures/polar_background_fit_RGB.png')
-
-
-# From the plot above, we want the 2nd fit (pbr2, pbg2, pbb2) for the 1st exposure
-# and the 2nd fit for the 2nd and 3rd exposure.
-pbr3 = [pbr2[0], pbr[1], pbr[2]]
-pbg3 = [pbg2[0], pbg[1], pbg[2]]
-pbb3 = [pbb2[0], pbb[1], pbb[2]]
 # Pack all that into another list for use in list comprehension. It makes the code more concise.
-pbkg = [pbr3, pbg3, pbb3]
-
-
+pbkg = [pr, pg, pb]
 ## Use the fit to reconstruct a background image to subtract.
 # Make a radius map: at each pixel, the value is the distance to disc center
 r = get_radius_array(center, nx, ny)
-rr = r - x0[0]
+rr = r - x00
 #rr[rr < radius-x0] = 0
 
-imfit_rgb = [[1/np.poly1d(pbkg[rgb][exp])(rr) for rgb in range(3)] for exp in range(3)]
+# TODO: WRONG MODEL IS APPLIED HERE!! UPDATE!!!!!
+#imfit_rgb = [[1/np.poly1d(pbkg[rgb][exp])(rr) for rgb in range(3)] for exp in range(3)]
+imfit_rgb = [[fitted_function(rr, *pbkg[rgb][exp]) for rgb in range(3)] for exp in range(3)]
 imfit_rgb = [np.moveaxis(np.array(imfit_rgb[exp]), 0, -1) for exp in range(3)]
 # The fitted background was originally from data normalized to max_bkg
 #imfit_rgb2 = np.array(imfit_rgb) * max_bkg
@@ -730,7 +715,7 @@ r2[r > radius] = 0
 
 images_exp_back = images_exp - imfit_rgb2
 # Once the background is subtracted, need to define a new value to normalize the images.
-maxval_exp_back = images_exp_back[0, 1080:1120, 1900:1960, 0].max()
+maxval_exp_back = images_exp_back[:, 1080:1120, 1900:1960, 0].max()
 images_exp_backf = np.clip(images_exp_back / maxval_exp_back, 0, 1)
 images_exp_backf[0, r <= int(radius), :] = 0
 # Original images, normalized and clipped
@@ -744,19 +729,19 @@ ax2 = plt.gcf().add_subplot(222)
 ax3 = plt.gcf().add_subplot(223)
 ax4 = plt.gcf().add_subplot(224)
 
-ax1.imshow(np.clip(imagesf2[0,...]*2, 0, 1), origin='lower')
+ax1.imshow(np.clip(imagesf2[0,...]*1, 0, 1), origin='lower')
 #ax1.add_artist(plt.Circle(center, radius, color='green', fill=False, linewidth=1, ls='--'))
 ax1.axis(axis_zoom)
 ax1.set_title('1/250s norm.')
 
-ax2.imshow(np.clip(images_exp_backf[0,...]*2, 0, 1), origin='lower')
+ax2.imshow(np.clip(images_exp_backf[0,...]*1, 0, 1), origin='lower')
 #ax2.add_artist(plt.Circle(center, radius, color='green', fill=False, linewidth=1, ls='--'))
 ax2.axis(axis_zoom)
 ax2.set_title('1/250s norm. backg removed')
-ax3.imshow(np.clip(imagesf2[0,...]*256, 0, 1), origin='lower')
+ax3.imshow(np.clip(imagesf2[0,...]*50, 0, 1), origin='lower')
 ax3.axis(axis_zoom)
 ax3.set_title('1/250s norm. intensity 20x')
-ax4.imshow(np.clip(images_exp_backf[0,...]*256, 0, 1), origin='lower')
+ax4.imshow(np.clip(images_exp_backf[0,...]*50, 0, 1), origin='lower')
 ax4.axis(axis_zoom)
 ax4.set_title('1/250s norm. backg removed, intensity 20x')
 plt.tight_layout()
