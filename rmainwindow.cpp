@@ -1708,8 +1708,8 @@ void RMainWindow::updateCurrentROpenGLWidget()
     currentROpenGLWidget->setBetaLimb(betaLimb);
 
     currentROpenGLWidget->update();
-    currentROpenGLWidget->updateSubQImage();
-    currentROpenGLWidget->updateCustomPlotLineItems();
+    //currentROpenGLWidget->updateSubQImage();
+    //currentROpenGLWidget->updateCustomPlotLineItems();
 
 
 }

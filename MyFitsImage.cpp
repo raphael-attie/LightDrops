@@ -49,7 +49,6 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
     }
     status = 0;
 
-	
     printHDUType(hduType);
     int nhdus;
     if(fits_get_num_hdus(fptr, &nhdus, &status))
@@ -57,7 +56,26 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
         qDebug() << "Error at fits_get_num_hdus";
         printerror(status);
     }
+
+
+
     std::cout << "nhdus = " << nhdus << std::endl;
+    if (nhdus > 1)
+    {
+        fits_movabs_hdu(fptr, 2, &hduType, &status);
+    }
+
+    int isCompressed = 0;
+    isCompressed = fits_is_compressed_image(fptr, &status);
+
+    fitsfile *outfptr;
+
+
+    if (status)
+    {
+        qDebug() << "Error at fits_movabs_hdu ";
+        printerror(status);
+    }
 
 	// If ZCMPTYPE does not exist, data are uncompressed -> Read NAXIS
 	// else, data are compressed, read ZNAXIS. 
@@ -90,6 +108,8 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
             qDebug() << "Error reading ZNAXIS";
             printerror(status);
 		}
+        naxis1 = naxes[0];
+        naxis2 = naxes[1];
         if (fits_read_key(fptr, TINT, "ZBITPIX", &bitpix, NULL, &status))
         {
             qDebug() << "Error reading ZBITPIX";
@@ -142,10 +162,8 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
     { /// e.g. USET's Retiga Cameras
         image1D_shortint = new short int[nPixels]();
 
-
         if (fits_read_img(fptr, TSHORT, firstPixel, nPixels, &nullval, image1D_shortint, &anynul, &status))
             printerror(status);
-
 
         matFits = Mat(naxis2, naxis1, CV_16S, image1D_shortint);
 
@@ -156,6 +174,7 @@ hduType(0), naxis1(0), naxis2(0), nPixels(0), nKeys(0), bscale(1), bzero(0), exp
 
         if (fits_read_img(fptr, TUSHORT, firstPixel, nPixels, &nullval, image1D_ushort, &anynul, &status))
             printerror(status);
+
 
         matFits = Mat(naxis2, naxis1, CV_16U, image1D_ushort);
         qDebug("MyFitsImage:: SHORT_IMG CV_16U");
