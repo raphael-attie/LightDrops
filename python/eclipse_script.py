@@ -1,11 +1,13 @@
 import numpy as np
 import cv2
 import matplotlib
-matplotlib.use('macosx')
+matplotlib.use('TKagg')
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from scipy.optimize import curve_fit
 from scipy.signal import medfilt
+
+plt.ion()
 
 def get_disk(radius):
 
@@ -308,7 +310,6 @@ files = ['/Users/rattie/Data/Eclipse/Stack_mean_aligned_series/aligned/stack_mea
 nexp = 3
 times_array = np.array([250, 30, 1])
 sum_times = times_array.sum()
-weights = np.reshape(times_array/sum_times, [nexp, 1, 1, 1])
 # Normalization factors
 max16 = 2**16-1
 max14 = 2**14-1
@@ -328,16 +329,6 @@ for i in range(nexp):
 # maxval =  maximum near-saturating intensity in the prominence.
 maxval = images[:, 1080:1120, 1900:1960, 0].max() # ~ 20000
 imagesf = images/maxval
-# Normalize to the exposure time, so we get the same intensity per second + noise
-tarray3 = np.reshape(times_array, [nexp, 1, 1, 1])
-images_exp = images * tarray3 # * (2**16 -1) / (2**14 -1)
-images_expf = images_exp/maxval
-# Clip saturated pixels in the exposure-normalized images
-images_expf_masked = images_expf.copy()
-images_expf_masked[images_expf > 1] = 1
-
-
-
 ## Remap to polar coordinates
 # Coordinate of the center
 center = (2120, 1361)
@@ -354,6 +345,15 @@ ax1.axis([1700,2500,1000,1700])
 plt.title('1/250s')
 plt.tight_layout()
 
+# Normalize to the exposure time, so we get the same intensity per second + noise
+tarray3 = np.reshape(times_array, [nexp, 1, 1, 1])
+images_exp = images * tarray3 # * (2**16 -1) / (2**14 -1)
+# Divide again to maxval to have a visualization equivalent to "imagesf" (consider that 1s should look the same).
+images_expf = images_exp/maxval
+# Clip saturated pixels in the exposure-normalized images
+images_expf_masked = images_expf.copy()
+images_expf_masked[images_expf > 1] = 1
+
 # Display the 3 images in RGB.
 plt.figure(1, figsize=(19,10))
 plt.subplot(231)
@@ -368,10 +368,13 @@ plt.title('1s')
 
 plt.subplot(234)
 plt.imshow(images_expf_masked[0,...])
+plt.title('x 250')
 plt.subplot(235)
 plt.imshow(images_expf_masked[1,...])
+plt.title('x 30')
 plt.subplot(236)
 plt.imshow(images_expf_masked[2,...])
+plt.title('x 1')
 plt.tight_layout()
 
 plt.savefig('/Users/rattie/Data/Eclipse/figures/imagesRGB_and_exp_normalized.png')
@@ -808,15 +811,15 @@ plt.figure(6, figsize=(19,10))
 ax1 = plt.subplot(131)
 plt.imshow(np.clip(pimages_rgb_backf[0,...]*100, 0, 1), origin='lower')
 plt.axis([0, ny, 0, ny])
-plt.title('1/250s norm. bkg removed intensity x5')
+plt.title('1/250s norm. bkg removed intensity x100')
 ax2 = plt.subplot(132)
 plt.imshow(np.clip(pimages_rgb_backf[1,...]*100, 0, 1), origin='lower')
 plt.axis([0, ny, 0, ny])
-plt.title('1/30s norm. bkg removed intensity x1000')
+plt.title('1/30s norm. bkg removed intensity x100')
 ax3= plt.subplot(133)
 plt.imshow(np.clip(pimages_rgb_backf[2,...]*1000, 0, 1), origin='lower')
 plt.axis([0, ny, 0, ny])
-plt.title('1s norm. bkg removed intensity x2000')
+plt.title('1s norm. bkg removed intensity x1000')
 
 plt.tight_layout()
 

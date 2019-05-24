@@ -1367,12 +1367,18 @@ void RMainWindow::setupToneMappingCurve()
 
 void RMainWindow::updateToneMappingSlot()
 {
+
     updateInvGaussianParams();
 
     if (toneMappingGraph == NULL)
     {
         return;
     }
+
+    std::cout << "applyToneMapping =" << ui->applyToneMappingCheckBox->isChecked() << std::endl;
+    std::cout << "iMax =" << iMax << std::endl;
+    std::cout << "lambda =" << lambda << std::endl;
+    std::cout << "mu =" << mu << std::endl;
 
 
     int nBins = (int) currentROpenGLWidget->getRMatImageList().at(0)->getDataRange();

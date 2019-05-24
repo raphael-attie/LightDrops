@@ -35,30 +35,51 @@ void main()
 
     vec2 pixelXY = abs(TexCoord.xy - vec2(0.5, 0.5));
 
-    if (radiusXYnorm != vec2(0, 0))
-    {
-        float circleEllipseEquation = pow(pixelXY.x / radiusXYnorm.x, 2) + pow(pixelXY.y / radiusXYnorm.y, 2);
-        if (circleEllipseEquation > 1)
+    //if (radiusXYnorm != vec2(0, 0))
+    //{
+        //float circleEllipseEquation = pow(pixelXY.x / radiusXYnorm.x, 2) + pow(pixelXY.y / radiusXYnorm.y, 2);
+//        if (circleEllipseEquation > 1)
+//        {
+//            if (applyToneMapping)
+//            {
+//                vec3 mu3 = vec3(mu);
+//                /// Inverse Gaussian
+//                scaledRGB = iMax * sqrt(lambda / (2.0*3.1415 * pow(scaledRGB, vec3(3.0)))) * exp(-lambda * pow(scaledRGB - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * scaledRGB)) + scaledRGB;
+//                mediump vec3 gammaVec = vec3(limbGamma);
+//                scaledRGB = pow(scaledRGB, gammaVec);
+//            }
+//            else if (scaleLimb)
+//            {
+//                scaledRGB = alphaLimb * textureColor.rgb + betaLimb;
+//                mediump vec3 gammaVec = vec3(limbGamma);
+//                scaledRGB = pow(scaledRGB, gammaVec);
+
+//                if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
+//                {
+//                    scaledRGB.rgb = vec3(0);
+//                }
+
+//            }
+
+//        }
+
+        if (applyToneMapping)
         {
-            if (applyToneMapping)
-            {
-                vec3 mu3 = vec3(mu);
-                /// Inverse Gaussian
-                scaledRGB = iMax * sqrt(lambda / (2.0*3.1415 * pow(scaledRGB, vec3(3.0)))) * exp(-lambda * pow(scaledRGB - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * scaledRGB)) + scaledRGB;
-                mediump vec3 gammaVec = vec3(limbGamma);
-                scaledRGB = pow(scaledRGB, gammaVec);
-            }
-            else if (scaleLimb)
-            {
-                scaledRGB = alphaLimb * textureColor.rgb + betaLimb;
-                mediump vec3 gammaVec = vec3(limbGamma);
-                scaledRGB = pow(scaledRGB, gammaVec);
+            vec3 mu3 = vec3(mu);
+            /// Inverse Gaussian
+            scaledRGB = iMax * sqrt(lambda / (2.0*3.1415 * pow(scaledRGB, vec3(3.0)))) * exp(-lambda * pow(scaledRGB - mu3, vec3(2.0)) / (2.0 * pow(mu3, vec3(2.0)) * scaledRGB)) + scaledRGB;
+            mediump vec3 gammaVec = vec3(limbGamma);
+            scaledRGB = pow(scaledRGB, gammaVec);
+        }
+        else if (scaleLimb)
+        {
+            scaledRGB = alphaLimb * textureColor.rgb + betaLimb;
+            mediump vec3 gammaVec = vec3(limbGamma);
+            scaledRGB = pow(scaledRGB, gammaVec);
 
-                if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
-                {
-                    scaledRGB.rgb = vec3(0);
-                }
-
+            if (scaledRGB.r < 0 || scaledRGB.g < 0 || scaledRGB.b < 0)
+            {
+                scaledRGB.rgb = vec3(0);
             }
 
         }
@@ -67,7 +88,7 @@ void main()
             mediump vec3 gammaVec = vec3(gamma);
             scaledRGB = pow(scaledRGB, gammaVec);
         }
-    }
+    //}
 
     if (!scaleLimb)
     {

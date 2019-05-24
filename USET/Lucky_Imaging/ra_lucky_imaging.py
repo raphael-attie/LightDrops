@@ -41,7 +41,7 @@ def rebin(image, binning):
 
 def block_processing_setup(arrays, binning, blk_size, qmetric):
     """
-    Create a binned version of the full sun image, filled with values of sharpness metrics
+    Create a binned version of the image, filled with values of sharpness metrics
     Uses a custom kernel, 2nd-degree, Laplacian-like
 
     :param arrays: image series (data cube)
@@ -174,9 +174,6 @@ def make_aligned_stack(arrays, qbinned_arrays, nbest, blk_size, binned_blk_size,
         # temp_blk = arrays[ys: ys + blk_size, xs: xs + blk_size, bestIndices[i]]
         # aligned_blk = fourier_shift(np.fft.fftn(temp_blk), res)
         # bestBlks[:, :, i] = np.fft.ifftn(aligned_blk)
-
-
-
 
     return bestBlks, shifts, bestIndices
 

@@ -501,6 +501,8 @@ void ROpenGLWidget::paintGL()
     QVector2D radiusXYnorm(radiusXnorm, radiusYnorm);
     m_shader.setUniformValue(radiusXYnormLocation, radiusXYnorm);
 
+
+
     /// Limb scaling
     int alphaLimbLocation = m_shader.uniformLocation("alphaLimb");
     int betaLimbLocation = m_shader.uniformLocation("betaLimb");
